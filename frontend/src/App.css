@@ -1,0 +1,53 @@
+.App {
+  text-align: center;
+}
+.noselect {
+  -webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select: none; /* Safari */
+     -khtml-user-select: none; /* Konqueror HTML */
+       -moz-user-select: none; /* Old versions of Firefox */
+        -ms-user-select: none; /* Internet Explorer/Edge */
+            user-select: none; /* Non-prefixed version, currently
+                                  supported by Chrome, Edge, Opera and Firefox */
+}
+#container{
+  
+  height:130vh;
+  width:130vw;
+  position: relative;
+}
+#basic{
+  position: absolute;
+  
+
+}
+#tc{
+  border:1px solid white;
+}
+#img{
+  position:absolute;
+  height:682;
+  width:682;
+  left:0px;
+  top:0px;
+}
+circle{
+  position: absolute;
+  border-radius: 50%/50%;
+  border: solid 5px #f00;
+  width:var(--width);
+  height:var(--height);
+  top:var(--top);
+  left:var(--bot);
+}
+#button{
+  position:absolute;
+  width:80px;
+  height:40px;
+  top:750px;
+  left:750px;
+}
+#base{
+  position:absolute;
+  
+}
