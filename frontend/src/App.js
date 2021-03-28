@@ -21,6 +21,7 @@ import { thisExpression } from "@babel/types";
 import SearchField from "react-search-field";
 import ReactSlider from 'react-slider'
 import GoogleLogin from 'react-google-login';
+
 class App extends React.Component {
   constructor(props) {
     super(props);
@@ -108,6 +109,24 @@ class App extends React.Component {
     };
   }
 
+  // Get backend IP
+  // TODO: add error checking
+  get backend_ip() {
+    return process.env.REACT_APP_BACKEND_IP
+  }
+
+  // Get backend port
+  // TODO: add error checking and/or default value
+  get backend_port() {
+    return process.env.REACT_APP_BACKEND_PORT
+    return 5000
+  }
+
+  // Get url for backend server requests
+  get url() {
+    return 'http://' + this.backend_ip + ':' + this.backend_port
+  }
+
   makeData = (arr) => {
     arr = Object.assign({}, arr);
     return arr;
@@ -135,7 +154,7 @@ class App extends React.Component {
     } else {
       return axios
         .get(
-          `http://13.56.36.143:5000//radius/` +
+          this.url + '//radius/' +
             this.filenum +
             `/` +
             x +
@@ -157,14 +176,14 @@ class App extends React.Component {
     }
   };
   fixBackground = ()=>{
-    return axios.get(`http://13.56.36.143:5000/fix_background/`+this.filenum).then((res)=>{this.setState({background_corrected:'b'})}).catch('An Error Occurred')
+    return axios.get(this.url + '/fix_background/'+this.filenum).then((res)=>{this.setState({background_corrected:'b'})}).catch('An Error Occurred')
   }
   onReturnProcessed = (res) => {
     this.filenum = res.data.res;
-    this.setState({ img: `http://13.56.36.143:5000/img/` + res.data.res });
-    this.setState({ UVImg: `http://13.56.36.143:5000/UV/` + res.data.res });
+    this.setState({ img: this.url + '/img/' + res.data.res });
+    this.setState({ UVImg: this.url + '/UV/' + res.data.res });
     this.setState({
-      CerenkovImg: `http://13.56.36.143:5000/Cerenkov/` + res.data.res,
+      CerenkovImg: this.url + '/Cerenkov/' + res.data.res,
     });
     this.setState({ ImgReturned: true });
     console.log(res.data);
@@ -290,7 +309,7 @@ class App extends React.Component {
       data.append("autoLane", "false");
     }
     return axios
-      .post(`http://13.56.36.143:5000//results/` + this.filenum, data, {
+      .post(this.url + '//results/' + this.filenum, data, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -317,7 +336,7 @@ class App extends React.Component {
       console.log(shift);
       return axios
         .get(
-          `http://13.56.36.143:5000//radius/` +
+          this.url + '//radius/' +
             this.filenum +
             `/` +
             x +
@@ -398,7 +417,7 @@ class App extends React.Component {
       console.log(shift);
       return axios
         .get(
-          `http://13.56.36.143:5000//radius/` +
+          this.url + '//radius/' +
             this.filenum +
             `/` +
             x +
@@ -430,7 +449,7 @@ class App extends React.Component {
     data.append("UVFlat", this.state.enterUVF);
     data.append("Lanes", this.state.enterL);
     return axios
-      .post(`http://13.56.36.143:5000/database_retrieve`, data, {
+      .post(this.url + '/database_retrieve', data, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -495,7 +514,7 @@ class App extends React.Component {
     var data = new FormData();
     data.append("email", response.Es.kt);
     return axios
-      .post(`http://13.56.36.143:5000/sign_in`
+      .post(this.url + '/sign_in'
 	   ,data).then(console.log(':D'))
     }
   decHorz = () => {
@@ -548,7 +567,7 @@ class App extends React.Component {
     let data = new FormData();
     data.append("files", this.state.string_files[i]);
     return axios
-      .post(`http://13.56.36.143:5000/get_data`, data, {
+      .post(this.url + '/get_data', data, {
         headers: { "Content-Type": "multipart/form-data" },
       })
       .then((res) => {
@@ -566,7 +585,7 @@ class App extends React.Component {
     data.append("ROIs", this.ROIs);
     data.append("origins", this.origins);
     data.append("filenum", this.filenum);
-    return axios.post(`http://13.56.36.143:5000/database`, data, {
+    return axios.post(this.url + '/database', data, {
       headers: { "Content-Type": "multipart/form-data" },
     });
   };
@@ -589,7 +608,7 @@ class App extends React.Component {
     const fileblob7 = new Blob([this.state.BrightFlat], { type: "image/png" });
     data.append("BrightFlat", fileblob7);
     return axios
-      .post(`http://13.56.36.143:5000/time`, data, {
+      .post(this.url + '/time', data, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
@@ -1103,7 +1122,7 @@ class App extends React.Component {
                     filter:
                       "contrast(" + (100 + 10 * this.state.contrast) + "%)",
                   }}
-                  src={`http://13.56.36.143:5000/img/` + this.filenum+this.state.background_corrected}
+                  src={this.url + '/img/' + this.filenum+this.state.background_corrected}
                   onClick={this._onMouseClick.bind(this)}
                 />
               )}
@@ -1115,7 +1134,7 @@ class App extends React.Component {
                       this.state.Brightname != "") && (
                       <div>
                         <img
-                          src={`http://13.56.36.143:5000/UV/` + this.filenum}
+                          src={this.url + '/UV/' + this.filenum}
                           style={{
                             position: "absolute",
                             marginTop: "30vh",
@@ -1130,9 +1149,7 @@ class App extends React.Component {
                           onClick={this.UVClick}
                         />
                         <img
-                          src={
-                            `http://13.56.36.143:5000/Cerenkov/` + this.filenum
-                          }
+                          src={this.url + '/Cerenkov/' + this.filenum}
                           style={{
                             position: "absolute",
                             marginTop: "30vh",
