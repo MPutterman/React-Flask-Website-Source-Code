@@ -119,7 +119,6 @@ class App extends React.Component {
   // TODO: add error checking and/or default value
   get backend_port() {
     return process.env.REACT_APP_BACKEND_PORT
-    return 5000
   }
 
   // Get url for backend server requests
