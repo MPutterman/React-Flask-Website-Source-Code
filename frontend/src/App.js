@@ -29,10 +29,13 @@ import EditIcon from '@material-ui/icons/Edit';
 import HomeIcon from '@material-ui/icons/Home';
 
 // Import Router and pages
-import {BrowserRouter as Router, Switch, Route, Link, NavLink} from "react-router-dom";
+import {BrowserRouter as Router, Switch, Route, useParams, Link, NavLink} from "react-router-dom";
 import Home from './components/home';
 import About from './components/about';
 import Contact from './components/contact';
+import User from './components/user';
+import Error404 from './components/error404';
+
 //import Analysis from './components/analysis';
 //import User from './components/user';
 //import Organization from './components/organization';
@@ -42,7 +45,7 @@ import Contact from './components/contact';
 // TODO: figure out the 'auth' state, and show different content, e.g. only 'login' option if not logged in
 //   and 'account' or 'logout' if logged in...
 
-const drawerWidth = 240;
+const drawerWidth = 120;
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -132,6 +135,17 @@ export function MenuAppBar() {
     setAnchorEl(null);
   };
 
+  // TODO: need to figure out how to get the current user's ID
+  const handleUserAccount = () => {
+    handleCloseUserMenu(null);
+    window.location.pathname = '/user/edit/1';
+  }
+
+  // TODO: need to figure out how to get the current user's ID
+  const handleUserLogout = () => {
+    handleCloseUserMenu(null);
+    window.location.pathname = '/user/logout/1';
+  }
   const handleCloseUserMenu = () => {
     setAnchorE2(null);
   };
@@ -202,8 +216,8 @@ export function MenuAppBar() {
                 open={openUserMenu}
                 onClose={handleCloseUserMenu}
               >
-                <MenuItem onClick={handleCloseUserMenu}>My account</MenuItem>
-                <MenuItem onClick={handleCloseUserMenu}>Logout</MenuItem>
+                <MenuItem onClick={handleUserAccount}>My account</MenuItem>
+                <MenuItem onClick={handleUserLogout}>Logout</MenuItem>
               </Menu>
             </div>
           )}
@@ -262,6 +276,8 @@ class App extends React.Component {
                     <Route exact path='/' component={Home} />
                     <Route path='/contact' component={Contact} />
                     <Route path='/about' component={About} />
+                    <Route path='/user/:action/:id' component={User} />
+                    <Route component={Error404} />
                 </Switch>
             </Router>
         );
