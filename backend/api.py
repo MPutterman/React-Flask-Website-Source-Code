@@ -21,14 +21,14 @@ import os
 from skimage import measure
 from flask_cors import CORS
 class analysis():
-    def __init__(self,ROIs,n_l,origins,filename,doUV,doRF,autoLane=True):
+    def __init__(self,ROIs,n_l,origins,filename,doUV,doRF,autoLane):
         self.doRF=doRF
         self.ROIs = ROIs
         self.n_l=n_l
         self.origins=origins
         self.filename=filename
         self.doRF=doRF
-        self.autoLane=True
+        self.autoLane=autoLane
         self.doUV=doUV
     def __str__(self):
         return (f'ROIS: {self.ROIs} \n origins: {self.origins} \n n_l: {self.n_l} \n filename: {self.filename} \n doUV: {self.doUV} \n doRF,{self.doRF} \n autoLane: {self.autoLane}')
@@ -783,8 +783,8 @@ def analysis_edit(filename):
     print('there')
     doUV = request.form['doUV']=='true'
     print(doUV)
-    autoLane=request.form['autoLane']=='true' and (not doRF and not doUV)
-    print('are')
+    autoLane=request.form['autoLane']=='true' and not (doRF or doUV)
+    print('are',autoLane)
     num_lanes=int(request.form['n_l'])
     print('you?')
     #print(request.form['autoLane'])
@@ -816,6 +816,7 @@ def analysis_edit(filename):
     analysis_edit.setROIs(newROIs)
     analysis_edit.setOrigins(newOrigins)
     analysis_edit.setAutoLane(autoLane)
+    print('auto',analysis_edit.autoLane)
     analysis_edit.setN_l(num_lanes)
     analysis_edit.setDoRF(doRF)
     
@@ -858,7 +859,7 @@ def createFile():
         np.save("./UPLOADS/"+tim+'.npy',Cerenkov)
         img = img_cerenk[0]
         doUV = img_cerenk[2]
-        current_analysis = analysis([],0,[],tim,doUV,doUV)
+        current_analysis = analysis([],0,[],tim,doUV,doUV,doUV)
         if doUV:
             calc = img_cerenk[-3]
         else:
