@@ -69,7 +69,7 @@ const useStyles = makeStyles((theme) => ({
   menuButton: {
     marginRight: theme.spacing(2),
   },
-    hide: {
+  hide: {
     display: 'none',
   },
   drawer: {
@@ -174,6 +174,7 @@ export function MenuAppBar() {
           </h1>
           <br />
       </div>
+     
 
       <AppBar style={{topMargin: '50'}} position="fixed" className={clsx(classes.appBar, {[classes.appBarShift]: open, })} >
         <Toolbar>
@@ -260,6 +261,9 @@ export function MenuAppBar() {
           </ListItem>
         </List>
       </Drawer>
+
+      <main />
+
     </div>
   );
 }
