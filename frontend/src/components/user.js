@@ -6,7 +6,7 @@ class User extends React.Component {
   render() {
     return (
         <div>
-          <h2>User Action={this.props.match.params.action} ID={this.props.match.params.id}</h2>
+          <h2>User Action={this.props.match.params} ID={this.props.match.params.id}</h2>
         </div>
     );
   }
