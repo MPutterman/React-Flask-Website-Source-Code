@@ -36,7 +36,9 @@ import Contact from './components/contact';
 import User from './components/user';
 import Error404 from './components/error404';
 
-//import Analysis from './components/analysis';
+import Analysis from './components/analysis';
+import Submission from './components/submission'
+import Start from './components/start'
 //import User from './components/user';
 //import Organization from './components/organization';
 //import Equipment from './components/equipment';
@@ -277,6 +279,9 @@ class App extends React.Component {
                     <MenuAppBar />
                 </div>
                 <Switch>
+                    <Route path='/start' component={Start}/>
+                    <Route path='/submission' component={Submission}/>
+                    <Route path='/analysis/:filenumber' component={Analysis}/>
                     <Route exact path='/' component={Home} />
                     <Route path='/contact' component={Contact} />
                     <Route path='/about' component={About} />
