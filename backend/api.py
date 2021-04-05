@@ -528,7 +528,31 @@ def np64toint(arr):
         for j in range(len(arr[i])):
             arr[i][j]=int(arr[i][j])
     return arr
-
+def finalize(Dark,Dark2,Flat,Flat2,Cerenkov,Cerenkov2,UV,UV2,UVFlat,UVFlat2,Bright,Bright2,BrightFlat,BrightFlat2):
+    ###print('dark')
+    Dark = makeFileArray(Dark,Dark2)
+    ###print('flat')
+    Flat = makeFileArray(Flat,Flat2)
+    ###print('cerenkov')
+    Cerenkov = makeFileArray(Cerenkov,Cerenkov2)
+    ###print('UV')
+    UV = makeFileArray(UV,UV2)
+    ##print('UVFLAt')
+    UVFlat = makeFileArray(UVFlat,UVFlat2)
+    ##print('b')
+    Bright = makeFileArray(Bright,Bright2)
+    ##print('bf')
+    BrightFlat = makeFileArray(BrightFlat,BrightFlat2)
+    if isStorage(Cerenkov):
+        Cerenkov = np.loadtxt('./SampleData/DMSO140-160')
+    if isStorage(Dark):
+        Dark= Image.open('./SampleData/masterdark.tiff')
+        Dark = np.asarray(Dark)
+        
+    if isStorage(Flat):
+        Flat= Image.open('./SampleData/masterflat.tiff')
+        Flat = np.asarray(Flat)
+    return startUp(Dark,Flat,Cerenkov,UV,UVFlat,Bright,BrightFlat)
 def startUp(Dark,Flat,Cerenkov,UV,UVFlat,Bright,BrightFlat):
     
     doUV = True
@@ -607,8 +631,26 @@ def startUp(Dark,Flat,Cerenkov,UV,UVFlat,Bright,BrightFlat):
 def isStorage(item):
     return("FileStorage" in str(type(item)))
 
-
-
+def is_unique_key(num):
+    for i in os.listdir('./UPLOADS/'):
+        if str(num) in i:
+            return False
+    return True
+def generate_key():
+    num=1
+    while True:
+        num = int((10**11)*np.random.rand())
+        print(num)
+        num=np.base_repr(num,base=36)
+        print(num)
+        if is_unique_key(num):
+            break
+    return num
+    
+    
+    
+    
+    
 def makeFileArray(fileN,fileN1):
     tim = time.time()
     try:
@@ -810,7 +852,7 @@ def createFile():
         Bright2 = request.files['Bright']
         BrightFlat2 = request.files['BrightFlat']
         
-        tim = str(int(time.time()))
+        tim = generate_key()
         img_cerenk = finalize(Dark,Dark2,Flat,Flat2,Cerenkov,Cerenkov2,UV,UV2,UVFlat,UVFlat2,Bright,Bright2,BrightFlat,BrightFlat)
         Cerenkov = img_cerenk[1]
         np.save("./UPLOADS/"+tim+'.npy',Cerenkov)
