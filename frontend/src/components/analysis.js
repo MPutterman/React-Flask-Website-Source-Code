@@ -111,13 +111,13 @@ class Analysis extends React.Component {
   // Get backend IP
   // TODO: add error checking
   get backend_ip() {
-    return 'localhost'
+    return process.env.REACT_APP_BACKEND_IP
   }
 
   // Get backend port
   // TODO: add error checking and/or default value
   get backend_port() {
-    return '5000'
+    return process.env.REACT_APP_BACKEND_PORT
   }
 
   // Get url for backend server requests
