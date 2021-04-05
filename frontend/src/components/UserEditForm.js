@@ -3,6 +3,9 @@ import { useForm, Controller } from "react-hook-form";
 import Input from "@material-ui/core/Input";
 import TextField from "@material-ui/core/TextField";
 import Button from "@material-ui/core/Button";
+import Select from "@material-ui/core/Select";
+import MenuItem from "@material-ui/core/MenuItem";
+import InputLabel from "@material-ui/core/InputLabel";
 
 /* Important notes:
    I am using Material UI for form components, and React Hook Form for handling of validation.
@@ -42,20 +45,20 @@ const UserEditForm = () => {
 
         <Controller
           control={control}
-          name="name"
+          name="firstName"
           rules= {{
-            required: {value:true, message:"Name is required"},
+            required: {value:true, message:"First name is required"},
 //            minLength: {value: 3, message:"Minimum name length is 3"},
 //            validate: ()=>{return getValues("name") === "bill";}
 //            validate: {value: ()=>{return getValues("name") === "bill";} , message: "Name must be bill"},
           }}
           render={({field, fieldState, formState}) =>
           <TextField
-            label="Full name:"
-            helperText={formState.errors.name ? formState.errors.name.message : ''}
-            autoComplete="name"
+            label="First name:"
+            helperText={formState.errors.firstName ? formState.errors.firstName.message : ''}
+            autoComplete="given-name"
 //            {...register('name', { required: "Name is required"})}
-            placeholder="Full name"
+            placeholder="First name"
             fullWidth
             variant='outlined'
             onChange={field.onChange}
@@ -65,7 +68,28 @@ const UserEditForm = () => {
 
           />
           }
+        />
+
+        <Controller
+          control={control}
+          name="lastName"
+          rules= {{
+            required: {value:true, message:"Last name is required"},
+          }}
+          render={({field, fieldState, formState}) =>
+          <TextField
+            label="Last name:"
+            helperText={formState.errors.lastName ? formState.errors.lastName.message : ''}
+            autoComplete="family-name"
+            placeholder="Last name"
+            fullWidth
+            variant='outlined'
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            error={Boolean(fieldState.error)}
           />
+          }
+        />
 
         <Controller
           control={control}
@@ -85,10 +109,42 @@ const UserEditForm = () => {
             onChange={field.onChange}
             onBlur={field.onBlur}
             error={Boolean(fieldState.error)}
-
           />
           }
-          />
+        />
+
+        {/* TODO: password field, but might use Google signin API */}
+
+        <Controller
+          control={control}
+          name="organization"
+          rules= {{
+          }}
+          render={({field, fieldState, formState}) =>
+          <>
+          <InputLabel>Organization</InputLabel>
+          <Select
+            label="Organization:"
+            defaultValue={[]}
+            multiple
+            helperText={formState.errors.organization ? formState.errors.organization.message : ''}
+            autoComplete="organization"
+            placeholder="Select your organization(s)"
+            variant='outlined'
+            onChange={field.onChange}
+            onBlur={field.onBlur}
+            error={Boolean(fieldState.error)}
+          >
+          {/* In the future these will be populated from database of organizations with the ID number */}
+          <MenuItem value="id1">UCLA Crump Institute</MenuItem>
+          <MenuItem value="id2">Some other place</MenuItem>
+          </Select>
+          </>
+          }
+        />
+
+        <Button type="link">Add New Organization</Button>
+
 
         <Button type="submit">Save Changes</Button>
         <Button type="reset">Cancel</Button>
