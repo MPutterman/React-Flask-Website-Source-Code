@@ -33,14 +33,13 @@ import {BrowserRouter as Router, Switch, Route, useParams, Link, NavLink} from "
 import Home from './components/home';
 import About from './components/about';
 import Contact from './components/contact';
-import User from './components/user';
 import Error404 from './components/error404';
 
 import Analysis from './components/analysis';
 import Submission from './components/submission'
 import Start from './components/start'
-//import User from './components/user';
-//import Organization from './components/organization';
+import User from './components/user';
+import Organization from './components/organization';
 //import Equipment from './components/equipment';
 
 // TODO: convert this to a class...
@@ -286,6 +285,7 @@ class App extends React.Component {
                     <Route path='/contact' component={Contact} />
                     <Route path='/about' component={About} />
                     <Route path='/user/:action/:id' component={User} />
+                    <Route path='/organization/:action/:id' component={Organization} />
                     <Route component={Error404} />
                 </Switch>
             </Router>
