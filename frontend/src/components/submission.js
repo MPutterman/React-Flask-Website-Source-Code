@@ -28,6 +28,7 @@ class Submission extends React.Component {
   constructor(props) {
     super(props);
     this.fileLink = React.createRef();
+    this.dataLink = React.createRef();
     this.darkReference = React.createRef();
     this.flatReference = React.createRef();
     this.cerenkovReference = React.createRef();
@@ -35,6 +36,7 @@ class Submission extends React.Component {
     this.UVFlatReference = React.createRef();
     this.brightReference = React.createRef();
     this.brightFlatReference = React.createRef();
+    this.fileLink = React.createRef();
     this.theme = createMuiTheme({
       palette: {
         type: "dark",
@@ -76,9 +78,9 @@ class Submission extends React.Component {
       contrast: 0,
       show_us: "About Us",
       start: false,
-      Darkname: "",
-      Flatname: "",
-      Cerenkovname: "",
+      Darkname: "SampleDarkField",
+      Flatname: "SampleFlatField",
+      Cerenkovname: "SampleCerenkov",
       Brightname: "",
       BrightFlatname: "",
       UVname: "",
@@ -165,6 +167,13 @@ class Submission extends React.Component {
     data.append("Bright", fileblob6);
     const fileblob7 = new Blob([this.state.BrightFlat], { type: "image/png" });
     data.append("BrightFlat", fileblob7);
+    data.append('BrightName',this.state.Brightname)
+    data.append('FlatName',this.state.Flatname)
+    data.append('CerenkovName',this.state.Cerenkovname)
+    data.append('DarkName',this.state.Darkname)
+    data.append('UVName',this.state.UVname)
+    data.append('UVFlatName',this.state.UVFlatname)
+    data.append('BrightFlatName',this.state.BrightFlatname)
     return axios
       .post(this.url + '/time', data, {
         headers: {
@@ -324,7 +333,7 @@ class Submission extends React.Component {
                       color="primary"
                       variant="contained"
                       onClick={(e) => {
-                        this.setState({ showData: true });
+                        this.dataLink.current.click()
                       }}
                       style={{
                         fontSize: "5.5vh",
@@ -340,7 +349,15 @@ class Submission extends React.Component {
                       Click Here to Search Our Database Instead
                     </Button>
                   
-
+                    <Link type = 'hidden' ref={this.dataLink} style={{
+                      display:'none',
+                      fontSize: "2.5vh",
+                      position: "absolute",
+                      marginTop: "44vh",
+                      marginLeft: "41vw",
+                      width: "0vw",
+                      height: "0vh",
+                    }} to={{ pathname: '/search'}} >click here</Link> 
                   
                     <input
                       type="file"

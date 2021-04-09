@@ -21,7 +21,7 @@ import os
 from skimage import measure
 from flask_cors import CORS
 class analysis():
-    def __init__(self,ROIs,n_l,origins,filename,doUV,doRF,autoLane):
+    def __init__(self,ROIs,n_l,origins,filename,doUV,doRF,autoLane,names=['Sample','Sample','Sample','','','','']):
         self.doRF=doRF
         self.ROIs = ROIs
         self.n_l=n_l
@@ -30,13 +30,16 @@ class analysis():
         self.doRF=doRF
         self.autoLane=autoLane
         self.doUV=doUV
+        self.names=names
+    def upload_data(self):
+        name = ''
     def __str__(self):
-        return (f'ROIS: {self.ROIs} \n origins: {self.origins} \n n_l: {self.n_l} \n filename: {self.filename} \n doUV: {self.doUV} \n doRF,{self.doRF} \n autoLane: {self.autoLane}')
+        return (f'ROIS: {self.ROIs} \n origins: {self.origins} \n n_l: {self.n_l} \n filename: {self.filename} \n doUV: {self.doUV} \n doRF,{self.doRF} \n autoLane: {self.autoLane} \n {self.names}')
     @staticmethod
     def build_analysis(attributes):
-        return analysis(attributes[0],attributes[1],attributes[2],attributes[3],attributes[4],attributes[5],attributes[6])
+        return analysis(attributes[0],attributes[1],attributes[2],attributes[3],attributes[4],attributes[5],attributes[6],attributes[7])
     def dump(self):
-        return [self.ROIs,self.n_l,self.origins,self.filename,self.doUV,self.doRF,self.autoLane]
+        return [self.ROIs,self.n_l,self.origins,self.filename,self.doUV,self.doRF,self.autoLane,self.names]
     def setOrigins(self,origins):
         self.origins=origins
     def setROIs(self,ROIs):
@@ -139,8 +142,8 @@ class analysis():
             arr.append([points[i][0],points[i][1],res['rowRadius'],res['colRadius']])
         return arr
     
-
-    def find_RL_UD(self,img,centers):
+    @staticmethod
+    def find_RL_UD(img,centers):
         arr = []
         for center in centers:
 
@@ -318,7 +321,7 @@ class analysis():
         ###print(time.time()-u)
         #print(time.time()-u)
         for i in range(4):
-            centers = self.find_RL_UD(img,centers)
+            centers = analysis.find_RL_UD(img,centers)
         centers = self.clear_near(centers)
         return centers
     def findMaxLength(self,arr):
@@ -421,7 +424,7 @@ class analysis():
         print(shift)
         if (shift=='0'):
             for i in range(3):
-                center  = find_RL_UD(img,[(row,col)])
+                center  = analysis.find_RL_UD(img,[(row,col)])
                 row = center[0][0]
                 col=center[0][1]
         val =1.35*(np.mean(img[:,150:len(img[0])-150]))
@@ -696,28 +699,24 @@ def findL(name):
 def findFiles(lanes,cerenkName,darkName,flatName,UVName,UVFlatName):
     list_dir = os.listdir('./database')
     names = []
+    
     print(lanes)
     for i in list_dir:
+        arr =[]
         if (cerenkName in findCerenkov(i)) and (darkName in findDark(i)) and (flatName in findFlat(i)) and (UVName in findUV(i)) and (UVFlatName in findUVFlat(i)) and (str(lanes) in findL(i)):
-
-            names.append(i)
+            arr.append(findCerenkov(i))
+            arr.append(findDark(i))
+            arr.append(findFlat(i))
+            arr.append(findUV(i))
+            arr.append(findUVFlat(i))
+            arr.append(findL(i))
+            names.append(arr)
     return names
 
 app = Flask(__name__)
 CORS(app)
 
-@app.route('/get_data',methods = ['POST'])
-def findData():
-    np.load.__defaults__=(None, True, True, 'ASCII')
-    np_load_old = np.load
-    print(request.form["files"])
 
-    
-    fileN = request.form["files"]
-    state = np.load('./database/'+fileN)
-    state = findState(state)
-    print(state)
-    return {'state':state}
 @app.route("/database_retrieve",methods=["POST"])
 def ret_data():
     return({"files":findFiles(request.form["Lanes"],request.form["Cerenkov"],request.form["Darkfield"],request.form["Flatfield"],request.form["UV"],request.form["UVFlat"])})
@@ -773,20 +772,12 @@ def sign_in():
         return{"status":"registered"}
 @app.route('/analysis_edit/<filename>',methods = ['POST'])
 def analysis_edit(filename):
-    print('hi')
     origins = request.form['origins']
-    print(origins)
-    print('pog')
     ROIs = request.form['ROIs']
-    print(ROIs)
     doRF = request.form['doRF']=='true'
-    print('there')
     doUV = request.form['doUV']=='true'
-    print(doUV)
     autoLane=request.form['autoLane']=='true' and not (doRF or doUV)
-    print('are',autoLane)
     num_lanes=int(request.form['n_l'])
-    print('you?')
     #print(request.form['autoLane'])
     #print(request.form['autoLane']=='true' and (not doRF and not doUV))
     #print(autoLane)
@@ -852,6 +843,18 @@ def createFile():
         UVFlat2 = request.files['UVFlat']
         Bright2 = request.files['Bright']
         BrightFlat2 = request.files['BrightFlat']
+        CerenkovName=request.form['CerenkovName']
+        UVName=request.form['UVName']
+        BrightName=request.form['BrightName']
+        DarkName=request.form['DarkName']
+        UVName=request.form['UVName']
+        UVFlatName=request.form['UVFlatName']
+        BrightFlatName=request.form['BrightFlatName']
+        FlatName=request.form['FlatName']
+        print('r',request.form)
+        
+        names = [CerenkovName,DarkName,FlatName,UVName,UVFlatName,BrightName,BrightFlatName]
+
         
         tim = generate_key()
         img_cerenk = finalize(Dark,Dark2,Flat,Flat2,Cerenkov,Cerenkov2,UV,UV2,UVFlat,UVFlat2,Bright,Bright2,BrightFlat,BrightFlat)
@@ -859,7 +862,7 @@ def createFile():
         np.save("./UPLOADS/"+tim+'.npy',Cerenkov)
         img = img_cerenk[0]
         doUV = img_cerenk[2]
-        current_analysis = analysis([],0,[],tim,doUV,doUV,doUV)
+        current_analysis = analysis([],0,[],tim,doUV,doUV,doUV,names)
         if doUV:
             calc = img_cerenk[-3]
         else:
@@ -887,6 +890,7 @@ def createFile():
         np.load.__defaults__=(None, True, True, 'ASCII')
         np_load_old = np.load
         print(analysis.build_analysis(np.load(f'./UPLOADS/analysis{tim}.npy')))
+        
         ##print(points)
         
         res = tim
@@ -910,7 +914,7 @@ def findRadius(filename,x,y,shift):
     print(shift)
     if (shift=='0'):
         for i in range(3):
-            center  = find_RL_UD(img,[(row,col)])
+            center  = analysis.find_RL_UD(img,[(row,col)])
             row = center[0][0]
             col=center[0][1]
     val =1.35*(np.mean(img[:,150:len(img[0])-150]))
@@ -943,16 +947,34 @@ def giveUV(filename):
 def giveCerenkov(filename):
     filen = './UPLOADS/'+filename+'Cerenkov.png' 
     return send_file(filen)
-@app.route('/database',methods = ['POST'])
-def upload_data():
-    lanes = num_lanes(request.form.to_dict())
-    if request.form["dataName"]=="":
-        np.save('./database/'+"c@~"+request.form["Cerenkovname"]+"cd@~"+request.form["Darkname"]+"cf@~"+request.form["Flatname"]+"u@~"+request.form["UVname"]+"uf@~"+request.form["UVFlatname"]+"l@~"+lanes+'.npy',(request.form.to_dict()))
-    else:
-        np.save('./database/'+request.form["dataName"]+'.npy',request.form.to_dict())
-
-    return({"hi":1})
-
+@app.route('/upload_data/<filename>',methods = ['POST'])
+def upload_data(filename):
+    np.load.__defaults__=(None, True, True, 'ASCII')
+    np_load_old = np.load
+    
+    analysis_upload = analysis.build_analysis(np.load(f'./UPLOADS/analysis{filename}.npy'))
+    name = f'c@~{analysis_upload.names[0]}cd@~{analysis_upload.names[1]}cf@~{analysis_upload.names[2]}u@~{analysis_upload.names[3]}uf@~{analysis_upload.names[4]}l@~{analysis_upload.n_l}'
+    np.save(f'./database/{name}.npy',filename)
+    print(name)
+    print(np.load(f'./database/{name}.npy'))
+    return({"Status":'Data Upload Successful'})
+    
+@app.route('/data/',methods=['POST'])
+def data():
+    print('sup')
+    np.load.__defaults__=(None, True, True, 'ASCII')
+    np_load_old = np.load
+    CerenkovName=request.form['CerenkovName']
+    UVName=request.form['UVFlatName']
+    DarkName=request.form['DarkName']
+    UVName=request.form['UVName']
+    UVFlatName=request.form['UVFlatName']
+    FlatName=request.form['FlatName']
+    Lanes = request.form['Lanes']
+    name = f'c@~{CerenkovName}cd@~{DarkName}cf@~{FlatName}u@~{UVName}uf@~{UVFlatName}l@~{Lanes}'
+    filename = str(np.load(f'./database/{name}.npy'))
+    print('fname:',filename)
+    return {'Key':filename}
 @app.route('/results/<filename>',methods = ['GET'])
 def results(filename):
         np.load.__defaults__=(None, True, True, 'ASCII')

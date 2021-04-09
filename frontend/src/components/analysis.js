@@ -388,6 +388,12 @@ class Analysis extends React.Component {
       this.setState({ doROIs: true });
     }
   };
+
+  add_data = () => {
+    this.setState({ dataUploaded: true });
+    
+    return axios.post(this.url + '/upload_data/'+this.filenum).then(res=>{alert(res.data.Status)});
+  };
   submit() {
     console.log(this.origins)
     // if (this.state.Cerenkovname == "") {
@@ -911,7 +917,21 @@ class Analysis extends React.Component {
                     >
                       Clear ROIs
                     </Button>
-
+                    <Button
+                  color="primary"
+                  variant="contained"
+                  style={{
+                    fontSize: "100%",
+                    height: "12vh",
+                    width: "12vw",
+                    position: "absolute",
+                    marginTop: "87vh",
+                    marginLeft: "682px",
+                  }}
+                  onClick={this.add_data}
+                >
+                  Upload to Database
+                </Button>
                     <Button
                       color="primary"
                       variant="contained"
