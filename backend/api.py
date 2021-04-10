@@ -706,6 +706,21 @@ def findFiles(lanes,cerenkName,darkName,flatName,UVName,UVFlatName):
 app = Flask(__name__)
 CORS(app)
 
+#@app.route('/user/load/<id>', methods = ['GET'])
+#def user_load(id):
+#    import database.py
+#    statement = select(User).filter_by(user_id=id)
+##    result = session.execute(statement).scalars().all()
+#    # TODO: check only one result exists
+#    user = result[0]
+#    return {
+#            'user_id': user.user_id,
+#            'firstName' : user.first_name,
+#            'lastName' : user.last_name,
+#            'email' : user.email,
+#            'org_list' : {,} # TODO
+#            }
+
 @app.route('/get_data',methods = ['POST'])
 def findData():
     np.load.__defaults__=(None, True, True, 'ASCII')

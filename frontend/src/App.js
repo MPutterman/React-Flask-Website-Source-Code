@@ -284,9 +284,11 @@ class App extends React.Component {
                     <Route exact path='/' component={Home} />
                     <Route path='/contact' component={Contact} />
                     <Route path='/about' component={About} />
-                    <Route path='/user/:action/:id' component={User} />
-                    <Route path='/organization/:action/:id' component={Organization} />
-                    <Route component={Error404} />
+                    <Route exact path='/user/:action' component={User} /> 
+                    <Route exact path='/user/:action/:id' component={User} /> 
+                    <Route exact path='/organization/:action' component={Organization} />
+                    <Route exact path='/organization/:action/:id' component={Organization} />
+                    <Route component={Error404} /> {/* No match */}
                 </Switch>
             </Router>
         );
