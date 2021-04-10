@@ -36,6 +36,7 @@ import Contact from './components/contact';
 import Error404 from './components/error404';
 
 import Analysis from './components/analysis';
+import Database from './components/database'
 import Submission from './components/submission'
 import Start from './components/start'
 import User from './components/user';
@@ -253,6 +254,12 @@ export function MenuAppBar() {
                         <ListItemIcon><AddIcon /></ListItemIcon>
                       <ListItemText primary={'New Analysis'} />
             </NavLink>
+            </ListItem>
+          <ListItem button key={'Search Database'}>
+            <NavLink to={'/search'} classname="nav-link">
+                        <ListItemIcon><AddIcon /></ListItemIcon>
+                      <ListItemText primary={'Search Database'} />
+            </NavLink>
           </ListItem>
           <ListItem button key={'load analysis'}>
           <NavLink to={'/load-analysis'} classname="nav-link">
@@ -262,7 +269,7 @@ export function MenuAppBar() {
           </ListItem>
         </List>
       </Drawer>
-
+ 
       <main />
 
     </div>
@@ -278,6 +285,7 @@ class App extends React.Component {
                     <MenuAppBar />
                 </div>
                 <Switch>
+                    <Route path = '/search' component={Database}/>
                     <Route path='/start' component={Start}/>
                     <Route path='/submission' component={Submission}/>
                     <Route path='/analysis/:filenumber' component={Analysis}/>
