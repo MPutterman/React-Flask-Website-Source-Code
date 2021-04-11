@@ -1,13 +1,13 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
 import "../App.css";
 import axios from "axios";
 import Button from "@material-ui/core/Button";
 import Slider from "@material-ui/core/Slider";
-import { palette } from "@material-ui/system";
+//import { palette } from "@material-ui/system";
 import { createMuiTheme, ThemeProvider } from "@material-ui/core/styles";
 import blueGrey from "@material-ui/core/colors/blueGrey";
 import CssBaseline from "@material-ui/core/CssBaseline";
-import { makeStyles } from "@material-ui/core/styles";
+//import { makeStyles } from "@material-ui/core/styles";
 import Table from "@material-ui/core/Table";
 import TableBody from "@material-ui/core/TableBody";
 import TableCell from "@material-ui/core/TableCell";
@@ -15,12 +15,12 @@ import TableContainer from "@material-ui/core/TableContainer";
 import TableHead from "@material-ui/core/TableHead";
 import TableRow from "@material-ui/core/TableRow";
 import Paper from "@material-ui/core/Paper";
-import Typography from "@material-ui/core/Typography";
-import { PassThrough } from "stream";
-import { thisExpression } from "@babel/types";
-import SearchField from "react-search-field";
-import ReactSlider from 'react-slider'
-import GoogleLogin from 'react-google-login';
+//import Typography from "@material-ui/core/Typography";
+//import { PassThrough } from "stream";
+//import { thisExpression } from "@babel/types";
+//import SearchField from "react-search-field";
+//import ReactSlider from 'react-slider'
+//import GoogleLogin from 'react-google-login';
 import {withRouter} from "react-router";
 
 
@@ -206,43 +206,43 @@ class Analysis extends React.Component {
       !this.state.resultsReturned &&
       this.ROIs.length > 0
     ) {
-      if (e.key == "w") {
+      if (e.key === "w") {
 	
         this.incVert();
 	      this.backVert()
         
       }
-      if (e.key == "W") {
+      if (e.key === "W") {
         this.decVert();
         this.backVert();
       }
 
-      if (e.key == "D") {
+      if (e.key === "D") {
         this.moveHorz();
         this.decHorz();
 
       }
-      if (e.key == "S") {
+      if (e.key === "S") {
         this.decVert();
         this.moveVert();
       }
-      if (e.key == "A") {
+      if (e.key === "A") {
         this.decHorz();
         this.backHorz();
       }
-      if (e.key == "s") {
+      if (e.key === "s") {
 	
         this.incVert();
 	this.moveVert()
        
       }
-      if (e.key == "d") {
+      if (e.key === "d") {
 	
         this.incHorz();
 	this.moveHorz()
         
       }
-      if (e.key == "a") {
+      if (e.key === "a") {
 	
         this.incHorz();
 	this.backHorz()
@@ -251,7 +251,7 @@ class Analysis extends React.Component {
     }
   };
   moveVert() {
-    if (this.state.selected == 1000) {
+    if (this.state.selected === 1000) {
       return;
     }
     var last = this.state.selected;
@@ -261,7 +261,7 @@ class Analysis extends React.Component {
     }
   }
   moveHorz() {
-    if (this.state.selected == 1000) {
+    if (this.state.selected === 1000) {
       return;
     }
     var last = this.state.selected;
@@ -271,7 +271,7 @@ class Analysis extends React.Component {
     }
   }
   backHorz() {
-    if (this.state.selected == 1000) {
+    if (this.state.selected === 1000) {
       return;
     }
     var last = this.state.selected;
@@ -282,7 +282,7 @@ class Analysis extends React.Component {
     }
   }
   backVert() {
-    if (this.state.selected == 1000) {
+    if (this.state.selected === 1000) {
       return;
     }
     var last = this.state.selected;
@@ -302,7 +302,7 @@ class Analysis extends React.Component {
     }
 
     if (this.state.doROIs) {
-      if (i != this.state.selected) {
+      if (i !== this.state.selected) {
         this.select(i);
       } else {
         this.ROIs.splice(i, 1);
@@ -396,7 +396,7 @@ class Analysis extends React.Component {
   };
   submit() {
     console.log(this.origins)
-    // if (this.state.Cerenkovname == "") {
+    // if (this.state.Cerenkovname === "") {
     //   this.setState({ Cerenkovname: "Sample" });
     // }
     let data = new FormData();
@@ -405,13 +405,13 @@ class Analysis extends React.Component {
     data.append('doUV',this.state.doUV)
     data.append("origins", this.origins);
     data.append("n_l", this.state.n_l);
-    if (this.state.doRF == "Disable RF Calculation") {
+    if (this.state.doRF === "Disable RF Calculation") {
       data.append("doRF", "true");
     } else {
       data.append("doRF", "false");
     }
     console.log(this.state.autoLane);
-    if (this.state.autoLane == true) {
+    if (this.state.autoLane === true) {
       data.append("autoLane", "true");
     } else {
       data.append("autoLane", "false");
@@ -430,7 +430,7 @@ class Analysis extends React.Component {
       }).catch('An Error Occurred');
   }
   incVert = () => {
-    if (this.state.selected == 1000) {
+    if (this.state.selected === 1000) {
       return;
     }
     var last = this.state.selected;
@@ -443,7 +443,7 @@ class Analysis extends React.Component {
     }
   };
   incHorz = () => {
-    if (this.state.selected == 1000) {
+    if (this.state.selected === 1000) {
       return;
     }
     var last = this.state.selected;
@@ -457,7 +457,7 @@ class Analysis extends React.Component {
   };
 
   decHorz = () => {
-    if (this.state.selected == 1000) {
+    if (this.state.selected === 1000) {
       return;
     }
     var last = this.state.selected;
@@ -467,7 +467,7 @@ class Analysis extends React.Component {
     }
   };
   decVert = () => {
-    if (this.state.selected == 1000) {
+    if (this.state.selected === 1000) {
       return;
     }
     var last = this.state.selected;
@@ -546,7 +546,7 @@ class Analysis extends React.Component {
                 </Button>
               )}
               
-              {this.state.resultsReturned == true && (
+              {this.state.resultsReturned === true && (
                 <TableContainer component={Paper}>
                   <Table
                     style={{
@@ -647,7 +647,7 @@ class Analysis extends React.Component {
                       zIndex: this.state.doROIs ? 11 : 10,
                       borderRadius: "50%/50%",
                       border:
-                        i == this.state.selected
+                        i === this.state.selected
                           ? "dashed 2px #0ff"
                           : "dashed 2px #f00",
                       width: "" + 2 * x[3] - 2 + "px",
@@ -698,6 +698,7 @@ class Analysis extends React.Component {
                   }}
                   src={this.url + '/img/' + this.filenum+this.state.background_corrected}
                   onClick={this._onMouseClick.bind(this)}
+                  alt=''
                 />
               
 
@@ -721,6 +722,7 @@ class Analysis extends React.Component {
                               "%)",
                           }}
                           onClick={this.UVClick}
+                          alt=''
                         />
                         <img
                           src={this.url + '/Cerenkov/' + this.filenum}
@@ -736,6 +738,7 @@ class Analysis extends React.Component {
                               "%)",
                           }}
                           onClick={this.UVClick}
+                          alt=''
                         />
                       </div>
                     )}
@@ -753,7 +756,7 @@ class Analysis extends React.Component {
                           marginLeft: "60vw",
                         }}
                         onClick={() => {
-                          this.state.doRF == "Enable RF Calculation"
+                          this.state.doRF === "Enable RF Calculation"
                             ? this.setState({ doRF: "Disable RF Calculation" })
                             : this.setState({ doRF: "Enable RF Calculation" });
                         }}
