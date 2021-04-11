@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React from "react";
+//, { useState, useEffect } from "react";
 import "../App.css";
 import axios from "axios";
 import Button from "@material-ui/core/Button";
 import Slider from "@material-ui/core/Slider";
-import { palette } from "@material-ui/system";
+//import { palette } from "@material-ui/system";
 import { createMuiTheme, ThemeProvider } from "@material-ui/core/styles";
 import blueGrey from "@material-ui/core/colors/blueGrey";
 import CssBaseline from "@material-ui/core/CssBaseline";
-import { makeStyles } from "@material-ui/core/styles";
+//import { makeStyles } from "@material-ui/core/styles";
 import Table from "@material-ui/core/Table";
 import TableBody from "@material-ui/core/TableBody";
 import TableCell from "@material-ui/core/TableCell";
@@ -15,11 +16,11 @@ import TableContainer from "@material-ui/core/TableContainer";
 import TableHead from "@material-ui/core/TableHead";
 import TableRow from "@material-ui/core/TableRow";
 import Paper from "@material-ui/core/Paper";
-import Typography from "@material-ui/core/Typography";
-import { PassThrough } from "stream";
-import { thisExpression } from "@babel/types";
+//import Typography from "@material-ui/core/Typography";
+//import { PassThrough } from "stream";
+//import { thisExpression } from "@babel/types";
 import SearchField from "react-search-field";
-import ReactSlider from 'react-slider'
+//import ReactSlider from 'react-slider'
 import GoogleLogin from 'react-google-login';
 
 
@@ -200,43 +201,43 @@ class Home extends React.Component {
       !this.state.resultsReturned &&
       this.ROIs.length > 0
     ) {
-      if (e.key == "w") {
+      if (e.key === "w") {
 	
         this.incVert();
 	this.backVert()
         
       }
-      if (e.key == "W") {
+      if (e.key === "W") {
         this.decVert();
         this.backVert();
       }
 
-      if (e.key == "D") {
+      if (e.key === "D") {
         this.moveHorz();
         this.decHorz();
 
       }
-      if (e.key == "S") {
+      if (e.key === "S") {
         this.decVert();
         this.moveVert();
       }
-      if (e.key == "A") {
+      if (e.key === "A") {
         this.decHorz();
         this.backHorz();
       }
-      if (e.key == "s") {
+      if (e.key === "s") {
 	
         this.incVert();
 	this.moveVert()
        
       }
-      if (e.key == "d") {
+      if (e.key === "d") {
 	
         this.incHorz();
 	this.moveHorz()
         
       }
-      if (e.key == "a") {
+      if (e.key === "a") {
 	
         this.incHorz();
 	this.backHorz()
@@ -245,7 +246,7 @@ class Home extends React.Component {
     }
   };
   moveVert() {
-    if (this.state.selected == 1000) {
+    if (this.state.selected === 1000) {
       return;
     }
     var last = this.state.selected;
@@ -255,7 +256,7 @@ class Home extends React.Component {
     }
   }
   moveHorz() {
-    if (this.state.selected == 1000) {
+    if (this.state.selected === 1000) {
       return;
     }
     var last = this.state.selected;
@@ -265,7 +266,7 @@ class Home extends React.Component {
     }
   }
   backHorz() {
-    if (this.state.selected == 1000) {
+    if (this.state.selected === 1000) {
       return;
     }
     var last = this.state.selected;
@@ -276,7 +277,7 @@ class Home extends React.Component {
     }
   }
   backVert() {
-    if (this.state.selected == 1000) {
+    if (this.state.selected === 1000) {
       return;
     }
     var last = this.state.selected;
@@ -290,20 +291,20 @@ class Home extends React.Component {
     this.setState({ makeUpdate: 1 });
   }
   submit() {
-    if (this.state.Cerenkovname == "") {
+    if (this.state.Cerenkovname === "") {
       this.setState({ Cerenkovname: "Sample" });
     }
     let data = new FormData();
     data.append("ROIs", this.ROIs);
     data.append("origins", this.origins);
     data.append("n_l", this.state.n_l);
-    if (this.state.doRF == "Disable RF Calculation") {
+    if (this.state.doRF === "Disable RF Calculation") {
       data.append("doRF", "true");
     } else {
       data.append("doRF", "false");
     }
     console.log(this.state.autoLane);
-    if (this.state.autoLane == true) {
+    if (this.state.autoLane === true) {
       data.append("autoLane", "true");
     } else {
       data.append("autoLane", "false");
@@ -363,7 +364,7 @@ class Home extends React.Component {
     }
 
     if (this.state.doROIs) {
-      if (i != this.state.selected) {
+      if (i !== this.state.selected) {
         this.select(i);
       } else {
         this.ROIs.splice(i, 1);
@@ -483,7 +484,7 @@ class Home extends React.Component {
     }
   };
   incVert = () => {
-    if (this.state.selected == 1000) {
+    if (this.state.selected === 1000) {
       return;
     }
     var last = this.state.selected;
@@ -496,7 +497,7 @@ class Home extends React.Component {
     }
   };
   incHorz = () => {
-    if (this.state.selected == 1000) {
+    if (this.state.selected === 1000) {
       return;
     }
     var last = this.state.selected;
@@ -518,7 +519,7 @@ class Home extends React.Component {
 	   ,data).then(console.log(':D'))
     }
   decHorz = () => {
-    if (this.state.selected == 1000) {
+    if (this.state.selected === 1000) {
       return;
     }
     var last = this.state.selected;
@@ -528,7 +529,7 @@ class Home extends React.Component {
     }
   };
   decVert = () => {
-    if (this.state.selected == 1000) {
+    if (this.state.selected === 1000) {
       return;
     }
     var last = this.state.selected;
@@ -889,7 +890,7 @@ class Home extends React.Component {
                   Upload to Database
                 </Button>
               )}
-              {this.state.resultsReturned == true && (
+              {this.state.resultsReturned === true && (
                 <TableContainer component={Paper}>
                   <Table
                     style={{
@@ -978,7 +979,7 @@ class Home extends React.Component {
                 </TableContainer>
               )}
 
-              {this.state.start == false && (
+              {this.state.start === false && (
                 <div>
 		   <div style = {{position:'absolute',marginTop:'0vh',marginLeft:'0vw',zIndex:12}}>
 		   {true &&<GoogleLogin
@@ -1001,7 +1002,7 @@ class Home extends React.Component {
                       backgroundColor: blueGrey[900],
                     }}
                     onClick={() => {
-                      this.state.show_us == ""
+                      this.state.show_us === ""
                         ? this.setState({ show_us: "About Us" })
                         : this.setState({ show_us: "" });
                     }}
@@ -1017,6 +1018,7 @@ class Home extends React.Component {
                       height: "10vh",
                     }}
                     src={process.env.PUBLIC_URL + "/logo_UCLA_blue_boxed.png"}
+                    alt="logo"
                   />
                   <h1
                     style={{
@@ -1073,7 +1075,7 @@ class Home extends React.Component {
                       zIndex: this.state.doROIs ? 11 : 10,
                       borderRadius: "50%/50%",
                       border:
-                        i == this.state.selected
+                        i === this.state.selected
                           ? "dashed 2px #0ff"
                           : "dashed 2px #f00",
                       width: "" + 2 * x[3] - 2 + "px",
@@ -1124,14 +1126,15 @@ class Home extends React.Component {
                   }}
                   src={this.url + '/img/' + this.filenum+this.state.background_corrected}
                   onClick={this._onMouseClick.bind(this)}
+                  alt=''
                 />
               )}
 
               {!this.state.resultsReturned && (
                 <div>
                   {this.state.ImgReturned &&
-                    (this.state.UVname != "" ||
-                      this.state.Brightname != "") && (
+                    (this.state.UVname !== "" ||
+                      this.state.Brightname !== "") && (
                       <div>
                         <img
                           src={this.url + '/UV/' + this.filenum}
@@ -1147,6 +1150,7 @@ class Home extends React.Component {
                               "%)",
                           }}
                           onClick={this.UVClick}
+                          alt=''
                         />
                         <img
                           src={this.url + '/Cerenkov/' + this.filenum}
@@ -1162,12 +1166,13 @@ class Home extends React.Component {
                               "%)",
                           }}
                           onClick={this.UVClick}
+                          alt=''
                         />
                       </div>
                     )}
                   {this.state.ImgReturned &&
-                    this.state.UVname == "" &&
-                    this.state.Brightname == "" && (
+                    this.state.UVname === "" &&
+                    this.state.Brightname === "" && (
                       <Button
                         color="primary"
                         variant="contained"
@@ -1180,7 +1185,7 @@ class Home extends React.Component {
                           marginLeft: "60vw",
                         }}
                         onClick={() => {
-                          this.state.doRF == "Enable RF Calculation"
+                          this.state.doRF === "Enable RF Calculation"
                             ? this.setState({ doRF: "Disable RF Calculation" })
                             : this.setState({ doRF: "Enable RF Calculation" });
                         }}
@@ -1189,8 +1194,8 @@ class Home extends React.Component {
                       </Button>
                     )}
                   {this.state.ImgReturned &&
-                    this.state.UVname == "" &&
-                    this.state.Brightname == "" && (
+                    this.state.UVname === "" &&
+                    this.state.Brightname === "" && (
                       <Button
                         color="primary"
                         variant="contained"
@@ -1219,8 +1224,8 @@ class Home extends React.Component {
 	     		</Button>
 		   }
                   {this.state.ImgReturned &&
-                    this.state.UVname == "" &&
-                    this.state.Brightname == "" &&
+                    this.state.UVname === "" &&
+                    this.state.Brightname === "" &&
                     this.state.autoLane && (
                       <div>
 			
@@ -1368,10 +1373,10 @@ class Home extends React.Component {
                 </div>
               )}
 
-              {this.state.start == true && (
+              {this.state.start === true && (
                 <div>
-                  {this.state.ImgReturned == false &&
-                    this.state.submitted == false && (
+                  {this.state.ImgReturned === false &&
+                    this.state.submitted === false && (
                       <Button
                         color="primary"
                         variant="contained"
@@ -1388,7 +1393,7 @@ class Home extends React.Component {
                         Submit
                       </Button>
                     )}
-                  {this.state.ImgReturned == false && (
+                  {this.state.ImgReturned === false && (
                     <input
                       type="file"
                       hidden
@@ -1403,7 +1408,7 @@ class Home extends React.Component {
                       }}
                     />
                   )}
-                  {this.state.ImgReturned == false && (
+                  {this.state.ImgReturned === false && (
                     <Button
                       color="primary"
                       variant="contained"
@@ -1421,7 +1426,7 @@ class Home extends React.Component {
                     </Button>
                   )}
 
-                  {this.state.ImgReturned == false && (
+                  {this.state.ImgReturned === false && (
                     <input
                       type="file"
                       hidden
@@ -1436,7 +1441,7 @@ class Home extends React.Component {
                       }}
                     />
                   )}
-                  {this.state.ImgReturned == false && (
+                  {this.state.ImgReturned === false && (
                     <Button
                       style={{
                         fontSize: "2.5vh",
@@ -1454,7 +1459,7 @@ class Home extends React.Component {
                     </Button>
                   )}
 
-                  {this.state.ImgReturned == false && (
+                  {this.state.ImgReturned === false && (
                     <input
                       type="file"
                       hidden
@@ -1469,7 +1474,7 @@ class Home extends React.Component {
                       }}
                     />
                   )}
-                  {this.state.ImgReturned == false && (
+                  {this.state.ImgReturned === false && (
                     <Button
                       color="primary"
                       variant="contained"
@@ -1487,8 +1492,8 @@ class Home extends React.Component {
                       {this.state.brightFlatname}
                     </Button>
                   )}
-                  {this.state.ImgReturned == false &&
-                    this.state.submitted == false && (
+                  {this.state.ImgReturned === false &&
+                    this.state.submitted === false && (
                       <Button
                         color="primary"
                         variant="contained"
@@ -1506,7 +1511,7 @@ class Home extends React.Component {
                       </Button>
                     )}
 
-                  {this.state.ImgReturned == false && (
+                  {this.state.ImgReturned === false && (
                     <Button
                       color="primary"
                       variant="contained"
@@ -1528,7 +1533,7 @@ class Home extends React.Component {
                     </Button>
                   )}
 
-                  {this.state.ImgReturned == false && (
+                  {this.state.ImgReturned === false && (
                     <input
                       type="file"
                       hidden
@@ -1543,7 +1548,7 @@ class Home extends React.Component {
                       }}
                     />
                   )}
-                  {this.state.ImgReturned == false && (
+                  {this.state.ImgReturned === false && (
                     <Button
                       color="primary"
                       style={{
@@ -1561,7 +1566,7 @@ class Home extends React.Component {
                     </Button>
                   )}
 
-                  {this.state.ImgReturned == false && (
+                  {this.state.ImgReturned === false && (
                     <input
                       type="file"
                       hidden
@@ -1576,7 +1581,7 @@ class Home extends React.Component {
                       }}
                     />
                   )}
-                  {this.state.ImgReturned == false && (
+                  {this.state.ImgReturned === false && (
                     <Button
                       style={{
                         fontSize: "2.5vh",
@@ -1594,7 +1599,7 @@ class Home extends React.Component {
                     </Button>
                   )}
 
-                  {this.state.ImgReturned == false && (
+                  {this.state.ImgReturned === false && (
                     <input
                       type="file"
                       hidden
@@ -1609,7 +1614,7 @@ class Home extends React.Component {
                       }}
                     />
                   )}
-                  {this.state.ImgReturned == false && (
+                  {this.state.ImgReturned === false && (
                     <Button
                       style={{
                         fontSize: "2.3vh",
@@ -1627,7 +1632,7 @@ class Home extends React.Component {
                     </Button>
                   )}
 
-                  {this.state.ImgReturned == false && (
+                  {this.state.ImgReturned === false && (
                     <input
                       type="file"
                       hidden
@@ -1642,7 +1647,7 @@ class Home extends React.Component {
                       }}
                     />
                   )}
-                  {this.state.ImgReturned == false && (
+                  {this.state.ImgReturned === false && (
                     <Button
                       style={{
                         fontSize: "2.3vh",
