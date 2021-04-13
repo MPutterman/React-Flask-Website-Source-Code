@@ -9,8 +9,8 @@ from sqlalchemy.orm import Session, sessionmaker
 from dotenv import load_dotenv
 import os
 from urllib.parse import quote
+from sqlalchemy.dialects.postgresql import ARRAY
 import enum
-
 # TODO: fix this. I want to avoid running this code if DB has already been initialized but this won't work as is
 db_initialized = False;
 if (not db_initialized):
@@ -21,7 +21,7 @@ if (not db_initialized):
     # Initialize database connection
     db_uri = "mysql+mysqlconnector://{}:{}@{}:{}/{}".format(
             os.getenv('DB_USER'),
-            quote(os.getenv('DB_PASS')),
+            os.getenv('DB_PASS'),
             os.getenv('DB_HOST'),
             os.getenv('DB_PORT'),
             os.getenv('DB_NAME')       
@@ -41,6 +41,15 @@ if (not db_initialized):
         Column('org_id', Integer, ForeignKey('organization.org_id'), primary_key=True),
     )
 
+    user_analysis_map = Table('user_analysis_map', Base.metadata,
+        Column('user_id', Integer, ForeignKey('user.user_id'), primary_key=True),
+        Column('analysis_id', String(20), ForeignKey('analysis.analysis_id'), primary_key=True),
+    )
+    analysis_image_map = Table('analysis_image_map', Base.metadata,
+        Column('analysis_id', String(20), ForeignKey('analysis.analysis_id'), primary_key=True),
+        Column('image_id', Integer, ForeignKey('image.image_id'), primary_key=True),
+    )
+
     org_equip_map = Table('org_equip_map', Base.metadata,
         Column('org_id', Integer, ForeignKey('organization.org_id'), primary_key=True),
         Column('equip_id', Integer, ForeignKey('equipment.equip_id'), primary_key=True),
@@ -51,23 +60,36 @@ if (not db_initialized):
         Column('plate_id', Integer, ForeignKey('plate.plate_id'), primary_key=True),
     )
 
+    lane_ROI_map = Table('lane_ROI_map', Base.metadata,
+        Column('lane_id', Integer, ForeignKey('lane.lane_id'), primary_key=True),
+        Column('ROI_id', Integer, ForeignKey('ROI.ROI_id'), primary_key=True),
+    )
+
     org_cover_map = Table('org_cover_map', Base.metadata,
         Column('org_id', Integer, ForeignKey('organization.org_id'), primary_key=True),
         Column('cover_id', Integer, ForeignKey('cover.cover_id'), primary_key=True),
     )
+    
+    analysis_lane_map=Table('analysis_lane_map', Base.metadata,
+        Column('analysis_id', String(20), ForeignKey('analysis.analysis_id'), primary_key=True),
+        Column('lane_id', Integer, ForeignKey('lane.lane_id'), primary_key=True),
+    )
+    
 
     # Define data classes
 
     # See here for info on how to use 'relationship':
     # http://docs.sqlalchemy.org/en/14/orm/basic_relationships.html#many-to-many
-
     class User(Base):
         __tablename__ = 'user'
         user_id = Column(Integer, primary_key=True)
         first_name = Column(String(64))
         last_name = Column(String(64))
         email = Column(String(254), nullable=False) # max lenth of an email address 
+        analysis_list=relationship("Analysis",secondary=user_analysis_map)
         org_list = relationship("Organization", secondary=user_org_map) 
+            
+
 
     class Organization(Base):
         __tablename__ = 'organization'
@@ -85,19 +107,41 @@ if (not db_initialized):
         description = Column(Text)
         camera = Column(String(128), nullable=False)
         has_temp_control = Column(Boolean, nullable=False)
-        pixels_x = Column(Integer, nullable=False)
+        pixels_x = Column(Integer, nullable=False) 
         pixels_y = Column(Integer, nullable=False)
         fov_x = Column(Float) # size in mm
         bpp = Column(Integer, nullable=False)
         # QUESTION: is it safe to force all data to be monochrome with fixed bpp?
+    class Lane(Base):
+        __tablename__='lane'
+        lane_id = Column(Integer,primary_key=True)
+        lane_number=Column(Integer) #Do we need lane number or should we just go off of which index it is in the array
+        ROI_list = relationship("ROI",secondary=lane_ROI_map)
 
+    class ROI(Base):
+        __tablename__='ROI'
+        ROI_id = Column(Integer,primary_key=True) 
+        ROI_number = Column(Integer)
+        x=Column(Integer)
+        y=Column(Integer)
+        rx=Column(Integer)#radius in x direction
+        ry=Column(Integer)#radius in y direction
     class ImageType(enum.Enum):
         flat = 1
         dark = 2
         radio = 10
         bright = 11
         uv = 12
+    class Analysis(Base):
+        __tablename__='analysis'
+        analysis_id = Column(String(20),primary_key=True)
+        lane_list = relationship('Lane',secondary=analysis_lane_map)
+        images= relationship('Image',secondary=analysis_image_map)
+        
 
+
+
+        
     class Image(Base):
         __tablename__ = 'image'
         image_id = Column(Integer, primary_key=True)
@@ -152,8 +196,20 @@ org1 = Organization(name = 'UCLA Crump Institute for Molecular Imaging', plate_l
 org2 = Organization(name = 'UCLA Ahmanson Translational Theranosticis Division', plate_list=[])
 session.add(org1)
 session.add(org2)
-session.add(User(first_name = 'Alice', last_name = 'Armstrong', email = 'alice@armstrong.com', org_list=[org1]))
-session.add(User(first_name = 'Bob', last_name = 'Brown', email = 'bob@brown.com',org_list=[org1,org2]))
+
+ROI1=ROI(ROI_id=1,ROI_number = 1, x=100,y=100,rx=10,ry=10)
+ROI2=ROI(ROI_id=3,ROI_number=2,x=200,y=200,rx=20,ry=20)
+ROI3=ROI(ROI_id=4,ROI_number=1,x=300,y=300,rx=30,ry=30)
+ROI4=ROI(ROI_id=5,ROI_number=2,x=400,y=400,rx=40,ry=40)
+ROI5=ROI(ROI_id=6,ROI_number=3,x=500,y=500,rx=50,ry=50)
+ROI6=ROI(ROI_id=7,ROI_number=4,x=600,y=600,rx=60,ry=60)
+
+lanes1 = Lane(lane_id =1,lane_number =1,ROI_list=[ROI1,ROI2])
+
+lanes2 = Lane(lane_id =2,lane_number=2,ROI_list=[ROI3,ROI4,ROI5,ROI6])
+analysis1 = Analysis(analysis_id='q28o23yXY',lane_list=[lanes1,lanes2])
+session.add(User(first_name = 'Bob', last_name = 'Brown', email = 'bob@brown.com',analysis_list=[analysis1],org_list=[org1,org2]))
+
 
 session.commit()
 
