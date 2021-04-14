@@ -13,10 +13,10 @@ from sqlalchemy import select
 from dotenv import load_dotenv
 import os
 from urllib.parse import quote
+from sqlalchemy.dialects.postgresql import ARRAY
 import enum
 from flask_login import UserMixin
 from json import dumps
-
 
 # TODO: how to do this setup and instantiation once and register with FLASK globals?
 
@@ -52,6 +52,16 @@ user_org_map = Table('user_org_map', Base.metadata,
     Column('org_id', Integer, ForeignKey('organization.org_id'), primary_key=True),
 )
 
+user_analysis_map = Table('user_analysis_map', Base.metadata,
+    Column('user_id', Integer, ForeignKey('user.user_id'), primary_key=True),
+    Column('analysis_id', String(20), ForeignKey('analysis.analysis_id'), primary_key=True),
+)
+
+analysis_image_map = Table('analysis_image_map', Base.metadata,
+    Column('analysis_id', String(20), ForeignKey('analysis.analysis_id'), primary_key=True),
+    Column('image_id', Integer, ForeignKey('image.image_id'), primary_key=True),
+)
+
 org_equip_map = Table('org_equip_map', Base.metadata,
     Column('org_id', Integer, ForeignKey('organization.org_id'), primary_key=True),
     Column('equip_id', Integer, ForeignKey('equipment.equip_id'), primary_key=True),
@@ -62,10 +72,21 @@ org_plate_map = Table('org_plate_map', Base.metadata,
     Column('plate_id', Integer, ForeignKey('plate.plate_id'), primary_key=True),
 )
 
+lane_ROI_map = Table('lane_ROI_map', Base.metadata,
+    Column('lane_id', Integer, ForeignKey('lane.lane_id'), primary_key=True),
+    Column('ROI_id', Integer, ForeignKey('ROI.ROI_id'), primary_key=True),
+)
+
 org_cover_map = Table('org_cover_map', Base.metadata,
     Column('org_id', Integer, ForeignKey('organization.org_id'), primary_key=True),
     Column('cover_id', Integer, ForeignKey('cover.cover_id'), primary_key=True),
 )
+
+analysis_lane_map=Table('analysis_lane_map', Base.metadata,
+    Column('analysis_id', String(20), ForeignKey('analysis.analysis_id'), primary_key=True),
+    Column('lane_id', Integer, ForeignKey('lane.lane_id'), primary_key=True),
+)
+
 
 # Define data classes
 
@@ -79,6 +100,7 @@ class User(UserMixin, Base):
     last_name = Column(String(64))
     email = Column(String(254), nullable=False) # max lenth of an email address 
     org_list = relationship("Organization", secondary=user_org_map) 
+    analysis_list=relationship("Analysis",secondary=user_analysis_map)
 
     def as_dict(self):
         # Returns full represenation of model.
@@ -96,6 +118,7 @@ class Organization(Base):
     equip_list = relationship("Equipment", secondary=org_equip_map)
     plate_list = relationship("Plate", secondary=org_plate_map)
     cover_list = relationship("Cover", secondary=org_cover_map)
+
     def as_dict(self):
         # Returns full represenation of model.
         columns = class_mapper(self.__class__).mapped_table.c
@@ -116,6 +139,27 @@ class Equipment(Base):
     fov_x = Column(Float) # size in mm
     bpp = Column(Integer, nullable=False) # QUESTION: is it same to assume all images will be monochrome?
     image_format = Column(String(128), nullable=False) # This will help identify how to read the file before loading it (maybe should be enum type)
+
+class Lane(Base):
+    __tablename__='lane'
+    lane_id = Column(Integer,primary_key=True)
+    lane_number=Column(Integer) #Do we need lane number or should we just go off of which index it is in the array
+    ROI_list = relationship("ROI",secondary=lane_ROI_map)
+
+class ROI(Base):
+    __tablename__='ROI'
+    ROI_id = Column(Integer,primary_key=True) 
+    ROI_number = Column(Integer)
+    x=Column(Integer)
+    y=Column(Integer)
+    rx=Column(Integer)#radius in x direction
+    ry=Column(Integer)#radius in y direction
+
+class Analysis(Base):
+    __tablename__='analysis'
+    analysis_id = Column(String(20),primary_key=True)
+    lane_list = relationship('Lane',secondary=analysis_lane_map)
+    images= relationship('Image',secondary=analysis_image_map)
 
 class ImageType(enum.Enum):
     flat = 1
@@ -152,7 +196,6 @@ class Cover(Base):
     description = Column(Text)
 
 
-
 def db_create_tables():
     # Careful, this deletes ALL data in database
     Base.metadata.drop_all(engine)
@@ -175,7 +218,21 @@ def db_add_test_data():
     db_session.add(User(first_name = 'Alice', last_name = 'Armstrong', email = 'alice@armstrong.com', org_list=[org1]))
     db_session.add(User(first_name = 'Bob', last_name = 'Brown', email = 'bob@brown.com',org_list=[org1,org2]))
 
-    db_session.commit()
+    ROI1=ROI(ROI_id=1,ROI_number = 1, x=100,y=100,rx=10,ry=10)
+    ROI2=ROI(ROI_id=3,ROI_number=2,x=200,y=200,rx=20,ry=20)
+    ROI3=ROI(ROI_id=4,ROI_number=1,x=300,y=300,rx=30,ry=30)
+    ROI4=ROI(ROI_id=5,ROI_number=2,x=400,y=400,rx=40,ry=40)
+    ROI5=ROI(ROI_id=6,ROI_number=3,x=500,y=500,rx=50,ry=50)
+    ROI6=ROI(ROI_id=7,ROI_number=4,x=600,y=600,rx=60,ry=60)
+
+    lanes1 = Lane(lane_id =1,lane_number =1,ROI_list=[ROI1,ROI2])
+    lanes2 = Lane(lane_id =2,lane_number=2,ROI_list=[ROI3,ROI4,ROI5,ROI6])
+
+    analysis1 = Analysis(analysis_id='q28o23yXY',lane_list=[lanes1,lanes2])
+
+    session.add(User(first_name = 'Bob', last_name = 'Brown', email = 'bob@brown.com',analysis_list=[analysis1],org_list=[org1,org2]))
+
+    session.commit()
 
 
 # TODO: We can also try adding new data types:
