@@ -20,11 +20,11 @@ if (not db_initialized):
 
     # Initialize database connection
     db_uri = "mysql+mysqlconnector://{}:{}@{}:{}/{}".format(
-            os.getenv('DB_USER'),
-            os.getenv('DB_PASS'),
-            os.getenv('DB_HOST'),
-            os.getenv('DB_PORT'),
-            os.getenv('DB_NAME')       
+            'admin',
+            'naddyH15!',
+            "database-2.csrnl1ttzs7d.us-west-1.rds.amazonaws.com",
+            '3306',
+            'CerenkovDB'       
     )
     engine = create_engine(db_uri, future=True)
 
@@ -134,7 +134,7 @@ if (not db_initialized):
         uv = 12
     class Analysis(Base):
         __tablename__='analysis'
-        analysis_id = Column(String(20),primary_key=True)
+        analysis_id = Column(zzzprimary_key=True)
         lane_list = relationship('Lane',secondary=analysis_lane_map)
         images= relationship('Image',secondary=analysis_image_map)
         
