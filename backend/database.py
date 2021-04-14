@@ -238,11 +238,6 @@ def db_add_test_data():
 # TODO: We can also try adding new data types:
 # analysis_image_map (or store it wholly in analysis) -- having a map would let you load any analysis that had used the same image... or the same flat field image....
 # analysis: analysis_id, <various> image_id, background_method, filter_method
-<<<<<<< HEAD
-# lane: analysis_id, origin_x, origin_y, end_x, end_y  [This is not perfect, because the end is defined as a line in image, not per lane.  But it COULD be.]
-# roi: lane_id, <geometry description>
-# QUESTION... would we store the results inside the ROIs?, e.g. fields 'result_radio, 'result_rf'
-=======
 # STORE AS PICKLED WITHIN ANALYSIS (NO NEED FOR OWN ID)
 # --- lane: name/sample, analysis_id, origin_x, origin_y, end_x, end_y  [This is not perfect, because the end is defined as a line in image, not per lane.  But it COULD be.]
 # --- roi: lane_id, <geometry description>
@@ -302,4 +297,3 @@ def db_organization_search():
 
 
 
->>>>>>> 936f86a9d4a51ebdecc944590857a78e7ca43199
