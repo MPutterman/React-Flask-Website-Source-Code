@@ -72,20 +72,11 @@ org_plate_map = Table('org_plate_map', Base.metadata,
     Column('plate_id', Integer, ForeignKey('plate.plate_id'), primary_key=True),
 )
 
-lane_ROI_map = Table('lane_ROI_map', Base.metadata,
-    Column('lane_id', Integer, ForeignKey('lane.lane_id'), primary_key=True),
-    Column('ROI_id', Integer, ForeignKey('ROI.ROI_id'), primary_key=True),
-)
-
 org_cover_map = Table('org_cover_map', Base.metadata,
     Column('org_id', Integer, ForeignKey('organization.org_id'), primary_key=True),
     Column('cover_id', Integer, ForeignKey('cover.cover_id'), primary_key=True),
 )
 
-analysis_lane_map=Table('analysis_lane_map', Base.metadata,
-    Column('analysis_id', String(20), ForeignKey('analysis.analysis_id'), primary_key=True),
-    Column('lane_id', Integer, ForeignKey('lane.lane_id'), primary_key=True),
-)
 
 
 # Define data classes
@@ -142,12 +133,16 @@ class Equipment(Base):
 
 class Lane(Base):
     __tablename__='lane'
+    
+    analysis_id = Column(Integer,ForeignKey('analysis.analysis_id'))
     lane_id = Column(Integer,primary_key=True)
     lane_number=Column(Integer) #Do we need lane number or should we just go off of which index it is in the array
-    ROI_list = relationship("ROI",secondary=lane_ROI_map)
+    ROI_list = relationship('ROI',backref='lane')
+
 
 class ROI(Base):
     __tablename__='ROI'
+    lane_id = Column(Integer,ForeignKey('lane.lane_id'))
     ROI_id = Column(Integer,primary_key=True) 
     ROI_number = Column(Integer)
     x=Column(Integer)
@@ -157,8 +152,8 @@ class ROI(Base):
 
 class Analysis(Base):
     __tablename__='analysis'
-    analysis_id = Column(String(20),primary_key=True)
-    lane_list = relationship('Lane',secondary=analysis_lane_map)
+    analysis_id = Column(Integer,primary_key=True)
+    lane_list = relationship('Lane',backref='analysis')
     images= relationship('Image',secondary=analysis_image_map)
 
 class ImageType(enum.Enum):
@@ -228,11 +223,11 @@ def db_add_test_data():
     lanes1 = Lane(lane_id =1,lane_number =1,ROI_list=[ROI1,ROI2])
     lanes2 = Lane(lane_id =2,lane_number=2,ROI_list=[ROI3,ROI4,ROI5,ROI6])
 
-    analysis1 = Analysis(analysis_id='q28o23yXY',lane_list=[lanes1,lanes2])
+    analysis1 = Analysis(analysis_id=108723,lane_list=[lanes1,lanes2])
 
-    session.add(User(first_name = 'Bob', last_name = 'Brown', email = 'bob@brown.com',analysis_list=[analysis1],org_list=[org1,org2]))
+    db_session.add(User(first_name = 'Bob', last_name = 'Brown', email = 'bob@brown.com',analysis_list=[analysis1],org_list=[org1,org2]))
 
-    session.commit()
+    db_session.commit()
 
 
 # TODO: We can also try adding new data types:
@@ -294,6 +289,6 @@ def db_organization_search():
     db_session.commit()
     data = [org.as_dict() for org in results]
     return dumps(data) # Can directly return a list...  This returns just the list.  Use jsonify(keyname=data) if want to return with a key
-
+db_add_test_data()
 
 
