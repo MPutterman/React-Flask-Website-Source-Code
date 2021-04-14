@@ -1,4 +1,7 @@
 
+# RESOURCES:
+# Main Flask api documentation: https://flask.palletsprojects.com/en/1.1.x/api/
+
 import time
 
 from flask import Flask, request,Response,send_file,send_from_directory,make_response,Response
@@ -20,6 +23,12 @@ from skimage.color import rgba2rgb
 import os
 from skimage import measure
 from flask_cors import CORS
+
+# Include database layer
+from database import db_create_tables, db_add_test_data
+
+
+
 class analysis():
     def __init__(self,ROIs,n_l,origins,filename,doUV,doRF,autoLane,names=['Sample','Sample','Sample','','','','']):
         self.doRF=doRF
@@ -716,20 +725,65 @@ def findFiles(lanes,cerenkName,darkName,flatName,UVName,UVFlatName):
 app = Flask(__name__)
 CORS(app)
 
-#@app.route('/user/load/<id>', methods = ['GET'])
-#def user_load(id):
-#    import database.py
-#    statement = select(User).filter_by(user_id=id)
-##    result = session.execute(statement).scalars().all()
-#    # TODO: check only one result exists
-#    user = result[0]
-#    return {
-#            'user_id': user.user_id,
-#            'firstName' : user.first_name,
-#            'lastName' : user.last_name,
-#            'email' : user.email,
-#            'org_list' : {,} # TODO
-#            }
+
+# --------------
+# Initialization
+# --------------
+
+@app.before_first_request
+def initialize():
+    db_create_tables() # won't always do this
+    db_add_test_data() # won't always do this
+
+
+# -------------------
+# USER-related routes
+# -------------------
+
+@app.route('/user/create', methods = ['GET'])
+def user_create():
+    # Return fields for new user with default values filled in
+    return ( {'id': None, 'firstName': None, 'lastName': None, 'email': None, 'orgList': []} )
+
+@app.route('/user/load/<id>', methods = ['GET'])
+def user_load(id):
+    from database import db_user_load
+    user_dict = db_user_load(id)
+    return user_dict
+
+# Save the submitted user information
+# QUESTION: should we add <id> to the route?
+@app.route('/user/save', methods = ['POST'])
+def user_save():
+    print(request.form)
+    data = {
+        'user_id': request.form.get('user_id') or None,
+        'first_name': request.form.get('first_name'),
+        'last_name': request.form.get('last_name'),
+        'email': request.form.get('email'),
+        'org_list': [int(org_id) for org_id in request.form.get('org_list').split(',') if org_id.strip()],
+    }
+    # org_list arrives as a string with commands... need to split to generate an array
+    from database import db_user_save
+    user = db_user_save(data)
+    print ("BACK in api.py, here is user: ")
+    print (user)
+    data['user_id'] = user['user_id']
+    return data
+
+# ---------------------------
+# ORGANIZATION-related routes
+# ---------------------------
+
+# Return a list of organizations (array of dict)
+# TODO: read in parameter strings from request for filtering, pagination, order, etc...
+@app.route('/organization/search', methods = ['GET'])
+def organization_search():
+    from database import db_organization_search
+    org_list = db_organization_search()
+    return org_list
+
+
 
 @app.route('/get_data',methods = ['POST'])
 def findData():

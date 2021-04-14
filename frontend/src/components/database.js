@@ -1,13 +1,14 @@
-import React, { useState, useEffect } from "react";
+import React from "react"; 
+// { useState, useEffect } from "react";
 import "../App.css";
 import axios from "axios";
-import Button from "@material-ui/core/Button";
-import Slider from "@material-ui/core/Slider";
-import { palette } from "@material-ui/system";
+//import Button from "@material-ui/core/Button";
+//import Slider from "@material-ui/core/Slider";
+//import { palette } from "@material-ui/system";
 import { createMuiTheme, ThemeProvider } from "@material-ui/core/styles";
 import blueGrey from "@material-ui/core/colors/blueGrey";
 import CssBaseline from "@material-ui/core/CssBaseline";
-import { makeStyles } from "@material-ui/core/styles";
+//import { makeStyles } from "@material-ui/core/styles";
 import Table from "@material-ui/core/Table";
 import TableBody from "@material-ui/core/TableBody";
 import TableCell from "@material-ui/core/TableCell";
@@ -15,12 +16,12 @@ import TableContainer from "@material-ui/core/TableContainer";
 import TableHead from "@material-ui/core/TableHead";
 import TableRow from "@material-ui/core/TableRow";
 import Paper from "@material-ui/core/Paper";
-import Typography from "@material-ui/core/Typography";
-import { PassThrough } from "stream";
-import { thisExpression } from "@babel/types";
+//import Typography from "@material-ui/core/Typography";
+//import { PassThrough } from "stream";
+//import { thisExpression } from "@babel/types";
 import SearchField from "react-search-field";
-import ReactSlider from 'react-slider'
-import GoogleLogin from 'react-google-login';
+//import ReactSlider from 'react-slider'
+//import GoogleLogin from 'react-google-login';
 import {Link} from 'react-router-dom'
 
 
