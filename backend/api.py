@@ -23,13 +23,16 @@ from skimage.color import rgba2rgb
 import os
 from skimage import measure
 from flask_cors import CORS
+import ast
+
 
 # Include database layer
-from database import db_create_tables, db_add_test_data
+from database import retrieve_image_path,db_create_tables, db_add_test_data,retrieve_initial_analysis,db_analysis_save,db_analysis_save_initial,db_analysis_edit
 
 
 
 class analysis():
+    """Input: ROIs, n_l, origins, filename, doUV, doRF, autoLane, names"""
     def __init__(self,ROIs,n_l,origins,filename,doUV,doRF,autoLane,names=['Sample','Sample','Sample','','','','']):
         self.doRF=doRF
         self.ROIs = ROIs
@@ -47,6 +50,14 @@ class analysis():
     @staticmethod
     def build_analysis(attributes):
         return analysis(attributes[0],attributes[1],attributes[2],attributes[3],attributes[4],attributes[5],attributes[6],attributes[7])
+    @staticmethod
+    def flatten(ROIs):
+        newROIs = []
+        for i in range(len(ROIs)):
+            for j in range(len(ROIs[i])):
+                newROIs.append(ROIs[i][j])
+        return newROIs
+
     def dump(self):
         return [self.ROIs,self.n_l,self.origins,self.filename,self.doUV,self.doRF,self.autoLane,self.names]
     def setOrigins(self,origins):
@@ -65,25 +76,22 @@ class analysis():
         tim = time.time() 
         newOrigins = (np.asarray(self.origins).copy()).tolist()
         newROIs = (np.asarray(self.ROIs).copy()).tolist()
-        print(newROIs)
-        num_lanes=self.n_l
+        #print(newROIs)
+        if self.autoLane:
+            num_lanes=self.n_l
         autoLane=self.autoLane
         doRF=self.doRF
         doUV=self.doUV
-        #print(request.form['autoLane'])
-        #print(request.form['autoLane']=='true' and (not doRF and not doUV))
-        #print(autoLane)
+        ##print(request.form['autoLane'])
+        ##print(request.form['autoLane']=='true' and (not doRF and not doUV))
+        ##print(autoLane)
         
         if doUV:
-            img2 = np.load('./UPLOADS/'+filename+'c.npy')
-            img = np.load('./UPLOADS/'+filename+'c.npy')
-            newOrigins = [newOrigins]
-            self.sort2(newOrigins,index =0)
-            newOrigins=newOrigins[0]
-            newOrigins = newOrigins[::-1]
-            print(newOrigins)
-            cerenks= self.calculateCerenkov(newROIs,newOrigins[:-2],img)
-            RFs = self.calculateRF(newROIs,newOrigins,img2)
+            
+            img =np.load(retrieve_image_path('cerenkovcalc',filename))
+            #print(newOrigins)
+            cerenks= self.calculateCerenkov(newROIs,img)
+            RFs = self.calculateRF(newROIs,img)
             cerenks_RFs=[]
             for i in range(len(cerenks)):
                 lane = []
@@ -91,19 +99,14 @@ class analysis():
                     lane.append([cerenks[i][j][4],RFs[i][j][2]])
                 cerenks_RFs.append(lane)
             self.makeUniform(cerenks_RFs)
-            #print(list(zip(cerenks_RFs)))
+            ##print(list(zip(cerenks_RFs)))
             cerenks_RFs = self.transpose(cerenks_RFs,doUV,doRF,newROIs)
-            ###print(cerenks_RFs)
-            ###print(time.time()-tim)
+            ####print(cerenks_RFs)
+            ####print(time.time()-tim)
             return cerenks_RFs
         elif doRF and not doUV:
-            img = np.load('./UPLOADS/'+filename+'c.npy')
-            newOrigins = [newOrigins]
-            self.sort2(newOrigins,index=0)
-            newOrigins = newOrigins[0]
-            newOrigins = newOrigins[::-1]
-            print(newOrigins)
-            cerenks = self.calculateCerenkov(newROIs,newOrigins[:-2],img)
+            img = np.load(retrieve_image_path('cerenkovcalc',filename))
+            cerenks = self.calculateCerenkov(newROIs,img)
             RFs = self.calculateRF(newROIs,newOrigins,img)
             cerenks_RFs=[]
             for i in range(len(cerenks)):
@@ -112,17 +115,16 @@ class analysis():
                     lane.append([cerenks[i][j][4],RFs[i][j][2]])
                 cerenks_RFs.append(lane)
             self.makeUniform(cerenks_RFs)
-            ###print(cerenks_RFs)
-            #print(list(zip(cerenks_RFs)))
+            ####print(cerenks_RFs)
+            ##print(list(zip(cerenks_RFs)))
             cerenks_RFs = self.transpose(cerenks_RFs,doUV,doRF,newROIs)
-            ###print(time.time()-tim)
+            ####print(time.time()-tim)
             return cerenks_RFs
             
         else:
-            img = np.load('./UPLOADS/'+filename+'c.npy')
-            if autoLane:
-                newOrigins = self.predictLanes(newROIs,num_lanes)
-            cerenks = self.calculateCerenkov(newROIs,newOrigins,img)
+            img = np.load(retrieve_image_path('cerenkovcalc',filename))
+            
+            cerenks = self.calculateCerenkov(newROIs,img)
             
             cerenk_answers = []
 
@@ -132,21 +134,20 @@ class analysis():
                     lane.append([cerenks[i][j][4]])
                 cerenk_answers.append(lane)
             nparr = np.asarray(cerenk_answers)
-            np.save('./UPLOADS/'+filename+'Answers.npy',nparr)
             self.makeUniform(cerenk_answers,doRF=False)
             
-            ###print(cerenk_answers)
-            #print(list(zip(cerenk_answers)))
+            ####print(cerenk_answers)
+            ##print(list(zip(cerenk_answers)))
             cerenk_answers = self.transpose(cerenk_answers,doUV,doRF,newROIs)
-            #print(type(cerenk_answers))
+            ##print(type(cerenk_answers))
             return cerenk_answers
-    def predict_ROIs(self):
-        self.ROIs=  self.ROIs_from_points(self.findCenters(),self.filename)
-    def ROIs_from_points(self,points,tim):
+    def predict_ROIs(self,img,imgR):
+        self.ROIs=  self.ROIs_from_points(self.findCenters(img),imgR)
+    def ROIs_from_points(self,points,img):
     
         arr = []
         for i in range(len(points)):
-            res = self.findRadius(tim,points[i][1],points[i][0],1)
+            res = self.findRadius(img,points[i][1],points[i][0],1)
         
             arr.append([points[i][0],points[i][1],res['rowRadius'],res['colRadius']])
         return arr
@@ -198,7 +199,7 @@ class analysis():
                         num_zeros+=1
                 DR+=1
             arr.append((round(center[0]+(UR-DR)/2),round(center[1]+(RR-LR)/2)))
-        ##print(arr)
+        ###print(arr)
         return arr
     def computeXY_circle(self,img,rowMin,rowMax,colMin,colMax,multiply_place=True):
         colRadiusSquared = ((colMax-colMin)/2)**2
@@ -211,14 +212,14 @@ class analysis():
         
         for row in range(int(.9*int(min(rowMin,rowMax))),int(max(rowMin,rowMax)+.1*(len(img)-max(rowMin,rowMax)))):
             for col in range(int(.9*int(min(colMin,colMax))),int(max(colMin,colMax)+.1*(len(img[0])-max(colMin,colMax)))):
-                if ((row-rowCent)**2)/(rowRadiusSquared)+(((col-colCent)**2)/colRadiusSquared)<=1.1:
+                if ((row-rowCent)**2)/(rowRadiusSquared)+(((col-colCent)**2)/colRadiusSquared)<=1.05:
                     if multiply_place:
                         rowTotal += row*img[row][col]
                         colTotal += col*img[row][col]
                     else:
                         rowTotal+=img[row][col]
                         colTotal+=img[row][col]
-                    pixelCount +=1
+                    pixelCount +=img[row][col]
 
         if not multiply_place:
             pixelCount = 1
@@ -249,6 +250,7 @@ class analysis():
         Mutates:
             points2(list)
         """
+        #print('p2',points2)
         u = points2
         for i in range(len(points2)):
             for j in range(len(points2[i])):
@@ -259,12 +261,19 @@ class analysis():
                         a = points2[i][j]
                         points2[i][j]=points2[i][k]
                         points2[i][k] = a 
-    def makeTruePoints(self,points2,img):
-        for b in range(len(points2)):
-            rowRad,colRad = points2[b][2],points2[b][3]
-            i = points2[b]
-            xAv,yAv = self.computeXY_circle(img,i[0]-rowRad,i[0]+rowRad,i[1]-colRad,i[1]+rowRad)
-            i = (xAv,yAv)
+        return points2
+    def makeTruePoints(self,ROIs,img):
+        ROIs_to_fill=[]
+        for lane in range(len(ROIs)):
+            lane_to_fill=[]
+            for spot in range(len(ROIs[lane])):
+                spot_to_fill=[]
+                rowRad,colRad = ROIs[lane][spot][2],ROIs[lane][spot][3]
+                yAv,xAv = self.computeXY_circle(img,ROIs[lane][spot][0]-rowRad,ROIs[lane][spot][0]+rowRad,ROIs[lane][spot][1]-colRad,ROIs[lane][spot][1]+rowRad)
+                spot_to_fill=[yAv,xAv,ROIs[lane][spot][2],ROIs[lane][spot][3]]
+                lane_to_fill.append(spot_to_fill)
+            ROIs_to_fill.append(lane_to_fill)
+        return ROIs_to_fill
     def predictLanes(self,ROIs,lanes):
         tim = time.time()
         xs = []
@@ -274,11 +283,11 @@ class analysis():
         xs = xs.T
         thresh = KMeans(n_clusters=lanes).fit(xs).cluster_centers_
         np.sort(thresh)
-        ##print(time.time()-tim)
+        ###print(time.time()-tim)
         thresh =thresh.tolist()
         for i in thresh:
             i.insert(0,1)
-        ##print(thresh)
+        ###print(thresh)
         
         return thresh   
     def findClosest(self,arr1,arr2):
@@ -292,11 +301,11 @@ class analysis():
             ar2 = abs(ar2)
             theArr.append(np.argsort(ar2)[0])
         return theArr
-    def findCenters(self):
+    def findCenters(self,img):
         u = time.time()
-        img=np.load('./UPLOADS/'+self.filename+'c.npy')
+        
         img-= morphology.area_opening(img,area_threshold=3500)
-        #print(time.time()-u)
+        ##print(time.time()-u)
         img = morphology.opening(img,morphology.rectangle(19,1))
         img=morphology.opening(img,morphology.rectangle(1,17))
         u=time.time()
@@ -327,8 +336,8 @@ class analysis():
             totalcol/=count
             totalrow/=count
             centers.append((int(totalrow),int(totalcol)))
-        ###print(time.time()-u)
-        #print(time.time()-u)
+        ####print(time.time()-u)
+        ##print(time.time()-u)
         for i in range(4):
             centers = analysis.find_RL_UD(img,centers)
         centers = self.clear_near(centers)
@@ -339,23 +348,38 @@ class analysis():
             lens.append(len(i))
         lens.sort()
         return lens[-1]
-    def calculateCerenkov(self,newArr,thresholds,img):
+    def organize_into_lanes(self):
+        
+        newArr = self.ROIs
+       
+        if self.autoLane:
+            thresh = np.asarray(self.predictLanes(newArr,self.n_l))[:,1].tolist()
+        elif self.doRF:
+            thresh = np.asarray(self.origins[:-2])[:,1].tolist()
+            print('origins[:-2]',thresh)
+            
+        else:
+            print('hi',self.origins)
+            thresh = np.asarray(self.origins)[:,1].copy().tolist()
+        
+        print('thresh',thresh)
         newArr_copy = []
         newArr_copy2 = []
         for i in range(len(newArr)):
             newArr_copy2.append(newArr[i])
             newArr_copy.append(newArr[i][1])
         newArr = newArr_copy
-        for i in range(len(thresholds)):
-            thresholds[i] = (thresholds[i][1])
-        thresholds.sort() 
-        whatLane = self.findClosest(newArr,thresholds)
+        
+        thresh.sort() 
+        #print('thresh',thresh)
+        #print('points',newArr)
+        whatLane = self.findClosest(newArr,thresh)
         #whatLane = orgranize each center into which lane it should be in
-        final_arr = [[0]*1 for i in range(len(thresholds))]
+        final_arr = [[0]*1 for i in range(len(thresh))]
         #create an array newArr which has lane rows
 
         for spot in range(len(newArr)):
-            #  two thresholds = 1 rectangle, which is why its len(thresholds)//2
+            #  two thresh = 1 rectangle, which is why its len(thresh)//2
             
             where = whatLane[spot]
             # set where variable equal to whatLane a certain rectangle should be in
@@ -373,7 +397,14 @@ class analysis():
                 spot = final_arr[l][j]
 
                 final_arr[l][j] = (newArr_copy2[spot])
-        self.sort2(final_arr)
+        
+        final_arr = self.sort2(final_arr)
+        #print('le points',final_arr)
+        self.ROIs = final_arr
+        #print(self.ROIs)
+        return
+    def calculateCerenkov(self,final_arr,img):
+        #print(final_arr)
         for lane in range(len(final_arr)):   
             total_totals = 0
             for spot in range(len(final_arr[lane])):
@@ -404,7 +435,7 @@ class analysis():
                         i.insert(-1,["NA","NA"])
                     else:
                         i.insert(-1,["NA"])
-    ####print(arr)
+    #####print(arr)
     def transpose(self,arr,doRF,doUV,ROIs):
         if doRF or doUV:
             num=2
@@ -420,17 +451,16 @@ class analysis():
                 arr2[i][j]=list(answers[j][i])
         arr2.reverse()
         return arr2
-    def findRadius(self,filename,x,y,shift):
+    def findRadius(self,img,x,y,shift):
     
         tim = time.time()
-        img = np.load('./UPLOADS/'+filename+'.npy')
         rowRadius = 0
         colRadius = 0
         num_zeros = 0
 
         row = int(y)
         col = int(x)
-        print(shift)
+        #print(shift)
         if (shift=='0'):
             for i in range(3):
                 center  = analysis.find_RL_UD(img,[(row,col)])
@@ -458,65 +488,25 @@ class analysis():
             rowRadius,colRadius = 0,0
         rowRadius,colRadius = min(max(rowRadius+3,14),55),min(max(colRadius+3,14),55)
         return{"col":col,"row":row,"colRadius":colRadius,"rowRadius":rowRadius}
-    def calculateRF(self,points2,points,img):
-        self.makeTruePoints(points2,img)
-        p1,p2 = points[-2],points[-1]
+    def calculateRF(self,ROIs_untrue,origins,img):
+        ROIs = self.makeTruePoints(ROIs_untrue,img)
+        
+        p1,p2 = origins[-2],origins[-1]
+        print('1,2',p1,p2)
         if p2[0]-p1[0]!=0:
             SlopeInvTop = (p2[1]-p1[1])/(p2[0]-p1[0])
         else:
             SlopeInvTop=5000
-        isTopNeg = SlopeInvTop/abs(SlopeInvTop)
         rowT = int(p1[0]-(p1[1]//SlopeInvTop))
-        print('rowT',rowT)
-        
-        points = points[:-2]
-        
-        print('points',points)
-
-        points2_copy = []
-        points2_copy2 = []
-        for i in range(len(points2)):
-            points2_copy2.append(points2[i])
-            points2_copy.append(points2[i][1])
-        points2 = points2_copy
-        thresholds = []
-        for i in range(len(points)):
-            thresholds.append(points[i][1])
-        thresholds.sort()
-        print('thresholds',thresholds)
-        whatLane = self.findClosest(points2,thresholds)
-        
-        #whatLane = orgranize each center into which lane it should be in
-        points3 = [[0]*1 for i in range(len(points))]
-        #create an array points2 which has lane rows
-
-        for spot in range(len(points2)):
-            #  two points = 1 rectangle, which is why its len(points)//2
-            
-            where = whatLane[spot]
-            # set where variable equal to whatLane a certain rectangle should be in
-            
-            points3[where].append(spot)
-            # at that lane, append which rectangle it is
-
-        for l in range(len(points3)):
-            points3[l] = points3[l][1:]
-            # take away the zero at the beginning of each lane
-        for l in range(len(points3)):
-            for j in range(len(points3[l])):
-                # for every cell in point2, change it to the corresponding 
-                spot = points3[l][j]
-                points3[l][j] = (points2_copy2[spot])
-        self.sort2(points3)
-        points=[points]
-        self.sort2(points,index=1)
-        points=points[0]
-        print('p3',points3)
-        for lane in range(len(points3)):
-            for spot in range(len(points3[lane])):
-                point_row,point_col = points3[lane][spot][0],points3[lane][spot][1]
-                origin_row,origin_col = points[lane][0],points[lane][1]
-                print('pr,pc,or,oc',point_row,point_col,origin_row,origin_col)
+        #print('rowT',rowT)
+        print('ROIs',ROIs)
+        print('orig',origins)
+        #print('p3',ROIs)
+        for lane in range(len(ROIs)):
+            for spot in range(len(ROIs[lane])):
+                point_row,point_col = ROIs[lane][spot][0],ROIs[lane][spot][1]
+                origin_row,origin_col = origins[lane][0],origins[lane][1]
+                #print('pr,pc,or,oc',point_row,point_col,origin_row,origin_col)
                 if point_col-origin_col!=0:
 
                     SlopeOfLine = (((point_row)-(origin_row))/(point_col-origin_col))
@@ -532,8 +522,8 @@ class analysis():
                 dist = self.findDistance(theCol,theRow,origin_col,origin_row)
                 partialDistance = self.findDistance(point_col,point_row,origin_col,origin_row)
                 RF = partialDistance/dist
-                points3[lane][spot]=(points3[lane][spot][0],points3[lane][spot][1],round(RF,2))
-        return points3
+                ROIs[lane][spot]=(ROIs[lane][spot][0],ROIs[lane][spot][1],round(RF,2))
+        return ROIs
 
 def np64toint(arr):
     for i in range(len(arr)):
@@ -541,19 +531,19 @@ def np64toint(arr):
             arr[i][j]=int(arr[i][j])
     return arr
 def finalize(Dark,Dark2,Flat,Flat2,Cerenkov,Cerenkov2,UV,UV2,UVFlat,UVFlat2,Bright,Bright2,BrightFlat,BrightFlat2):
-    ###print('dark')
+    ####print('dark')
     Dark = makeFileArray(Dark,Dark2)
-    ###print('flat')
+    ####print('flat')
     Flat = makeFileArray(Flat,Flat2)
-    ###print('cerenkov')
+    ####print('cerenkov')
     Cerenkov = makeFileArray(Cerenkov,Cerenkov2)
-    ###print('UV')
+    ####print('UV')
     UV = makeFileArray(UV,UV2)
-    ##print('UVFLAt')
+    ###print('UVFLAt')
     UVFlat = makeFileArray(UVFlat,UVFlat2)
-    ##print('b')
+    ###print('b')
     Bright = makeFileArray(Bright,Bright2)
-    ##print('bf')
+    ###print('bf')
     BrightFlat = makeFileArray(BrightFlat,BrightFlat2)
     if isStorage(Cerenkov):
         Cerenkov = np.loadtxt('./SampleData/DMSO140-160')
@@ -565,6 +555,7 @@ def finalize(Dark,Dark2,Flat,Flat2,Cerenkov,Cerenkov2,UV,UV2,UVFlat,UVFlat2,Brig
         Flat= Image.open('./SampleData/masterflat.tiff')
         Flat = np.asarray(Flat)
     return startUp(Dark,Flat,Cerenkov,UV,UVFlat,Bright,BrightFlat)
+
 def startUp(Dark,Flat,Cerenkov,UV,UVFlat,Bright,BrightFlat):
     
     doUV = True
@@ -644,7 +635,8 @@ def isStorage(item):
     return("FileStorage" in str(type(item)))
 
 def is_unique_key(num):
-    for i in os.listdir('./UPLOADS/'):
+    directory = os.listdir('./UPLOADS/')
+    for i in directory:
         if str(num) in i:
             return False
     return True
@@ -652,9 +644,9 @@ def generate_key():
     num=1
     while True:
         num = int((10**11)*np.random.rand())
-        print(num)
-        num=np.base_repr(num,base=36)
-        print(num)
+        #print(num)
+        num=np.base_repr(num,base=10)
+        #print(num)
         if is_unique_key(num):
             break
     return num
@@ -675,10 +667,10 @@ def makeFileArray(fileN,fileN1):
             fileN = np.asarray(fileN)
         except:
             pass
-    ###print(time.time()-tim)
+    ####print(time.time()-tim)
     return fileN
 def add_dir(email):
-    print('here')
+    #print('here')
     os.mkdir(f"./users/{email}")
     os.mkdir(f"./users/{email}/files")
     file = open(f"./users/{email}/files/desc.txt", "w")
@@ -709,7 +701,7 @@ def findFiles(lanes,cerenkName,darkName,flatName,UVName,UVFlatName):
     list_dir = os.listdir('./database')
     names = []
     
-    print(lanes)
+    #print(lanes)
     for i in list_dir:
         arr =[]
         if (cerenkName in findCerenkov(i)) and (darkName in findDark(i)) and (flatName in findFlat(i)) and (UVName in findUV(i)) and (UVFlatName in findUVFlat(i)) and (str(lanes) in findL(i)):
@@ -755,7 +747,7 @@ def user_load(id):
 # QUESTION: should we add <id> to the route?
 @app.route('/user/save', methods = ['POST'])
 def user_save():
-    print(request.form)
+    #print(request.form)
     data = {
         'user_id': request.form.get('user_id') or None,
         'first_name': request.form.get('first_name'),
@@ -766,8 +758,8 @@ def user_save():
     # org_list arrives as a string with commands... need to split to generate an array
     from database import db_user_save
     user = db_user_save(data)
-    print ("BACK in api.py, here is user: ")
-    print (user)
+    #print ("BACK in api.py, here is user: ")
+    #print (user)
     data['user_id'] = user['user_id']
     return data
 
@@ -789,21 +781,21 @@ def organization_search():
 def findData():
     np.load.__defaults__=(None, True, True, 'ASCII')
     np_load_old = np.load
-    print(request.form["files"])
+    #print(request.form["files"])
 
 @app.route("/database_retrieve",methods=["POST"])
 def ret_data():
     return({"files":findFiles(request.form["Lanes"],request.form["Cerenkov"],request.form["Darkfield"],request.form["Flatfield"],request.form["UV"],request.form["UVFlat"])})
 @app.route('/fix_background/<num>')
 def fix_background(num):
-    print('f')
-    img = np.load('./UPLOADS/'+str(num)+'c.npy')
+    #print('f')
+    img = np.load(retrieve_image_path('cerenkovcalc',num))
     tim = time.time()
     val = img.copy()
     img-=np.min(img)
     img+=.001
     ideal_r = 25
-    print(ideal_r)
+    #print(ideal_r)
     b4=morphology.opening(img,morphology.disk(ideal_r-10))
     b0 = morphology.closing(img,morphology.disk(ideal_r))
     b1 = morphology.opening(img,morphology.disk(ideal_r+5))
@@ -825,12 +817,15 @@ def fix_background(num):
     b=filters.median(b,selem=morphology.rectangle(2,40))
     img-=b
     img-=np.median(img)
-    np.save('./UPLOADS/'+str(num)+'c.npy',img)
+    path = retrieve_image_path('cerenkovcalc',num)
+    os.remove(path)
+    np.save(path,img)
     img-=np.min(img)
     img/=np.max(img)   
-    print(time.time()-tim)
+    #print(time.time()-tim)
     img = Image.fromarray((np.uint8(plt.get_cmap('viridis')(img)*255)))
-    filepath = './UPLOADS/'+str(num)+'b.png'
+    filepath = retrieve_image_path('cerenkovdisplay',num)
+    os.remove(filepath)
     img.save(filepath)
     
     
@@ -846,59 +841,53 @@ def sign_in():
         return{"status":"registered"}
 @app.route('/analysis_edit/<filename>',methods = ['POST'])
 def analysis_edit(filename):
-    origins = request.form['origins']
-    ROIs = request.form['ROIs']
     doRF = request.form['doRF']=='true'
     doUV = request.form['doUV']=='true'
     autoLane=request.form['autoLane']=='true' and not (doRF or doUV)
-    num_lanes=int(request.form['n_l'])
-    #print(request.form['autoLane'])
-    #print(request.form['autoLane']=='true' and (not doRF and not doUV))
-    #print(autoLane)
-    if not autoLane:
+    if autoLane:
+        num_lanes=int(request.form['n_l'])
+    else:
+        num_lanes=1
     
-        #print('!')
-        origins = np.asarray([int(i) for i in origins.split(',')])
-    ROIs = np.asarray([int(j) for j in ROIs.split(',')])
-    if not autoLane:
-        originsx = origins[1::2]
-        originsy=origins[::2]
-    ROIsx = ROIs[1::4]
-    ROIsy = ROIs[::4]
-    ROIsry = ROIs[2::4]
-    ROIsrx = ROIs[3::4]
-    newROIs = []
-    newOrigins = []
-    for i in range(len(ROIsx)):
-        newROIs.append([ROIsy[i],ROIsx[i],ROIsry[i],ROIsrx[i]])
-    if not autoLane:
-        #print('!')
-        for j in range(len(originsx)):
-            newOrigins.append([originsy[j],originsx[j]])
-    np.load.__defaults__=(None, True, True, 'ASCII')
-    np_load_old = np.load
-    analysis_edit = analysis.build_analysis(np.load(f'./UPLOADS/analysis{filename}.npy'))
-    analysis_edit.setROIs(newROIs)
-    analysis_edit.setOrigins(newOrigins)
-    analysis_edit.setAutoLane(autoLane)
-    print('auto',analysis_edit.autoLane)
-    analysis_edit.setN_l(num_lanes)
-    analysis_edit.setDoRF(doRF)
     
-    analysis_edit_dumped = analysis_edit.dump()
-    os.remove(f'./UPLOADS/analysis{filename}.npy')
-    np.save(f"./UPLOADS/analysis{filename}.npy",analysis_edit_dumped)
-    return{"res":'hi'}
+    ##print(request.form['autoLane'])
+    ##print(request.form['autoLane']=='true' and (not doRF and not doUV))
+    ##print(autoLane)
+    try:
+        newOrigins = ast.literal_eval(request.form.getlist('origins')[0])
+        
+    except:
+        print('NOO')
+        newOrigins = []
+    print('newo',newOrigins)
+    newOrigins = [newOrigins]
+    newROIs = (request.form.getlist('ROIs'))
+    #print(newROIs)
+    #print(newROIs[0])
+    #print(newROIs[0][0])
+    newROIs = ast.literal_eval(newROIs[0])
+    #print(newROIs)
+    newROIs = analysis.flatten(newROIs)
+    #print('n',newROIs)
+    Analysis = analysis(newROIs, num_lanes,newOrigins,filename,doUV,doRF,autoLane)
+    Analysis.sort2(Analysis.origins,index = 0)
+    Analysis.origins=Analysis.origins[0]
+    Analysis.origins = Analysis.origins[::-1]
+    Analysis.organize_into_lanes()
+    data = {}
+    data['ROIs'] = Analysis.ROIs
+    data['origins'] =Analysis.origins
+    data['doRF'] =  doRF
+
+    db_analysis_edit(data,filename)
+    return{"ROIs":Analysis.ROIs}
     
     
     
 @app.route('/retrieve_analysis/<filename>',methods=['GET'])
 def retrieve_analysis(filename):
-    np.load.__defaults__=(None, True, True, 'ASCII')
-    np_load_old = np.load
-    analysis_retrieved = analysis.build_analysis(np.load(f'./UPLOADS/analysis{filename}.npy'))
-    
-    return{'ROIs':np64toint(analysis_retrieved.ROIs),'origins':np64toint(analysis_retrieved.origins),'doUV':analysis_retrieved.doUV,'doRF':analysis_retrieved.doRF,'filenumber':analysis_retrieved.filename,'autoLane':analysis_retrieved.autoLane,'n_l':analysis_retrieved.n_l}
+    analysis_retrieved = retrieve_initial_analysis(filename)
+    return{'ROIs':analysis_retrieved['ROIs'],'origins':analysis_retrieved['origins'],'doRF':analysis_retrieved['doRF'],'filenumber':filename}
 @app.route('/time', methods = ['POST','GET'])
 def createFile():
     if request.method == 'POST':
@@ -925,7 +914,7 @@ def createFile():
         UVFlatName=request.form['UVFlatName']
         BrightFlatName=request.form['BrightFlatName']
         FlatName=request.form['FlatName']
-        print('r',request.form)
+        ##print('r',request.form)
         
         names = [CerenkovName,DarkName,FlatName,UVName,UVFlatName,BrightName,BrightFlatName]
 
@@ -933,7 +922,8 @@ def createFile():
         tim = generate_key()
         img_cerenk = finalize(Dark,Dark2,Flat,Flat2,Cerenkov,Cerenkov2,UV,UV2,UVFlat,UVFlat2,Bright,Bright2,BrightFlat,BrightFlat)
         Cerenkov = img_cerenk[1]
-        np.save("./UPLOADS/"+tim+'.npy',Cerenkov)
+        os.mkdir(f'./UPLOADS/{tim}')
+        np.save("./UPLOADS/"+tim+'/cerenkovradii.npy',Cerenkov)
         img = img_cerenk[0]
         doUV = img_cerenk[2]
         current_analysis = analysis([],0,[],tim,doUV,doUV,doUV,names)
@@ -942,14 +932,12 @@ def createFile():
         else:
             calc = img_cerenk[-2]
 
-        np.save('./UPLOADS/'+tim+'c.npy',calc)
-        np.save("./UPLOADS/"+tim+'UV.npy',np.asarray([doUV]))
+        np.save('./UPLOADS/'+tim+'/cerenkovcalc.npy',calc)
         
-
         img = img-np.min(img)
         img = img *1/np.max(img)
         img = Image.fromarray((np.uint8(plt.get_cmap('viridis')(img)*255)))
-        filepath = './UPLOADS/'+tim+'.png'
+        filepath = './UPLOADS/'+tim+'/cerenkovdisplay.png'
         img.save(filepath)
         if doUV:
             Cerenkov_show = img_cerenk[3]
@@ -957,35 +945,50 @@ def createFile():
             Cerenkov_show.save('./UPLOADS/'+tim+'Cerenkov.png')
             UV_show.save('./UPLOADS/'+tim+'UV.png')
             calc = img_cerenk[-2]
-            np.save('./UPLOADS/'+tim+'calc.npy',calc)
-        current_analysis.predict_ROIs()
-        current_analysis_dumped = current_analysis.dump()
-        np.save(f'./UPLOADS/analysis{tim}.npy',current_analysis_dumped)
-        np.load.__defaults__=(None, True, True, 'ASCII')
-        np_load_old = np.load
-        print(analysis.build_analysis(np.load(f'./UPLOADS/analysis{tim}.npy')))
+            np.save('./UPLOADS/'+tim+'cerenkovcalc.npy',calc)
+        current_analysis.predict_ROIs(calc,Cerenkov)
+        data = {}
+        data['radio_name'] = CerenkovName
+        data['dark_name']=DarkName
+        data['flat_name']=FlatName
+        data['uv_name'] = UVName
+        data['bright_name'] = BrightName
+        data['dark'] = request.files['Dark']
+        data['flat']=request.files['Flat']
+        data['radio'] = request.files['Cerenkov']
+        data['uv'] = request.files['UV']
+        data['bright'] = request.files['Bright']
+        data['ROIs'] = [current_analysis.ROIs]
+        data['origins'] = []
+        data['doRF'] = False
+        data['user_id'] = None
+        db_analysis_save_initial(data, tim)
+        #print('success')
         
-        ##print(points)
+        #print(analysis.build_analysis(np.load(f'./UPLOADS/analysis{tim}.npy')))
+        
+        ###print(points)
         
         res = tim
         return {"res":res}
 
 @app.route('/img/<filename>',methods = ['GET'])
 def give(filename):
-    filen = './UPLOADS/'+filename+'.png' 
+    filen = retrieve_image_path('cerenkovdisplay',filename)
+    print(filen)
     return send_file(filen)
 @app.route('/radius/<filename>/<x>/<y>/<shift>',methods = ['GET'])
 def findRadius(filename,x,y,shift):
     
     tim = time.time()
-    img = np.load('./UPLOADS/'+filename+'.npy')
+    img = np.load(retrieve_image_path('cerenkovradii',filename))
     rowRadius = 0
     colRadius = 0
     num_zeros = 0
 
     row = int(y)
     col = int(x)
-    print(shift)
+    #print(shift)
     if (shift=='0'):
         for i in range(3):
             center  = analysis.find_RL_UD(img,[(row,col)])
@@ -1015,27 +1018,16 @@ def findRadius(filename,x,y,shift):
     return{"col":col,"row":row,"colRadius":colRadius,"rowRadius":rowRadius}
 @app.route('/UV/<filename>',methods = ['GET'])
 def giveUV(filename):
-    filen = './UPLOADS/'+filename+'UV.png' 
+    filen = './UPLOADS/'+filename+'/UV.png' 
     return send_file(filen)
 @app.route('/Cerenkov/<filename>',methods = ['GET'])
 def giveCerenkov(filename):
-    filen = './UPLOADS/'+filename+'Cerenkov.png' 
+    filen = retrieve_image_path('cerenkovdisplay',filename) 
     return send_file(filen)
-@app.route('/upload_data/<filename>',methods = ['POST'])
-def upload_data(filename):
-    np.load.__defaults__=(None, True, True, 'ASCII')
-    np_load_old = np.load
-    
-    analysis_upload = analysis.build_analysis(np.load(f'./UPLOADS/analysis{filename}.npy'))
-    name = f'c@~{analysis_upload.names[0]}cd@~{analysis_upload.names[1]}cf@~{analysis_upload.names[2]}u@~{analysis_upload.names[3]}uf@~{analysis_upload.names[4]}l@~{analysis_upload.n_l}'
-    np.save(f'./database/{name}.npy',filename)
-    print(name)
-    print(np.load(f'./database/{name}.npy'))
-    return({"Status":'Data Upload Successful'})
+
     
 @app.route('/data/',methods=['POST'])
 def data():
-    print('sup')
     np.load.__defaults__=(None, True, True, 'ASCII')
     np_load_old = np.load
     CerenkovName=request.form['CerenkovName']
@@ -1047,19 +1039,28 @@ def data():
     Lanes = request.form['Lanes']
     name = f'c@~{CerenkovName}cd@~{DarkName}cf@~{FlatName}u@~{UVName}uf@~{UVFlatName}l@~{Lanes}'
     filename = str(np.load(f'./database/{name}.npy'))
-    print('fname:',filename)
+    #print('fname:',filename)
     return {'Key':filename}
 @app.route('/results/<filename>',methods = ['GET'])
 def results(filename):
-        np.load.__defaults__=(None, True, True, 'ASCII')
-        np_load_old = np.load
-        analysis_retrieve = analysis.build_analysis(np.load(f'./UPLOADS/analysis{filename}.npy'))
-        analysis_results=analysis_retrieve.results()
-        print(analysis_results)
-        return{"arr":analysis_results}
+        analysis_data = retrieve_initial_analysis(filename)
+        analysis_retrieve = analysis(analysis_data['ROIs'],None,analysis_data['origins'],filename,'UVName' in analysis_data, analysis_data['doRF'],False)
+        analysis_results =analysis_retrieve.results()
 
+        #print(analysis_results)
+        return{"arr":analysis_results}
+@app.route('/upload_data/<filename>',methods=['POST'])
+def upload_data(filename):
+    analysis = retrieve_initial_analysis(filename)
+    data = {}
+    db_analysis_save(request.form.to_dict(),filename)
+    return 'yes'
+
+    
+     
+    
 if __name__ == '__main__':
-    #print("Running!")
+    ##print("Running!")
     app.run(host='0.0.0.0',debug=False,port=5000)
 
     
