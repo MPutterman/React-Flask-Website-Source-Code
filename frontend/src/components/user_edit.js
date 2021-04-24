@@ -11,6 +11,9 @@ import Select from "@material-ui/core/Select";
 import MenuItem from "@material-ui/core/MenuItem";
 import InputLabel from "@material-ui/core/InputLabel";
 
+// TODO: need to run: npm install @material-ui/lab
+import { AlertList, Alert } from '../components/alerts';
+
 /* Important notes:
    I am using Material UI for form components, and React Hook Form for handling of validation.
    To enable React Hook Form to work with Material UI (non-native HTML5 elements), it is
@@ -123,7 +126,7 @@ const UserEdit = (props) => {
         axios.post(backend_url('user/save'), formData, config)
         .then((response) => {
             console.log(response.data);
-            setMessage("User was successfully updated");
+            setMessage("success");
         })
         .catch((e) => {
             console.log("POST /user/save: " + e);
@@ -270,6 +273,14 @@ const UserEdit = (props) => {
                 {/* TODO: there is a Material-UI element for temporary status messages -- use that instead */ }
                       
                 <p>{message}</p>
+                <AlertList />
+                {
+                  message === 'success' ? (
+                    <Alert severity="success">User successfully updated</Alert>
+                  ) : (
+                    <Alert severity="error">Something went wrong</Alert>
+                  )
+                }
 
                </form>
 
