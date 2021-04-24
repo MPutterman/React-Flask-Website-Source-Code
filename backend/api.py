@@ -732,8 +732,9 @@ CORS(app)
 
 @app.before_first_request
 def initialize():
-    db_create_tables() # won't always do this
-    db_add_test_data() # won't always do this
+    # TEMPORARY: Recreate the database
+    db_create_tables() 
+    db_add_test_data() 
 
 
 # -------------------

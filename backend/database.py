@@ -33,13 +33,13 @@ db_uri = "mysql+mysqlconnector://{}:{}@{}:{}/{}".format(
         os.getenv('DB_PORT'),
         os.getenv('DB_NAME')       
 )
-engine = create_engine(db_uri, future=True)
+db_engine = create_engine(db_uri, future=True)
 
 # Create Session class
 # Other docs used the following (is there a difference?)
 #    Session = sessionmaker(bind=engine)
 #    session = Session(future=True)
-db_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine))
+db_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=db_engine))
 
 # Create ORM Base class
 Base = declarative_base()
@@ -98,6 +98,7 @@ class User(UserMixin, Base):
     first_name = Column(String(64))
     last_name = Column(String(64))
     email = Column(String(254), nullable=False) # max lenth of an email address 
+    is_deleted = Column(Boolean, default=False, nullable=False)
     org_list = relationship("Organization", secondary=user_org_map) 
     analysis_list=relationship("Analysis",secondary=user_analysis_map)
 
@@ -142,28 +143,30 @@ class Equipment(Base):
 
 class ROI(Base):
     __tablename__='ROI'
-    lane_id = Column(Integer,ForeignKey('lane.lane_id'))
-    lane = relationship("Lane",back_populates='ROI_list')
-
     ROI_id = Column(Integer,primary_key=True) 
     ROI_number = Column(Integer)
     x=Column(Integer)
     y=Column(Integer)
-    rx=Column(Integer)#radius in x direction
-    ry=Column(Integer)#radius in y direction
+    rx=Column(Integer)#radius in x direction (in pixels)
+    ry=Column(Integer)#radius in y direction (in pixels)
+    lane_id = Column(Integer,ForeignKey('lane.lane_id'))
+    lane = relationship("Lane",back_populates='ROI_list')
+
+
 class Analysis(Base):
     __tablename__ = 'analysis'
     analysis_id = Column(Integer, primary_key=True)
     lane_list = relationship("Lane", back_populates="analysis")
-    images= relationship('Image',secondary=analysis_image_map)
+    images = relationship('Image',secondary=analysis_image_map)
 
 class Lane(Base):
     __tablename__ = 'lane'
     lane_id = Column(Integer, primary_key=True)
+    lane_number=Column(Integer)
     analysis_id = Column(Integer, ForeignKey('analysis.analysis_id'))
     analysis = relationship("Analysis", back_populates="lane_list")
-    lane_number=Column(Integer)
-    ROI_list = relationship('ROI',back_populates='lane')
+    ROI_list = relationship('ROI', back_populates='lane')
+
 class ImageType(enum.Enum):
     flat = 1
     dark = 2
@@ -201,8 +204,8 @@ class Cover(Base):
 
 def db_create_tables():
     # Careful, this deletes ALL data in database
-    Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
+   Base.metadata.drop_all(db_engine)
+   Base.metadata.create_all(db_engine)
 
 
 def db_add_test_data():
@@ -232,6 +235,7 @@ def db_add_test_data():
     lanes2 = Lane(lane_id =2,lane_number=2,ROI_list=[ROI3,ROI4,ROI5,ROI6])
     analysis1 = Analysis(analysis_id=108723,lane_list=[lanes1,lanes2])
 
+    #db_session.add(analysis1)
     db_session.add(User(first_name = 'Bob', last_name = 'Brown', email = 'bob@brown.com',analysis_list=[analysis1],org_list=[org1,org2]))
     print('Finished')
     db_session.commit()
@@ -297,6 +301,5 @@ def db_organization_search():
     db_session.commit()
     data = [org.as_dict() for org in results]
     return dumps(data) # Can directly return a list...  This returns just the list.  Use jsonify(keyname=data) if want to return with a key
-db_add_test_data()
 
 
