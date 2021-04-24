@@ -47,7 +47,7 @@ class Analysis extends React.Component {
     });
     this.rads = [];
     this.origins = [];
-    this.ROIs = [];
+    this.ROIs = [[]];
     this.filenum = this.props.match.params.filenumber;
     console.log(this.filenum)
     this.ret = [];
@@ -60,7 +60,7 @@ class Analysis extends React.Component {
       arr_files: [],
       string_files: [],
       n_l: 0,
-      selected: 1000,
+      selected: {lane:1000,spot:200},
       enterC: "",
       enterD: "",
       enterF: "",
@@ -139,6 +139,7 @@ class Analysis extends React.Component {
   }
   set_data=(res)=>{
     console.log(res)
+    console.log(res.ROIs)
     this.ROIs= res.ROIs
     this.origins=res.origins
     this.setState({autoLane:res.autoLane,n_l:res.n_l,doRF:res.doRF ? 'Disable RF Calculation' : 'Enable RF Calculation',doUV:res.doUV})
@@ -180,7 +181,7 @@ class Analysis extends React.Component {
             shift
         )
         .then((res) => {
-          this.ROIs.push([
+          this.ROIs[0].push([
             
             res.data.row,
             res.data.col,
@@ -193,7 +194,7 @@ class Analysis extends React.Component {
     }
   };
   fixBackground = ()=>{
-    return axios.get(this.url + '/fix_background/'+this.filenum).then((res)=>{this.setState({background_corrected:'b'})}).catch('An Error Occurred')
+    return axios.get(this.url + '/fix_background/'+this.filenum).then((res)=>{this.setState({background_corrected:''})}).catch('An Error Occurred')
   }
     componentDidMount() {
       console.log('mounted')
@@ -204,7 +205,7 @@ class Analysis extends React.Component {
     if (
       
       !this.state.resultsReturned &&
-      this.ROIs.length > 0
+      this.ROIs[0].length > 0
     ) {
       if (e.key === "w") {
 	
@@ -251,71 +252,71 @@ class Analysis extends React.Component {
     }
   };
   moveVert() {
-    if (this.state.selected === 1000) {
+    if (this.state.selected.lane === 1000) {
       return;
     }
     var last = this.state.selected;
-    if (this.ROIs[last][0] + 4 + this.ROIs[last][2] < 682) {
-      this.ROIs[last][0] += 4;
+    if (this.ROIs[last.lane][last.spot][0] + 4 + this.ROIs[last.lane][last.spot][2] < 682) {
+      this.ROIs[last.lane][last.spot][0] += 4;
       this.setState({ makeUpdate: 10 });
     }
   }
   moveHorz() {
-    if (this.state.selected === 1000) {
+    if (this.state.selected.lane === 1000) {
       return;
     }
     var last = this.state.selected;
-    if (this.ROIs[last][1] + 4 + this.ROIs[last][3] < 682) {
-      this.ROIs[last][1] += 4;
+    if (this.ROIs[last.lane][last.spot][1] + 4 + this.ROIs[last.lane][last.spot][3] < 682) {
+      this.ROIs[last.lane][last.spot][1] += 4;
       this.setState({ makeUpdate: 8 });
     }
   }
   backHorz() {
-    if (this.state.selected === 1000) {
+    if (this.state.selected.lane === 1000) {
       return;
     }
     var last = this.state.selected;
-    if (this.ROIs[last][1] - 4 - this.ROIs[last][3] > 0) {
+    if (this.ROIs[last.lane][last.spot][1] - 4 - this.ROIs[last.lane][last.spot][3] > 0) {
 
-      this.ROIs[last][1] -= 4;
+      this.ROIs[last.lane][last.spot][1] -= 4;
       this.setState({ makeUpdate: 10 });
     }
   }
   backVert() {
-    if (this.state.selected === 1000) {
+    if (this.state.selected.lane === 1000) {
       return;
     }
     var last = this.state.selected;
-    if (this.ROIs[last][0] - 4 - this.ROIs[last][2] > 0) {
-      this.ROIs[last][0] -= 4;
+    if (this.ROIs[last.lane][last.spot][0] - 4 - this.ROIs[last.lane][last.spot][2] > 0) {
+      this.ROIs[last.lane][last.spot][0] -= 4;
       this.setState({ makeUpdate: 10 });
     }
   }
-  select(i) {
-    this.setState({ selected: i });
+  select(l,i) {
+    this.setState({ selected: {lane:l,spot:i} });
     this.setState({ makeUpdate: 1 });
   }
   
-  removeROI(e, i) {
+  removeROI(e,l, i) {
     if (this.state.resultsReturned) {
       return;
     }
 
     if (this.state.doROIs) {
-      if (i !== this.state.selected) {
-        this.select(i);
+      if (l != this.state.selected.lane || i !=this.state.selected.spot) {
+        this.select(l,i);
       } else {
-        this.ROIs.splice(i, 1);
+        this.ROIs[l].splice(i, 1);
         this.setState({ makeUpdate: 9 });
-        this.setState({ selected: 1000 });
+        this.setState({ selected: {lane:1000,spot:1000} });
       }
     } else {
       var x = e.nativeEvent.offsetX;
       var y = e.nativeEvent.offsetY;
-      var radx = this.ROIs[i][3];
-      var rady = this.ROIs[i][2];
-      var px = this.ROIs[i][1];
-      var py = this.ROIs[i][0];
+      var radx = this.ROIs[l][i][3];
+      var rady = this.ROIs[l][i][2];
+      var px = this.ROIs[l][i][1];
+      var py = this.ROIs[l][i][0];
       console.log(x, y, radx, rady, px, py);
       console.log(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
       x = px - radx + x + 3;
@@ -366,14 +367,15 @@ class Analysis extends React.Component {
             shift
         )
         .then((res) => {
-          this.ROIs.push([
+          this.ROIs[0].push([
             res.data.row,
             res.data.col,
             
             res.data.rowRadius,
             res.data.colRadius,
           ]);
-          this.setState({ selected: this.ROIs.length - 1 });
+          this.setState({ selected: {lane:0,spot:this.ROIs[0].length-1} });
+          console.log(this.ROIs,this.state.selected)
           return res;
         })
     }
@@ -401,9 +403,9 @@ class Analysis extends React.Component {
     // }
     let data = new FormData();
     console.log('ROIs',this.ROIs)
-    data.append("ROIs", this.ROIs);
+    data.append("ROIs", JSON.stringify(this.ROIs));
     data.append('doUV',this.state.doUV)
-    data.append("origins", this.origins);
+    data.append("origins", JSON.stringify(this.origins));
     data.append("n_l", this.state.n_l);
     if (this.state.doRF === "Disable RF Calculation") {
       data.append("doRF", "true");
@@ -423,6 +425,8 @@ class Analysis extends React.Component {
         },
       })
       .then((res) => {
+        this.ROIs = res.data.ROIs
+        this.setState({})
         return axios.get(this.url+'/results/'+this.filenum).then(res2=>{
           this.setState({ results: res2.data.arr, resultsReturned: true });
         })
@@ -430,49 +434,49 @@ class Analysis extends React.Component {
       }).catch('An Error Occurred');
   }
   incVert = () => {
-    if (this.state.selected === 1000) {
+    if (this.state.selected.lane === 1000) {
       return;
     }
     var last = this.state.selected;
     if (
-      this.ROIs[last][0] + this.ROIs[last][2] < 682-0  &&
-      this.ROIs[last][0] - this.ROIs[last][2] > 0
+      this.ROIs[last.lane][last.spot][0] + this.ROIs[last.lane][last.spot][2] < 682-0  &&
+      this.ROIs[last.lane][last.spot][0] - this.ROIs[last.lane][last.spot][2] > 0
     ) {
-      this.ROIs[last][2] += 4;
+      this.ROIs[last.lane][last.spot][2] += 4;
       this.setState({ makeUpdate: 12 });
     }
   };
   incHorz = () => {
-    if (this.state.selected === 1000) {
+    if (this.state.selected.lane === 1000) {
       return;
     }
     var last = this.state.selected;
     if (
-      this.ROIs[last][1] + this.ROIs[last][3] < 682-0  &&
-      this.ROIs[last][1] - this.ROIs[last][3] > 0
+      this.ROIs[last.lane][last.spot][1] + this.ROIs[last.lane][last.spot][3] < 682-0  &&
+      this.ROIs[last.lane][last.spot][1] - this.ROIs[last.lane][last.spot][3] > 0
     ) {
-      this.ROIs[last][3] += 4;
+      this.ROIs[last.lane][last.spot][3] += 4;
       this.setState({ makeUpdate: 12 });
     }
   };
 
   decHorz = () => {
-    if (this.state.selected === 1000) {
+    if (this.state.selected.lane === 1000) {
       return;
     }
     var last = this.state.selected;
-    if (this.ROIs[last][3] > 14) {
-      this.ROIs[last][3] -= 4;
+    if (this.ROIs[last.lane][last.spot][3] > 14) {
+      this.ROIs[last.lane][last.spot][3] -= 4;
       this.setState({ makeUpdate: 12 });
     }
   };
   decVert = () => {
-    if (this.state.selected === 1000) {
+    if (this.state.selected.lane === 1000) {
       return;
     }
     var last = this.state.selected;
-    if (this.ROIs[last][2] > 14) {
-      this.ROIs[last][2] -= 4;
+    if (this.ROIs[last.lane][last.spot][2] > 14) {
+      this.ROIs[last.lane][last.spot][2] -= 4;
       this.setState({ makeUpdate: 12 });
     }
   };
@@ -488,7 +492,8 @@ class Analysis extends React.Component {
         
       ]);
       this.setState({ makeUpdate: 8 });
-    } else {
+    } 
+    else {
       var x = parseInt(e.nativeEvent.offsetX);
       var y = parseInt(e.nativeEvent.offsetY);
       var shift = e.shiftKey ? 1 : 0;
@@ -505,14 +510,14 @@ class Analysis extends React.Component {
             shift
         )
         .then((res) => {
-          this.ROIs.push([
+          this.ROIs[0].push([
             res.data.row,
             res.data.col,
             
             res.data.rowRadius,
             res.data.colRadius,
           ]);
-          this.setState({ selected: this.ROIs.length - 1 });
+          this.setState({ selected: {lane:0,spot:this.ROIs[0].length-1} });
           return res;
         });
     }
@@ -635,10 +640,16 @@ class Analysis extends React.Component {
                 </TableContainer>
               )}
 
-              
-              {this.ROIs.map((x, i) => {
-                return (
-                  <canvas
+              {this.ROIs.map((Lane,l)=>{
+
+                return(
+                  
+                  <div>
+                    
+                {Lane.map((x,i)=>{
+                  return(
+                    
+                    <canvas
                     key={i}
                     className="ROI"
                     style={{
@@ -647,9 +658,9 @@ class Analysis extends React.Component {
                       zIndex: this.state.doROIs ? 11 : 10,
                       borderRadius: "50%/50%",
                       border:
-                        i === this.state.selected
+                        (i === this.state.selected.spot && l === this.state.selected.lane)
                           ? "dashed 2px #0ff"
-                          : "dashed 2px #f00",
+                          : `dashed 2px #${(2*l).toString(16)}${(2*l).toString(16)}${(2*l).toString(16)}`,
                       width: "" + 2 * x[3] - 2 + "px",
                       height: "" + 2 * x[2] - 2 + "px",
                       marginTop: "" + x[0] - 1 * x[2] + 1 + "px",
@@ -657,12 +668,13 @@ class Analysis extends React.Component {
                     }}
                     onClick={(e) => {
                       e.preventDefault();
-                      this.removeROI(e, i);
+                      this.removeROI(e,l, i);
                     }}
                   />
-                );
+                  );
 
-                // return <view id="circle" key = {x} style= {{width:x[2],height:x[3],top:x[1],left:x[0]}}/>
+                })}
+                </div>)
               })}
               {this.origins.map((x, i) => {
                 return (
@@ -686,6 +698,11 @@ class Analysis extends React.Component {
                   />
                 );
               })}
+
+              
+             
+              
+              
               
                 <img
 		  className = 'noselect'    
