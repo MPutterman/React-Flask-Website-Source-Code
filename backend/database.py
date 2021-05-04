@@ -173,6 +173,14 @@ class Analysis(Base):
     origin_list = relationship('Origin',back_populates='analysis')
     lane_list = relationship("Lane", back_populates="analysis")
     images= relationship('Image',secondary=analysis_image_map)
+
+    def as_dict(self):
+        # Returns full represenation of model.
+        columns = class_mapper(self.__class__).mapped_table.c
+        return {
+            col.name: getattr(self, col.name)
+                for col in columns
+        }
     
 class Origin(Base):
     __tablename__='origin'

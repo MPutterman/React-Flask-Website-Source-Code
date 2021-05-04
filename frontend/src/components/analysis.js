@@ -863,6 +863,7 @@ class Analysis extends React.Component {
                       defaultValue={this.state.contrast}
                       min={-9}
                       max={21}
+                      label={"Contrast"}
                       onChange={(e, value) => {
                         this.setState({ contrast: value });
                       }}
