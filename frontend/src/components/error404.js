@@ -1,13 +1,12 @@
 import React from 'react';
 
-class Error404 extends React.Component {
-  render() {
+const Error404 = (props) => {
+
     return (
         <div>
-          <h2>Error: page not found (TO ADD: proper 404 response)</h2>
+            <p>Error: path not found (<strong>{props.location.pathname}</strong>)</p>
         </div>
     );
-  }
 }
 
 export default Error404;
