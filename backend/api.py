@@ -4,7 +4,7 @@
 
 import time
 
-from flask import Flask, request,Response,send_file,send_from_directory,make_response,Response
+from flask import Flask, request,Response,send_file,send_from_directory,make_response,Response,session
 from skimage import io, morphology, filters,transform, segmentation,exposure
 from skimage.util import invert
 import scipy
@@ -15,6 +15,7 @@ from matplotlib.patches import Rectangle
 from matplotlib.widgets import RectangleSelector, Button, EllipseSelector
 import matplotlib.patches as pat
 from matplotlib import interactive
+from flask_session import Session
 import matplotlib
 import numpy as np
 from PIL import Image
@@ -22,8 +23,10 @@ from sklearn.cluster import MeanShift,estimate_bandwidth,AffinityPropagation,KMe
 from skimage.color import rgba2rgb
 import os
 from skimage import measure
-from flask_cors import CORS
+from flask_cors import CORS,cross_origin
+
 import ast
+from datetime import timedelta
 
 
 # Include database layer
@@ -88,7 +91,7 @@ class analysis():
         
         if doUV:
             
-            img =np.load(retrieve_image_path('cerenkovcalc',filename))
+            img =session['cerenkovcalc']
             #print(newOrigins)
             cerenks= self.calculateCerenkov(newROIs,img)
             RFs = self.calculateRF(newROIs,img)
@@ -105,7 +108,7 @@ class analysis():
             ####print(time.time()-tim)
             return cerenks_RFs
         elif doRF and not doUV:
-            img = np.load(retrieve_image_path('cerenkovcalc',filename))
+            img = session['cerenkovcalc']
             cerenks = self.calculateCerenkov(newROIs,img)
             RFs = self.calculateRF(newROIs,newOrigins,img)
             cerenks_RFs=[]
@@ -122,7 +125,7 @@ class analysis():
             return cerenks_RFs
             
         else:
-            img = np.load(retrieve_image_path('cerenkovcalc',filename))
+            img = session['cerenkovcalc']
             
             cerenks = self.calculateCerenkov(newROIs,img)
             
@@ -645,7 +648,7 @@ def generate_key():
     while True:
         num = int((10**11)*np.random.rand())
         #print(num)
-        num=np.base_repr(num,base=10)
+        num=np.base_repr(num,base=16)
         #print(num)
         if is_unique_key(num):
             break
@@ -715,6 +718,13 @@ def findFiles(lanes,cerenkName,darkName,flatName,UVName,UVFlatName):
     return names
 
 app = Flask(__name__)
+from dotenv import load_dotenv
+load_dotenv()
+SECRET_KEY = os.getenv('FLASK_APP_SECRET_KEY')
+#put secret key in env
+SESSION_TYPE = 'filesystem'
+app.config.from_object(__name__)
+Session(app)
 CORS(app)
 
 
@@ -726,6 +736,8 @@ CORS(app)
 def initialize():
     db_create_tables() # won't always do this
     db_add_test_data() # won't always do this
+    # session.permanent = True
+    # app.permanent_session_lifetime = timedelta(minutes=5)
 
 
 # -------------------
@@ -733,11 +745,13 @@ def initialize():
 # -------------------
 
 @app.route('/user/create', methods = ['GET'])
+@cross_origin(supports_credentials=True)
 def user_create():
     # Return fields for new user with default values filled in
     return ( {'id': None, 'firstName': None, 'lastName': None, 'email': None, 'orgList': []} )
 
 @app.route('/user/load/<id>', methods = ['GET'])
+@cross_origin(supports_credentials=True)
 def user_load(id):
     from database import db_user_load
     user_dict = db_user_load(id)
@@ -746,6 +760,7 @@ def user_load(id):
 # Save the submitted user information
 # QUESTION: should we add <id> to the route?
 @app.route('/user/save', methods = ['POST'])
+@cross_origin(supports_credentials=True)
 def user_save():
     #print(request.form)
     data = {
@@ -770,6 +785,7 @@ def user_save():
 # Return a list of organizations (array of dict)
 # TODO: read in parameter strings from request for filtering, pagination, order, etc...
 @app.route('/organization/search', methods = ['GET'])
+@cross_origin(supports_credentials=True)
 def organization_search():
     from database import db_organization_search
     org_list = db_organization_search()
@@ -778,18 +794,21 @@ def organization_search():
 
 
 @app.route('/get_data',methods = ['POST'])
+@cross_origin(supports_credentials=True)
 def findData():
     np.load.__defaults__=(None, True, True, 'ASCII')
     np_load_old = np.load
     #print(request.form["files"])
 
 @app.route("/database_retrieve",methods=["POST"])
+@cross_origin(supports_credentials=True)
 def ret_data():
     return({"files":findFiles(request.form["Lanes"],request.form["Cerenkov"],request.form["Darkfield"],request.form["Flatfield"],request.form["UV"],request.form["UVFlat"])})
 @app.route('/fix_background/<num>')
+@cross_origin(supports_credentials=True)
 def fix_background(num):
     #print('f')
-    img = np.load(retrieve_image_path('cerenkovcalc',num))
+    img = session['cerenkovradii']
     tim = time.time()
     val = img.copy()
     img-=np.min(img)
@@ -832,14 +851,20 @@ def fix_background(num):
 
     return {'r':2}
 @app.route('/sign_in',methods=['POST'])
+@cross_origin(supports_credentials=True)
 def sign_in():
     email = request.form["email"]
-    if email in os.listdir('./users'):
-        return{"status":"success"}
-    else:
-        add_dir(email)
-        return{"status":"registered"}
+    session['email']=email
+    arr= np.zeros((1000,1000))
+    for i in range(len(arr)):
+        for j in range(len(arr[i])):
+            arr[i][j]=i+j
+        
+    session['based_arr'] = arr
+    print(session['email'])
+    return 'kk'
 @app.route('/analysis_edit/<filename>',methods = ['POST'])
+@cross_origin(supports_credentials=True)
 def analysis_edit(filename):
     doRF = request.form['doRF']=='true'
     doUV = request.form['doUV']=='true'
@@ -885,10 +910,14 @@ def analysis_edit(filename):
     
     
 @app.route('/retrieve_analysis/<filename>',methods=['GET'])
+@cross_origin(supports_credentials=True)
 def retrieve_analysis(filename):
+    session['cerenkovcalc'] = np.load(retrieve_image_path('cerenkovcalc',filename))
+    session['cerenkovradii']=np.load(retrieve_image_path('cerenkovradii',filename))
     analysis_retrieved = retrieve_initial_analysis(filename)
     return{'ROIs':analysis_retrieved['ROIs'],'origins':analysis_retrieved['origins'],'doRF':analysis_retrieved['doRF'],'filenumber':filename}
 @app.route('/time', methods = ['POST','GET'])
+@cross_origin(supports_credentials=True)
 def createFile():
     if request.method == 'POST':
         
@@ -973,15 +1002,17 @@ def createFile():
         return {"res":res}
 
 @app.route('/img/<filename>',methods = ['GET'])
+@cross_origin(supports_credentials=True)
 def give(filename):
     filen = retrieve_image_path('cerenkovdisplay',filename)
     print(filen)
     return send_file(filen)
 @app.route('/radius/<filename>/<x>/<y>/<shift>',methods = ['GET'])
+@cross_origin(supports_credentials=True)
 def findRadius(filename,x,y,shift):
     
     tim = time.time()
-    img = np.load(retrieve_image_path('cerenkovradii',filename))
+    img = session['cerenkovradii']
     rowRadius = 0
     colRadius = 0
     num_zeros = 0
@@ -1017,16 +1048,19 @@ def findRadius(filename,x,y,shift):
     rowRadius,colRadius = min(max(rowRadius+3,14),55),min(max(colRadius+3,14),55)
     return{"col":col,"row":row,"colRadius":colRadius,"rowRadius":rowRadius}
 @app.route('/UV/<filename>',methods = ['GET'])
+@cross_origin(supports_credentials=True)
 def giveUV(filename):
     filen = './UPLOADS/'+filename+'/UV.png' 
     return send_file(filen)
 @app.route('/Cerenkov/<filename>',methods = ['GET'])
+@cross_origin(supports_credentials=True)
 def giveCerenkov(filename):
     filen = retrieve_image_path('cerenkovdisplay',filename) 
     return send_file(filen)
 
     
 @app.route('/data/',methods=['POST'])
+@cross_origin(supports_credentials=True)
 def data():
     np.load.__defaults__=(None, True, True, 'ASCII')
     np_load_old = np.load
@@ -1042,6 +1076,7 @@ def data():
     #print('fname:',filename)
     return {'Key':filename}
 @app.route('/results/<filename>',methods = ['GET'])
+@cross_origin(supports_credentials=True)
 def results(filename):
         analysis_data = retrieve_initial_analysis(filename)
         analysis_retrieve = analysis(analysis_data['ROIs'],None,analysis_data['origins'],filename,'UVName' in analysis_data, analysis_data['doRF'],False)
@@ -1050,6 +1085,7 @@ def results(filename):
         #print(analysis_results)
         return{"arr":analysis_results}
 @app.route('/upload_data/<filename>',methods=['POST'])
+@cross_origin(supports_credentials=True)
 def upload_data(filename):
     analysis = retrieve_initial_analysis(filename)
     data = {}
