@@ -1,33 +1,36 @@
-import React, { useState, useEffect } from "react";
+import React from "react"; 
+//, { useState, useEffect } from "react";
 import "../App.css";
 import axios from "axios";
 import Button from "@material-ui/core/Button";
-import Slider from "@material-ui/core/Slider";
-import { palette } from "@material-ui/system";
+//import Slider from "@material-ui/core/Slider";
+//import { palette } from "@material-ui/system";
 import { createMuiTheme, ThemeProvider } from "@material-ui/core/styles";
 import blueGrey from "@material-ui/core/colors/blueGrey";
 import CssBaseline from "@material-ui/core/CssBaseline";
-import { makeStyles } from "@material-ui/core/styles";
-import Table from "@material-ui/core/Table";
-import TableBody from "@material-ui/core/TableBody";
-import TableCell from "@material-ui/core/TableCell";
-import TableContainer from "@material-ui/core/TableContainer";
-import TableHead from "@material-ui/core/TableHead";
-import TableRow from "@material-ui/core/TableRow";
-import Paper from "@material-ui/core/Paper";
-import Typography from "@material-ui/core/Typography";
-import { PassThrough } from "stream";
-import { thisExpression } from "@babel/types";
-import SearchField from "react-search-field";
-import ReactSlider from 'react-slider'
-import GoogleLogin from 'react-google-login';
+//import { makeStyles } from "@material-ui/core/styles";
+//import Table from "@material-ui/core/Table";
+//import TableBody from "@material-ui/core/TableBody";
+//import TableCell from "@material-ui/core/TableCell";
+//import TableContainer from "@material-ui/core/TableContainer";
+//import TableHead from "@material-ui/core/TableHead";
+//import TableRow from "@material-ui/core/TableRow";
+//import Paper from "@material-ui/core/Paper";
+//import Typography from "@material-ui/core/Typography";
+//import { PassThrough } from "stream";
+//import { thisExpression } from "@babel/types";
+//import SearchField from "react-search-field";
+//import ReactSlider from 'react-slider'
+//import GoogleLogin from 'react-google-login';
 import {withRouter} from "react-router";
 import {Link} from 'react-router-dom'
 
 class Submission extends React.Component {
   constructor(props) {
+    axios.defaults.withCredentials = true
     super(props);
     this.fileLink = React.createRef();
+    this.dataLink = React.createRef();
     this.darkReference = React.createRef();
     this.flatReference = React.createRef();
     this.cerenkovReference = React.createRef();
@@ -35,6 +38,7 @@ class Submission extends React.Component {
     this.UVFlatReference = React.createRef();
     this.brightReference = React.createRef();
     this.brightFlatReference = React.createRef();
+    this.fileLink = React.createRef();
     this.theme = createMuiTheme({
       palette: {
         type: "dark",
@@ -76,9 +80,9 @@ class Submission extends React.Component {
       contrast: 0,
       show_us: "About Us",
       start: false,
-      Darkname: "",
-      Flatname: "",
-      Cerenkovname: "",
+      Darkname: "SampleDarkField",
+      Flatname: "SampleFlatField",
+      Cerenkovname: "SampleCerenkov",
       Brightname: "",
       BrightFlatname: "",
       UVname: "",
@@ -101,6 +105,8 @@ class Submission extends React.Component {
       name:''
       
     };
+    console.log(this.url)
+    axios.defaults.withCredentials = true
   }
 
   // Get backend IP
@@ -165,6 +171,13 @@ class Submission extends React.Component {
     data.append("Bright", fileblob6);
     const fileblob7 = new Blob([this.state.BrightFlat], { type: "image/png" });
     data.append("BrightFlat", fileblob7);
+    data.append('BrightName',this.state.Brightname)
+    data.append('FlatName',this.state.Flatname)
+    data.append('CerenkovName',this.state.Cerenkovname)
+    data.append('DarkName',this.state.Darkname)
+    data.append('UVName',this.state.UVname)
+    data.append('UVFlatName',this.state.UVFlatname)
+    data.append('BrightFlatName',this.state.BrightFlatname)
     return axios
       .post(this.url + '/time', data, {
         headers: {
@@ -176,6 +189,12 @@ class Submission extends React.Component {
         return res;
       })
   };
+  handleSubmitClick=()=>{
+    if (!this.state.submitDisabled){
+      return
+    }
+    this.state.submitDisabled=true
+  }
 
   render() {
     return (
@@ -198,7 +217,9 @@ class Submission extends React.Component {
                           width: "20vw",
                           height: "20vh",
                         }}
+
                         onClick={this.onFileUpload}
+                        disabled={this.state.disabled}
                       >
                         Submit
                       </Button>
@@ -315,6 +336,7 @@ class Submission extends React.Component {
                           height: "20vh",
                         }}
                         onClick={this.onFileUpload}
+                        disabled={this.state.disabled}
                       >
                         Use Sample Data
                       </Button>
@@ -324,7 +346,7 @@ class Submission extends React.Component {
                       color="primary"
                       variant="contained"
                       onClick={(e) => {
-                        this.setState({ showData: true });
+                        this.dataLink.current.click()
                       }}
                       style={{
                         fontSize: "5.5vh",
@@ -340,7 +362,15 @@ class Submission extends React.Component {
                       Click Here to Search Our Database Instead
                     </Button>
                   
-
+                    <Link type = 'hidden' ref={this.dataLink} style={{
+                      display:'none',
+                      fontSize: "2.5vh",
+                      position: "absolute",
+                      marginTop: "44vh",
+                      marginLeft: "41vw",
+                      width: "0vw",
+                      height: "0vh",
+                    }} to={{ pathname: '/search'}} >click here</Link> 
                   
                     <input
                       type="file"

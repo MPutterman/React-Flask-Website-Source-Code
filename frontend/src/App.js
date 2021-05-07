@@ -33,19 +33,19 @@ import {BrowserRouter as Router, Switch, Route, useParams, Link, NavLink} from "
 import Home from './components/home';
 import About from './components/about';
 import Contact from './components/contact';
-import User from './components/user';
 import Error404 from './components/error404';
 
 import Analysis from './components/analysis';
+import Database from './components/database'
 import Submission from './components/submission'
 import Start from './components/start'
 //import User from './components/user';
-//import Organization from './components/organization';
+import UserEdit from './components/user_edit';
+import Organization from './components/organization';
 //import Equipment from './components/equipment';
 
-// TODO: convert this to a class...
+// TODO: Look into web sessions
 // TODO: figure out the 'auth' state, and show different content, e.g. only 'login' option if not logged in
-//   and 'account' or 'logout' if logged in...
 
 const drawerWidth = 120;
 
@@ -71,7 +71,7 @@ const useStyles = makeStyles((theme) => ({
   menuButton: {
     marginRight: theme.spacing(2),
   },
-    hide: {
+  hide: {
     display: 'none',
   },
   drawer: {
@@ -170,12 +170,14 @@ export function MenuAppBar() {
           <img 
             style={{width: '10%', height: '10%', }}
             src={process.env.PUBLIC_URL + "/logo_UCLA_blue_boxed.png"}
+            alt='logo'
           />
           <h1>
             van Dam Lab - Radio-TLC Analyzer
           </h1>
           <br />
       </div>
+     
 
       <AppBar style={{topMargin: '50'}} position="fixed" className={clsx(classes.appBar, {[classes.appBarShift]: open, })} >
         <Toolbar>
@@ -243,25 +245,34 @@ export function MenuAppBar() {
         <Divider />
         <List>
           <ListItem button key={'home'}>
-            <NavLink to={'/'} classname="nav-link">
+            <NavLink to={'/'} className="nav-link">
                 <ListItemIcon><HomeIcon /></ListItemIcon>
                 <ListItemText primary={'Home'} />
             </NavLink>
           </ListItem>
           <ListItem button key={'new analysis'}>
-            <NavLink to={'/new-analysis'} classname="nav-link">
+            <NavLink to={'/new-analysis'} className="nav-link">
                         <ListItemIcon><AddIcon /></ListItemIcon>
                       <ListItemText primary={'New Analysis'} />
             </NavLink>
+            </ListItem>
+          <ListItem button key={'Search Database'}>
+            <NavLink to={'/search'} className="nav-link">
+                        <ListItemIcon><AddIcon /></ListItemIcon>
+                      <ListItemText primary={'Search Database'} />
+            </NavLink>
           </ListItem>
           <ListItem button key={'load analysis'}>
-          <NavLink to={'/load-analysis'} classname="nav-link">
+          <NavLink to={'/load-analysis'} className="nav-link">
             <ListItemIcon><EditIcon /></ListItemIcon>
             <ListItemText primary={'Load Analysis'} />
             </NavLink>
           </ListItem>
         </List>
       </Drawer>
+ 
+      <main />
+
     </div>
   );
 }
@@ -275,14 +286,21 @@ class App extends React.Component {
                     <MenuAppBar />
                 </div>
                 <Switch>
+                    <Route path = '/search' component={Database}/>
                     <Route path='/start' component={Start}/>
                     <Route path='/submission' component={Submission}/>
                     <Route path='/analysis/:filenumber' component={Analysis}/>
                     <Route exact path='/' component={Home} />
                     <Route path='/contact' component={Contact} />
                     <Route path='/about' component={About} />
-                    <Route path='/user/:action/:id' component={User} />
-                    <Route component={Error404} />
+                    <Route exact path='/user/edit/:id' component={UserEdit} />
+                    {/*
+                    <Route exact path='/user/:action' component={User} /> 
+                    <Route exact path='/user/:action/:id' component={User} /> 
+                    <Route exact path='/organization/:action' component={Organization} />
+                    <Route exact path='/organization/:action/:id' component={Organization} />
+                    */}
+                    <Route component={Error404} /> {/* No match */}
                 </Switch>
             </Router>
         );
