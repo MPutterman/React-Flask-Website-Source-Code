@@ -46,6 +46,7 @@ import Organization from './components/organization';
 
 // TODO: Look into web sessions
 // TODO: figure out the 'auth' state, and show different content, e.g. only 'login' option if not logged in
+// TODO: Here's an interesting tutorial on doing logins/sessions with flask: https://www.digitalocean.com/community/tutorials/how-to-add-authentication-to-your-app-with-flask-login
 
 const drawerWidth = 120;
 

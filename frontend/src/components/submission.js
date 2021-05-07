@@ -3,6 +3,7 @@ import React from "react";
 import "../App.css";
 import axios from "axios";
 import Button from "@material-ui/core/Button";
+import LinearProgress from "@material-ui/core/LinearProgress";
 //import Slider from "@material-ui/core/Slider";
 //import { palette } from "@material-ui/system";
 import { createMuiTheme, ThemeProvider } from "@material-ui/core/styles";
@@ -24,6 +25,10 @@ import CssBaseline from "@material-ui/core/CssBaseline";
 //import GoogleLogin from 'react-google-login';
 import {withRouter} from "react-router";
 import {Link} from 'react-router-dom'
+
+// TODO: here's a nice tutorial on adding a progress bar for uploads...
+// TODO: here's a video on using it with React-hook-form
+
 
 class Submission extends React.Component {
   constructor(props) {
