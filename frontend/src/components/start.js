@@ -135,7 +135,7 @@ class Start extends React.Component {
               
 		   <div style = {{position:'absolute',marginTop:'0vh',marginLeft:'0vw',zIndex:12}}>
 		   {true &&<GoogleLogin
-    			clientId="828188331922-408c37t2bu6d1dqi870g4dghhjc2cdn7.apps.googleusercontent.com"
+    			clientId={process.env.REACT_APP_GOOGLE_OAUTH_CLIENT}
     			buttonText="Login"
 			
     			onSuccess={this.Success}
