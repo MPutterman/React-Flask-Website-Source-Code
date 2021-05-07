@@ -104,8 +104,9 @@ class Analysis extends React.Component {
       name:''
       
     };
-    this.retrieve_analysis()
     axios.defaults.withCredentials = true
+    this.retrieve_analysis()
+    
     
   }
 
@@ -328,7 +329,7 @@ class Analysis extends React.Component {
   }
 
   clearROIs() {
-    this.ROIs.splice(0, this.ROIs.length);
+    this.ROIs=[[]]
     this.setState({ makeUpdate: 8 });
   }
   clearOrigins() {
@@ -661,7 +662,7 @@ class Analysis extends React.Component {
                       border:
                         (i === this.state.selected.spot && l === this.state.selected.lane)
                           ? "dashed 2px #0ff"
-                          : `dashed 2px #${(2*l).toString(16)}${(2*l).toString(16)}${(2*l).toString(16)}`,
+                          : `dashed 2px #${((l%2)*15).toString(16)}${(15*(l%2)).toString(16)}${(15*(l%2)).toString(16)}`,
                       width: "" + 2 * x[3] - 2 + "px",
                       height: "" + 2 * x[2] - 2 + "px",
                       marginTop: "" + x[0] - 1 * x[2] + 1 + "px",
