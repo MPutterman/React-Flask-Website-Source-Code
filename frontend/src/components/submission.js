@@ -32,6 +32,7 @@ import {Link} from 'react-router-dom'
 
 class Submission extends React.Component {
   constructor(props) {
+    axios.defaults.withCredentials = true
     super(props);
     this.fileLink = React.createRef();
     this.dataLink = React.createRef();
@@ -109,6 +110,8 @@ class Submission extends React.Component {
       name:''
       
     };
+    console.log(this.url)
+    axios.defaults.withCredentials = true
   }
 
   // Get backend IP
@@ -191,6 +194,12 @@ class Submission extends React.Component {
         return res;
       })
   };
+  handleSubmitClick=()=>{
+    if (!this.state.submitDisabled){
+      return
+    }
+    this.state.submitDisabled=true
+  }
 
   render() {
     return (
@@ -213,7 +222,9 @@ class Submission extends React.Component {
                           width: "20vw",
                           height: "20vh",
                         }}
+
                         onClick={this.onFileUpload}
+                        disabled={this.state.disabled}
                       >
                         Submit
                       </Button>
@@ -330,6 +341,7 @@ class Submission extends React.Component {
                           height: "20vh",
                         }}
                         onClick={this.onFileUpload}
+                        disabled={this.state.disabled}
                       >
                         Use Sample Data
                       </Button>

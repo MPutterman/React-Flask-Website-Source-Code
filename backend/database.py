@@ -51,41 +51,41 @@ Base.query = db_session.query_property()
 # Define association tables
 
 user_org_map = Table('user_org_map', Base.metadata,
-    Column('user_id', BigInteger, ForeignKey('user.user_id'), primary_key=True),
-    Column('org_id', BigInteger, ForeignKey('organization.org_id'), primary_key=True),
+    Column('user_id', Integer, ForeignKey('user.user_id'), primary_key=True),
+    Column('org_id', Integer, ForeignKey('organization.org_id'), primary_key=True),
 )
 
 user_analysis_map = Table('user_analysis_map', Base.metadata,
-    Column('user_id', BigInteger, ForeignKey('user.user_id'), primary_key=True),
-    Column('analysis_id', BigInteger, ForeignKey('analysis.analysis_id'), primary_key=True),
+    Column('user_id', Integer, ForeignKey('user.user_id'), primary_key=True),
+    Column('analysis_id', String(12), ForeignKey('analysis.analysis_id'), primary_key=True),
 )
 
 analysis_image_map = Table('analysis_image_map', Base.metadata,
-    Column('analysis_id', BigInteger, ForeignKey('analysis.analysis_id'), primary_key=True),
-    Column('image_id', BigInteger, ForeignKey('image.image_id'), primary_key=True),
+    Column('analysis_id', String(12), ForeignKey('analysis.analysis_id'), primary_key=True),
+    Column('image_id', Integer, ForeignKey('image.image_id'), primary_key=True),
 )
 
 org_equip_map = Table('org_equip_map', Base.metadata,
-    Column('org_id', BigInteger, ForeignKey('organization.org_id'), primary_key=True),
-    Column('equip_id', BigInteger, ForeignKey('equipment.equip_id'), primary_key=True),
+    Column('org_id', Integer, ForeignKey('organization.org_id'), primary_key=True),
+    Column('equip_id', Integer, ForeignKey('equipment.equip_id'), primary_key=True),
 )
 
 org_plate_map = Table('org_plate_map', Base.metadata,
-    Column('org_id', BigInteger, ForeignKey('organization.org_id'), primary_key=True),
-    Column('plate_id', BigInteger, ForeignKey('plate.plate_id'), primary_key=True),
+    Column('org_id', Integer, ForeignKey('organization.org_id'), primary_key=True),
+    Column('plate_id', Integer, ForeignKey('plate.plate_id'), primary_key=True),
 )
 
 org_cover_map = Table('org_cover_map', Base.metadata,
-    Column('org_id', BigInteger, ForeignKey('organization.org_id'), primary_key=True),
-    Column('cover_id', BigInteger, ForeignKey('cover.cover_id'), primary_key=True),
+    Column('org_id', Integer, ForeignKey('organization.org_id'), primary_key=True),
+    Column('cover_id', Integer, ForeignKey('cover.cover_id'), primary_key=True),
 )
 # analysis_lane_map=Table('analysis_lane_map', Base.metadata,
-#     Column('analysis_id', BigInteger, ForeignKey('analysis.analysis_id'), primary_key=True),
-#     Column('lane_id', BigInteger, ForeignKey('lane.lane_id'), primary_key=True),
+#     Column('analysis_id', Integer, ForeignKey('analysis.analysis_id'), primary_key=True),
+#     Column('lane_id', Integer, ForeignKey('lane.lane_id'), primary_key=True),
 # )
 # lane_ROI_map = Table('lane_ROI_map', Base.metadata,
-#     Column('lane_id', BigInteger, ForeignKey('lane.lane_id'), primary_key=True),
-#     Column('ROI_id', BigInteger, ForeignKey('ROI.ROI_id'), primary_key=True),
+#     Column('lane_id', Integer, ForeignKey('lane.lane_id'), primary_key=True),
+#     Column('ROI_id', Integer, ForeignKey('ROI.ROI_id'), primary_key=True),
 # )
 
 
@@ -97,7 +97,7 @@ org_cover_map = Table('org_cover_map', Base.metadata,
 
 class User(UserMixin, Base):
     __tablename__ = 'user'
-    user_id = Column(BigInteger, primary_key=True)
+    user_id = Column(Integer, primary_key=True)
     first_name = Column(String(64))
     last_name = Column(String(64))
     email = Column(String(254), nullable=False) # max lenth of an email address 
@@ -115,7 +115,7 @@ class User(UserMixin, Base):
 
 class Organization(Base):
     __tablename__ = 'organization'
-    org_id = Column(BigInteger, primary_key=True)
+    org_id = Column(Integer, primary_key=True)
     name = Column(String(128), nullable=False)
     description = Column(Text)
     equip_list = relationship("Equipment", secondary=org_equip_map)
@@ -132,42 +132,44 @@ class Organization(Base):
 
 class Equipment(Base):
     __tablename__ = 'equipment'
-    equip_id = Column(BigInteger, primary_key=True)
+    equip_id = Column(Integer, primary_key=True)
     name = Column(String(128), nullable=False)
     description = Column(Text)
     camera = Column(String(128), nullable=False)
     has_temp_control = Column(Boolean, nullable=False)
-    pixels_x = Column(BigInteger, nullable=False)
-    pixels_y = Column(BigInteger, nullable=False)
+    pixels_x = Column(Integer, nullable=False)
+    pixels_y = Column(Integer, nullable=False)
     fov_x = Column(Float) # size in mm
-    bpp = Column(BigInteger, nullable=False) # QUESTION: is it same to assume all images will be monochrome?
+    bpp = Column(Integer, nullable=False) # QUESTION: is it same to assume all images will be monochrome?
     image_format = Column(String(128), nullable=False) # This will help identify how to read the file before loading it (maybe should be enum type)
 
 class CachedImage(Base):
     __tablename__='cachedimage'
     analysis = relationship('Analysis',back_populates='cachedimages')
-    analysis_id = Column(BigInteger,ForeignKey('analysis.analysis_id'))
-    image_id = Column(BigInteger, primary_key=True)
+    analysis_id = Column(String(12),ForeignKey('analysis.analysis_id'))
+    
+    image_id = Column(Integer, primary_key=True)
     image_type = Column(String(64), nullable=False)
     image_path=Column(String(128))
    
+
     
 
 class ROI(Base):
     __tablename__='ROI'
-    ROI_id = Column(BigInteger,primary_key=True) 
-    ROI_number = Column(BigInteger)
-    x=Column(BigInteger)
-    y=Column(BigInteger)
-    rx=Column(BigInteger)#radius in x direction (in pixels)
-    ry=Column(BigInteger)#radius in y direction (in pixels)
-    lane_id = Column(BigInteger,ForeignKey('lane.lane_id'))
+    ROI_id = Column(Integer,primary_key=True) 
+    ROI_number = Column(Integer)
+    x=Column(Integer)
+    y=Column(Integer)
+    rx=Column(Integer)#radius in x direction (in pixels)
+    ry=Column(Integer)#radius in y direction (in pixels)
+    lane_id = Column(Integer,ForeignKey('lane.lane_id'))
     lane = relationship("Lane",back_populates='ROI_list')
-
 
 class Analysis(Base):
     __tablename__ = 'analysis'
-    analysis_id = Column(BigInteger, primary_key=True)
+    analysis_id = Column(String(12), primary_key=True)
+    user=relationship("User",secondary=user_analysis_map)
     doRF = Column(Boolean)
     cachedimages=relationship('CachedImage',back_populates='analysis')
     origin_list = relationship('Origin',back_populates='analysis')
@@ -184,13 +186,13 @@ class Analysis(Base):
     
 class Origin(Base):
     __tablename__='origin'
-    origin_id =Column(BigInteger,primary_key=True)
+    origin_id =Column(Integer,primary_key=True)
 
-    x=Column(BigInteger)
-    y=Column(BigInteger)
+    x=Column(Integer)
+    y=Column(Integer)
     
     analysis = relationship("Analysis", back_populates="origin_list")
-    analysis_id = Column(BigInteger,ForeignKey('analysis.analysis_id'))
+    analysis_id = Column(String(12),ForeignKey('analysis.analysis_id'))
     @staticmethod
     def build_origins(origins):
         origin_list = []
@@ -208,10 +210,10 @@ class Origin(Base):
 
 class Lane(Base):
     __tablename__ = 'lane'
-    lane_id = Column(BigInteger, primary_key=True)
-    analysis_id = Column(BigInteger, ForeignKey('analysis.analysis_id'))
+    lane_id = Column(Integer, primary_key=True)
+    analysis_id = Column(String(12), ForeignKey('analysis.analysis_id'))
     analysis = relationship("Analysis", back_populates="lane_list")
-    lane_number=Column(BigInteger)
+    lane_number=Column(Integer)
     ROI_list = relationship('ROI',back_populates='lane')
     @staticmethod
     def build_lanes(data):
@@ -249,48 +251,48 @@ class ImageType(enum.Enum):
 
 class Image(Base):
     __tablename__ = 'image'
-    analysis_id = Column(BigInteger,ForeignKey('analysis.analysis_id'))
-    image_id = Column(BigInteger, primary_key=True)
-    equip_id = Column(BigInteger, ForeignKey('equipment.equip_id'))
+    analysis_list = relationship('Analysis',secondary=analysis_image_map)
+    image_id = Column(Integer, primary_key=True)
+    equip_id = Column(Integer, ForeignKey('equipment.equip_id'))
     image_type = Column(Enum(ImageType), nullable=False)
     datetime = Column(DateTime) # Image creation date (support timezone?)
     exp_time = Column(Float) # Exposure time (seconds)
     exp_temp = Column(Float) # Exposure temp (deg C)
     name = Column(String(128), nullable=False)
     description = Column(Text)
-    plate_id = Column(BigInteger, ForeignKey('plate.plate_id'))
-    cover_id = Column(BigInteger, ForeignKey('cover.cover_id'))
+    plate_id = Column(Integer, ForeignKey('plate.plate_id'))
+    cover_id = Column(Integer, ForeignKey('cover.cover_id'))
     image_path = Column(String(128), nullable=False)
     # TODO: maybe point to Moe's file system DB for now?
 
 class Plate(Base):
     __tablename__ = 'plate'
-    plate_id = Column(BigInteger, primary_key=True)
+    plate_id = Column(Integer, primary_key=True)
     name = Column(String(128), nullable=False)
     description = Column(Text)
     
 class Cover(Base):
     __tablename__ = 'cover'
-    cover_id = Column(BigInteger, primary_key=True)
+    cover_id = Column(Integer, primary_key=True)
     name = Column(String(128), nullable=False)
     description = Column(Text)
 
 
 def db_create_tables():
     # Careful, this deletes ALL data in database
-   Base.metadata.drop_all(db_engine)
-   Base.metadata.create_all(db_engine)
+    Base.metadata.drop_all(engine)
+    Base.metadata.create_all(engine)
 
 
 def db_add_test_data():
     # Some simple tests to show usage of creating a few objects (and automatically setting up the links between different types)
+    tim = time.time()
     db_session.begin()
     plate1 = Plate(name = 'JT Baker 12345: silica, 250 um, aluminum back, F254 60',plate_id = 193587)
     plate2 = Plate(name = 'JT Baker 23456: silica, 250 um, glass back, F254 60, concentration zone',plate_id=851)
     cover = Cover(cover_id = 1935792, name = 'Dont know what to call this')
-    tim = time.time()
+   
     db_session.add(plate1)
-    print(time.time()-tim)
     db_session.add(plate2)
     equip1 = Equipment(name = 'Crump Cerenkov #1', description = 'some text', equip_id = 2938,camera = 'QSI 540 (KAI-04022 CCD sensor)', has_temp_control = True, pixels_x = 682, pixels_y = 682, bpp = 16, image_format = 'tiff')
     db_session.add(equip1)
@@ -403,35 +405,32 @@ def find_images(data):
 def retrieve_initial_analysis(analysis_id):
     tim = time.time()
     analysis = Analysis.query.filter(Analysis.analysis_id==analysis_id).one()
-    print(time.time()-tim)
     analysis_dict = {}
-    print('lanes',Lane.build_arr(analysis.lane_list))
     analysis_dict['ROIs']=Lane.build_arr(analysis.lane_list)
     ##print('rois',analysis_dict['ROIs'])
     analysis_dict['doRF']=analysis.doRF
     analysis_dict['origins']=Origin.build_arr(analysis.origin_list)
-    analysis_dict['CerenkovName']=Image.query.filter(Image.image_type==ImageType.radio and Image.analysis_id==analysis_id).one().name
+    analysis_dict['CerenkovName']=Image.query.filter(Image.image_type==ImageType.radio, Image.analysis_list.any(analysis_id=analysis_id)).one().name
 
-    analysis_dict['DarkName']=Image.query.filter(Image.image_type==ImageType.dark and Image.analysis_id==analysis_id).one().name
+    analysis_dict['DarkName']=Image.query.filter(Image.image_type==ImageType.dark , Image.analysis_list.any(analysis_id=analysis_id)).one().name
     ##print(analysis_dict['DarkName'])
-    analysis_dict['FlatName']=Image.query.filter(Image.image_type==ImageType.flat and Image.analysis_id==analysis_id).one().name
-    if Image.query.filter(Image.image_type==ImageType.uv and Image.analysis_id==analysis_id).all():
-        analysis_dict['UVName']=Image.query.filter(Image.image_type==ImageType.uv and Image.analysis_id==analysis_id).one().name
-    if Image.query.filter(Image.image_type==ImageType.bright and Image.analysis_id==analysis_id).all():
-        analysis_dict['BrightName']=Image.query.filter(Image.image_type==ImageType.bright and Image.analysis_id==analysis_id).one().name
+    analysis_dict['FlatName']=Image.query.filter(Image.image_type==ImageType.flat , Image.analysis_list.any(analysis_id=analysis_id)).one().name
+    if Image.query.filter(Image.image_type==ImageType.uv , Image.analysis_list.any(analysis_id=analysis_id)).all():
+        analysis_dict['UVName']=Image.query.filter(Image.image_type==ImageType.uv , Image.analysis_list.any(analysis_id=analysis_id)).one().name
+    if Image.query.filter(Image.image_type==ImageType.bright , Image.analysis_list.any(analysis_id=analysis_id)).all():
+        analysis_dict['BrightName']=Image.query.filter(Image.image_type==ImageType.bright , Image.analysis_list.any(analysis_id=analysis_id)).one().name
     return analysis_dict
 def analysis_info(analysis_id):
     db_session.begin()
     analysis = Analysis.query.filter(Analysis.analysis_id == analysis_id).one()
     return analysis.as_dict()
 def retrieve_image_path(image_type,analysis_id):
-    tim = time.time()
-    print(find_image_type(image_type))
+    
+        
     if 'cerenkov' in  image_type:
-        image = CachedImage.query.filter(CachedImage.image_type ==find_image_type(image_type) and CachedImage.analysis_id==analysis_id).one()
+        image = CachedImage.query.filter(CachedImage.image_type ==find_image_type(image_type), CachedImage.analysis_id==analysis_id).one()
     else:
-        image = Image.query.filter(Image.image_type==find_image_type(image_type) and Image.analysis_id==analysis_id).one()
-    print(time.time()-tim)
+        image = Image.query.filter(Image.image_type==find_image_type(image_type), Image.analysis_id==analysis_id).one()
     return image.image_path
 def db_analysis_save(data,analysis_id):
     if data['user_id']:
@@ -441,6 +440,7 @@ def db_analysis_save(data,analysis_id):
     data['analysis_id']=analysis_id
     images= find_images(data)
     analysis = Analysis.query.filter(Analysis.analysis_id==analysis_id).one()
+    
     analysis.images = images
     user = User.query.filter(User.user_id==user_id).one()
     user.analysis_list.append(analysis)
@@ -449,16 +449,9 @@ def db_analysis_save(data,analysis_id):
 def db_analysis_edit(data,analysis_id):
     
     analysis = Analysis.query.filter(Analysis.analysis_id==analysis_id).one()
-    ##print('ROIs',data['ROIs'])
-    ##print('orig',data['origins'])
-    print('ROIs',data['ROIs'])
     analysis.doRF = data['doRF']
     analysis.lane_list = Lane.build_lanes(data['ROIs'])
-    print('lanes',Lane.build_arr(analysis.lane_list))
     analysis.origin_list = Origin.build_origins(data['origins'])
-    ##print('l',Lane.build_arr(analysis.lane_list))
-    ##print('')
-
     db_session.add(analysis)
     db_session.commit()
 def find_path(image_type,analysis_id):
@@ -485,8 +478,9 @@ def db_analysis_save_initial(data,analysis_id):
     for image_type in ['cerenkovdisplay','cerenkovcalc','cerenkovradii']:
         img = CachedImage(image_type = image_type,image_path=find_path(image_type,analysis_id))
         cachedimages.append(img)
-    print('imgs',cachedimages)
     analysis = Analysis(images=images,lane_list=lane_list,cachedimages = cachedimages,analysis_id = analysis_id, origin_list = origin_list,doRF=doRF)
+    db_session.add(analysis)
+    db_session.flush()
     if data['user_id'] is not None:
         user_id = data['user_id']
     else:
@@ -494,6 +488,7 @@ def db_analysis_save_initial(data,analysis_id):
     user = User.query.filter(User.user_id==user_id).one()
     user.analysis_list.append(analysis)
     db_session.add(user)
+    db_session.flush()
     db_session.commit()
 
     
