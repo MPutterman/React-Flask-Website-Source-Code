@@ -105,6 +105,7 @@ class Analysis extends React.Component {
       
     };
     this.retrieve_analysis()
+    axios.defaults.withCredentials = true
     
   }
 
