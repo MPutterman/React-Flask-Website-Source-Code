@@ -134,7 +134,7 @@ const UserEdit = (props) => {
     }
 
     // Delete the user matching the user-id
-    // NOT YET FUNCTIONAL AND BACKEND NOT IMPLEMENTED
+    // NOT YET FUNCTIONAL AND BACKEND NOT IMPLEMENTED (add a status message when implement this)
     const deleteUser= () => {
         axios.post(backend_url('user/delete/' + currentUser.id))
         .then((response) => {
@@ -271,16 +271,21 @@ const UserEdit = (props) => {
                 <Button type="delete" >Delete (not yet working)</Button>
 
                 {/* TODO: there is a Material-UI element for temporary status messages -- use that instead */ }
-                      
-                <p>{message}</p>
-                <AlertList />
-                {
-                  message === 'success' ? (
+
+                {message ? ( 
+
+                  <>
+                  <p>{message}</p>
+
+                  <AlertList />
+                  {message === 'success' ? (
                     <Alert severity="success">User successfully updated</Alert>
                   ) : (
                     <Alert severity="error">Something went wrong</Alert>
-                  )
-                }
+                  )}
+                  </>
+                ):( <></>
+                )}
 
                </form>
 

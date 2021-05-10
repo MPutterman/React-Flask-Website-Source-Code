@@ -41,6 +41,7 @@ import Submission from './components/submission'
 import Start from './components/start'
 //import User from './components/user';
 import UserEdit from './components/user_edit';
+import UserSearch from "./components/user_search";
 import Organization from './components/organization';
 //import Equipment from './components/equipment';
 
@@ -295,6 +296,7 @@ class App extends React.Component {
                     <Route path='/contact' component={Contact} />
                     <Route path='/about' component={About} />
                     <Route exact path='/user/edit/:id' component={UserEdit} />
+                    <Route path='/user/search' component={UserSearch} />
                     {/*
                     <Route exact path='/user/:action' component={User} /> 
                     <Route exact path='/user/:action/:id' component={User} /> 
