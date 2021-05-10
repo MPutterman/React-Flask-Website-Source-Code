@@ -757,6 +757,15 @@ def user_load(id):
     user_dict = db_user_load(id)
     return user_dict
 
+# Return a list of users (array of dict)
+# TODO: read in parameter strings from request for filtering, pagination, order, etc...
+@app.route('/user/search', methods = ['GET', 'POST']) # QUESTION: need GET and POST?
+@cross_origin(supports_credentials=True)
+def user_search():
+    from database import db_user_search
+    org_list = db_user_search()
+    return org_list
+
 # Save the submitted user information
 # QUESTION: should we add <id> to the route?
 @app.route('/user/save', methods = ['POST'])

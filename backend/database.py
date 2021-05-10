@@ -169,7 +169,7 @@ class ROI(Base):
 class Analysis(Base):
     __tablename__ = 'analysis'
     analysis_id = Column(String(12), primary_key=True)
-    user=relationship("User",secondary=user_analysis_map)
+    #user=relationship("User",secondary=user_analysis_map)
     doRF = Column(Boolean)
     cachedimages=relationship('CachedImage',back_populates='analysis')
     origin_list = relationship('Origin',back_populates='analysis')
@@ -280,8 +280,8 @@ class Cover(Base):
 
 def db_create_tables():
     # Careful, this deletes ALL data in database
-    Base.metadata.drop_all(engine)
-    Base.metadata.create_all(engine)
+    Base.metadata.drop_all(db_engine)
+    Base.metadata.create_all(db_engine)
 
 
 def db_add_test_data():
@@ -302,6 +302,17 @@ def db_add_test_data():
     db_session.add_all([org1, org2, org3])
     db_session.add(User(first_name = 'Alice', last_name = 'Armstrong', email = 'alice@armstrong.com', org_list=[org1]))
     db_session.add(User(first_name = 'Bob', last_name = 'Brown', email = 'bob@brown.com',org_list=[org1,org2]))
+    db_session.add(User(first_name = 'Cathy', last_name = 'Chen', email = 'cathy@chen.com',org_list=[org1,org2]))
+    db_session.add(User(first_name = 'David', last_name = 'Delgado', email = 'david@delgado.com',org_list=[org1,org2]))
+    db_session.add(User(first_name = 'Elaine', last_name = 'Eastman', email = 'elaine@eastman.com',org_list=[org1,org2]))
+    db_session.add(User(first_name = 'Fred', last_name = 'Fan', email = 'fred@fan.com',org_list=[org1,org2]))
+    db_session.add(User(first_name = 'Grace', last_name = 'Gibson', email = 'grace@gibson.com',org_list=[org1,org2]))
+    db_session.add(User(first_name = 'Hector', last_name = 'Hoops', email = 'hector@hoops.com',org_list=[org1,org2]))
+    db_session.add(User(first_name = 'Irene', last_name = 'Im', email = 'irene@im.com',org_list=[org1,org2]))
+    db_session.add(User(first_name = 'Jing', last_name = 'Jackson', email = 'jing@jackson.com',org_list=[org1,org2]))
+    db_session.add(User(first_name = 'Kevin', last_name = 'Kim', email = 'kevin@kim.com',org_list=[org1,org2]))
+    db_session.add(User(first_name = 'Ling', last_name = 'Lin', email = 'ling@lin.com',org_list=[org1,org2]))
+    
     db_session.add(User(first_name = 'NA', last_name = 'NA', email = 'NA',org_list=[org1,org2],user_id='1433625970'))
     db_session.commit()
     #print('Finished')
@@ -359,6 +370,19 @@ def db_user_save(data):
     #print(newdata)
     return newdata
 
+# Return a list of users.  Currently gets a list of all users.
+# In future will accept filters (e.g. match part of name, filter by organization, etc...) and sort options.
+def db_user_search():
+    user_list = User.query.all()
+    db_session.commit()
+    data = []
+    for user in user_list:
+        current_user = user.as_dict()
+        current_user['org_list'] = [org.org_id for org in user.org_list]
+        data.append(current_user)
+    db_session.close()
+    return dumps(data)
+
 # Return a list of organizations
 # TODO: in future add filtering, ordering, pagination, etc...
 def db_organization_search():
@@ -367,8 +391,6 @@ def db_organization_search():
     data = [org.as_dict() for org in results]
     return dumps(data) # Can directly return a list...  This returns just the list.  Use jsonify(keyname=data) if want to return with a key
 
-
-        
 def find_image_type(image_type):
     if image_type == 'dark':
         return ImageType.dark
@@ -446,6 +468,8 @@ def db_analysis_save(data,analysis_id):
     user.analysis_list.append(analysis)
     db_session.add(user)
     db_session.commit()
+    db_session.close()
+
 def db_analysis_edit(data,analysis_id):
     
     analysis = Analysis.query.filter(Analysis.analysis_id==analysis_id).one()
@@ -454,6 +478,8 @@ def db_analysis_edit(data,analysis_id):
     analysis.origin_list = Origin.build_origins(data['origins'])
     db_session.add(analysis)
     db_session.commit()
+    db_session.close()
+    
 def find_path(image_type,analysis_id):
     if image_type =='cerenkovdisplay':
         ending = '.png'
