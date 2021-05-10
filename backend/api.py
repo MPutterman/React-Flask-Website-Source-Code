@@ -736,7 +736,7 @@ CORS(app)
 def initialize():
     db_create_tables() # won't always do this
     db_add_test_data() # won't always do this
-    # session.permanent = True
+    session.permanent = True
     # app.permanent_session_lifetime = timedelta(minutes=5)
 
 
