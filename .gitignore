@@ -1,2 +1,2 @@
 backend/.env
-backend/flask_session/*
+backend/flask_session/*/
