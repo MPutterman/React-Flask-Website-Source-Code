@@ -94,9 +94,10 @@ const UserSearch = (props) => {
                   columns={columns}
                   pageSize={10} // default page size
                   autoHeight
+                  density="compact"
                   rowsPerPageOptions={[10,25,100]}
-                  paginationMode={'client'} // for now client (and return all rows)... later use database pagination
-                  sortingMode={'client'} // later server (if pagination server)
+                  paginationMode="client" // for now client (and return all rows)... later use database pagination
+                  sortingMode="client" // later server (if pagination server)
                   //checkboxSelection
                   onRowClick={onRowClick}
                   
