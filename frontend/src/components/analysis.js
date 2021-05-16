@@ -1,6 +1,17 @@
+// TODO:
+// I've probably broken things related to "doUV"
+// When change origins and ROIs, need to reset something so 'autolane' will work correctly.
+// I'm not sure how "n_l" and autolane work together.
+// Upload to database seems not working. Maybe instead of "save" we instead have a "delete from database" button?
+// -- During testing I had a lot of issue trying to re-analyze the same analysis ID... I think we should instead save it
+// -- automatically so the images and ROIs are always available.
+// We should add export buttons (either as file, or just .CVS text that can be copied to clipboard)
+// Need to implement the left column options (and merge in file selction)
+
 import React from "react";
 import "../App.css";
 import axios from "axios";
+import backend_url from './config.js';
 import Button from "@material-ui/core/Button";
 import Slider from "@material-ui/core/Slider";
 //import { palette } from "@material-ui/system";
@@ -15,14 +26,26 @@ import TableContainer from "@material-ui/core/TableContainer";
 import TableHead from "@material-ui/core/TableHead";
 import TableRow from "@material-ui/core/TableRow";
 import Paper from "@material-ui/core/Paper";
+import Grid from "@material-ui/core/Grid";
+import RadioGroup from "@material-ui/core/RadioGroup";
+import Radio from "@material-ui/core/Radio";
+import FormControl from "@material-ui/core/FormControl";
+import FormControlLabel from "@material-ui/core/FormControlLabel";
+import FormLabel from "@material-ui/core/FormLabel";
+import FormGroup from "@material-ui/core/FormGroup";
+import TextField from "@material-ui/core/TextField";
+import Checkbox from "@material-ui/core/Checkbox";
+
 //import Typography from "@material-ui/core/Typography";
 //import { PassThrough } from "stream";
 //import { thisExpression } from "@babel/types";
 //import SearchField from "react-search-field";
 //import ReactSlider from 'react-slider'
 //import GoogleLogin from 'react-google-login';
-import {withRouter} from "react-router";
+import { withRouter } from "react-router";
 
+
+const UNDEFINED = 1000;  // TODO: possibly convert to "-1", unless backend also uses the '1000' value...
 
 class Analysis extends React.Component {
   constructor(props) {
@@ -60,7 +83,7 @@ class Analysis extends React.Component {
       arr_files: [],
       string_files: [],
       n_l: 0,
-      selected: {lane:1000,spot:200},
+      selected: {lane:UNDEFINED,spot:200},
       enterC: "",
       enterD: "",
       enterF: "",
@@ -72,10 +95,10 @@ class Analysis extends React.Component {
       submitted: false,
       UVImg: 0,
       dataName: "",
-      doRF: "Enable RF Calculation",
+      do_RF: false,
       CerenkovImg: 0,
-      brightness: 0,
-      contrast: 0,
+      brightness: 0,  // brightness setting (client side only) for radiation image
+      contrast: 0,    // contrast setting (client side only) for radiation image
       show_us: "About Us",
       start: false,
       Darkname: "",
@@ -90,7 +113,8 @@ class Analysis extends React.Component {
       results: [[]],
       makeUpdate: 0,
       doUV:false,
-      doROIs: false,
+      doROIs: true,
+      selectMode: "roi",
       Dark: null,
       Flat: null,
       Cerenkov: null,
@@ -101,38 +125,22 @@ class Analysis extends React.Component {
       ImgReturned: false,
       img: 0,
       background_corrected:'',
-      name:''
+      name:'',
+      image_size_x: 682, // TODO: get these from the Image
+      image_size_y: 682, // TODO: get these from the Image
       
     };
-    axios.defaults.withCredentials = true
+    //axios.defaults.withCredentials = true
     this.retrieve_analysis()
     
     
   }
 
-  // Get backend IP
-  // TODO: add error checking
-  get backend_ip() {
-    return process.env.REACT_APP_BACKEND_IP
-  }
-
-  // Get backend port
-  // TODO: add error checking and/or default value
-  get backend_port() {
-    return process.env.REACT_APP_BACKEND_PORT
-  }
-
-  // Get url for backend server requests
-  get url() {
-    return 'http://' + this.backend_ip + ':' + this.backend_port
-  }
   retrieve_analysis=()=>{
     return axios
-        .get(
-          this.url + '/retrieve_analysis/' +
-            this.filenum 
-        )
+        .get(backend_url('retrieve_analysis/' + this.filenum))
         .then((res) => {
+          console.log ('response =>', res);
           this.set_data(res.data)
           this.setState({ makeUpdate: 8 });
           
@@ -144,7 +152,7 @@ class Analysis extends React.Component {
     console.log(res.ROIs)
     this.ROIs= res.ROIs
     this.origins=res.origins
-    this.setState({autoLane:res.autoLane,n_l:res.n_l,doRF:res.doRF ? 'Disable RF Calculation' : 'Enable RF Calculation',doUV:res.doUV})
+    this.setState({autoLane:res.autoLane,n_l:res.n_l,do_RF:res.doRF,doUV:res.doUV})
   }
   makeData = (arr) => {
     arr = Object.assign({}, arr);
@@ -172,16 +180,7 @@ class Analysis extends React.Component {
       this.setState({ makeUpdate: 1 });
     } else {
       return axios
-        .get(
-          this.url + '//radius/' +
-            this.filenum +
-            `/` +
-            x +
-            `/` +
-            y +
-            `/` +
-            shift
-        )
+        .get(backend_url('radius/' + this.filenum + `/` + x + `/` + y + `/` + shift))
         .then((res) => {
           this.ROIs[0].push([
             
@@ -196,7 +195,8 @@ class Analysis extends React.Component {
     }
   };
   fixBackground = ()=>{
-    return axios.get(this.url + '/fix_background/'+this.filenum).then((res)=>{this.setState({background_corrected:''})}).catch('An Error Occurred')
+    return axios.get(backend_url('fix_background/'+this.filenum))
+    .then((res)=>{this.setState({background_corrected:''})}).catch('An Error Occurred')
   }
     componentDidMount() {
       console.log('mounted')
@@ -205,8 +205,7 @@ class Analysis extends React.Component {
   changeROIFromPress = (e) => {
     console.log(e)
     if (
-      
-      !this.state.resultsReturned &&
+//      !this.state.resultsReturned &&
       this.ROIs[0].length > 0
     ) {
       if (e.key === "w") {
@@ -254,7 +253,7 @@ class Analysis extends React.Component {
     }
   };
   moveVert() {
-    if (this.state.selected.lane === 1000) {
+    if (this.state.selected.lane === UNDEFINED) {
       return;
     }
     var last = this.state.selected;
@@ -264,7 +263,7 @@ class Analysis extends React.Component {
     }
   }
   moveHorz() {
-    if (this.state.selected.lane === 1000) {
+    if (this.state.selected.lane === UNDEFINED) {
       return;
     }
     var last = this.state.selected;
@@ -274,7 +273,7 @@ class Analysis extends React.Component {
     }
   }
   backHorz() {
-    if (this.state.selected.lane === 1000) {
+    if (this.state.selected.lane === UNDEFINED) {
       return;
     }
     var last = this.state.selected;
@@ -285,7 +284,7 @@ class Analysis extends React.Component {
     }
   }
   backVert() {
-    if (this.state.selected.lane === 1000) {
+    if (this.state.selected.lane === UNDEFINED) {
       return;
     }
     var last = this.state.selected;
@@ -300,9 +299,9 @@ class Analysis extends React.Component {
   }
   
   removeROI(e,l, i) {
-    if (this.state.resultsReturned) {
-      return;
-    }
+//    if (this.state.resultsReturned) {
+//      return;
+//    }
 
     if (this.state.doROIs) {
       if (l != this.state.selected.lane || i !=this.state.selected.spot) {
@@ -310,7 +309,7 @@ class Analysis extends React.Component {
       } else {
         this.ROIs[l].splice(i, 1);
         this.setState({ makeUpdate: 9 });
-        this.setState({ selected: {lane:1000,spot:1000} });
+        this.setState({ selected: {lane:UNDEFINED,spot:UNDEFINED} }); // what does this do?
       }
     } else {
       var x = e.nativeEvent.offsetX;
@@ -324,7 +323,7 @@ class Analysis extends React.Component {
       x = px - radx + x + 3;
       y = py - rady + y + 3;
       this.origins.push([parseInt(y),parseInt(x)]);
-      this.setState({ makeUpdate: 10 });
+      this.setState({ makeUpdate: 10 });  // what is 'makeUpdate'? what do the values mean?
     }
   }
 
@@ -338,9 +337,9 @@ class Analysis extends React.Component {
   }
 
   removeOrigin(e, i) {
-    if (this.state.resultsReturned) {
-      return;
-    }
+//    if (this.state.resultsReturned) {
+//      return;
+//    }
     if (!this.state.doROIs) {
       this.origins.splice(i, 1);
       this.setState({ makeUpdate: 19 });
@@ -358,16 +357,7 @@ class Analysis extends React.Component {
       var shift = e.shiftKey ? 1 : 0;
       console.log(shift);
       return axios
-        .get(
-          this.url + '//radius/' +
-            this.filenum +
-            `/` +
-            x +
-            `/` +
-            y +
-            "/" +
-            shift
-        )
+        .get(backend_url('radius/' + this.filenum + `/` + x + `/` + y + `/` + shift))
         .then((res) => {
           this.ROIs[0].push([
             res.data.row,
@@ -383,20 +373,22 @@ class Analysis extends React.Component {
     }
   }
 
-  
-
+/*  
   changeDoROIs = () => {
     if (this.state.doROIs) {
       this.setState({ doROIs: false });
+      this.setState({ selectMode: "origin" });
     } else {
       this.setState({ doROIs: true });
+      this.setState({ selectMode: "roi" });
     }
   };
+*/
 
   add_data = () => {
     this.setState({ dataUploaded: true });
     
-    return axios.post(this.url + '/upload_data/'+this.filenum).then(res=>{alert(res.data.Status)});
+    return axios.post(backend_url('upload_data/'+this.filenum)).then(res=>{alert(res.data.Status)});
   };
   submit() {
     console.log(this.origins)
@@ -409,11 +401,12 @@ class Analysis extends React.Component {
     data.append('doUV',this.state.doUV)
     data.append("origins", JSON.stringify(this.origins));
     data.append("n_l", this.state.n_l);
-    if (this.state.doRF === "Disable RF Calculation") {
-      data.append("doRF", "true");
-    } else {
-      data.append("doRF", "false");
-    }
+    data.append("doRF", this.state.do_RF);
+//    if (this.state.do_RF === "Disable RF Calculation") {
+//      data.append("do_RF", "true");
+//    } else {
+//      data.append("do_RF", "false");
+//    }
     console.log(this.state.autoLane);
     if (this.state.autoLane === true) {
       data.append("autoLane", "true");
@@ -421,27 +414,27 @@ class Analysis extends React.Component {
       data.append("autoLane", "false");
     }
     return axios
-      .post(this.url + '/analysis_edit/' + this.filenum, data, {
+      .post(backend_url('analysis_edit/' + this.filenum), data, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       })
       .then((res) => {
         this.ROIs = res.data.ROIs
-        this.setState({})
-        return axios.get(this.url+'/results/'+this.filenum).then(res2=>{
+        //this.setState({})
+        return axios.get(backend_url('results/'+this.filenum),).then(res2=>{
           this.setState({ results: res2.data.arr, resultsReturned: true });
         })
         
       }).catch('An Error Occurred');
   }
   incVert = () => {
-    if (this.state.selected.lane === 1000) {
+    if (this.state.selected.lane === UNDEFINED) {
       return;
     }
     var last = this.state.selected;
     if (
-      this.ROIs[last.lane][last.spot][0] + this.ROIs[last.lane][last.spot][2] < 682-0  &&
+      this.ROIs[last.lane][last.spot][0] + this.ROIs[last.lane][last.spot][2] < this.state.image_size_y-0  &&
       this.ROIs[last.lane][last.spot][0] - this.ROIs[last.lane][last.spot][2] > 0
     ) {
       this.ROIs[last.lane][last.spot][2] += 4;
@@ -449,12 +442,12 @@ class Analysis extends React.Component {
     }
   };
   incHorz = () => {
-    if (this.state.selected.lane === 1000) {
+    if (this.state.selected.lane === UNDEFINED) {
       return;
     }
     var last = this.state.selected;
     if (
-      this.ROIs[last.lane][last.spot][1] + this.ROIs[last.lane][last.spot][3] < 682-0  &&
+      this.ROIs[last.lane][last.spot][1] + this.ROIs[last.lane][last.spot][3] < this.state.image_size_x-0  &&
       this.ROIs[last.lane][last.spot][1] - this.ROIs[last.lane][last.spot][3] > 0
     ) {
       this.ROIs[last.lane][last.spot][3] += 4;
@@ -463,7 +456,7 @@ class Analysis extends React.Component {
   };
 
   decHorz = () => {
-    if (this.state.selected.lane === 1000) {
+    if (this.state.selected.lane === UNDEFINED) {
       return;
     }
     var last = this.state.selected;
@@ -473,7 +466,7 @@ class Analysis extends React.Component {
     }
   };
   decVert = () => {
-    if (this.state.selected.lane === 1000) {
+    if (this.state.selected.lane === UNDEFINED) {
       return;
     }
     var last = this.state.selected;
@@ -482,10 +475,11 @@ class Analysis extends React.Component {
       this.setState({ makeUpdate: 12 });
     }
   };
+
   _onMouseClick(e) {
-    if (this.state.resultsReturned) {
-      return;
-    }
+//    if (this.state.resultsReturned) {
+//      return;
+//    }
     this.setState({ dataUploaded: false });
     if (!this.state.doROIs) {
       this.origins.push([
@@ -501,16 +495,7 @@ class Analysis extends React.Component {
       var shift = e.shiftKey ? 1 : 0;
       console.log(shift);
       return axios
-        .get(
-          this.url + '//radius/' +
-            this.filenum +
-            `/` +
-            x +
-            `/` +
-            y +
-            "/" +
-            shift
-        )
+        .get(backend_url('radius/' + this.filenum + `/` + x + `/` + y + `/` + shift))
         .then((res) => {
           this.ROIs[0].push([
             res.data.row,
@@ -526,59 +511,437 @@ class Analysis extends React.Component {
   }
   
   render() {
+    // Overall render a grid layout
+    // Left: analysis options
+    // Middle: main image(s), with brightness and contrast controls... also toggles to help with ROI and origin selection
+    // Right: analysis results, save/export, etc...
+    
     return (
       <ThemeProvider theme={this.theme}>
         <CssBaseline />
-        <div id="container">
+        <div style={{ position: "relative",}}>
+        <Grid container direction='row' xs='12'>
 
-          
-            <div>
-              {this.state.resultsReturned && (
+          {/* Settings */}
+          <Grid item xs={4}>
+            {/* Make each setting a new row? */}
+            <Paper>
+              <h1>Analysis Options:</h1>
+              <Grid container>
+                <Grid item>
+                  Description
+                </Grid>
+                <Grid item>
+                  <TextField id='description'/>
+                </Grid>
+              </Grid>
+              <Grid container>
+                <Grid item>
+                  TLC plate type
+                </Grid>
+              </Grid>
+              Description: textfield
+              <br/>
+              Plate type: dropdown (with default selected)
+              <br/>
+              Cover type: dropdown (with default selected)
+              <br/>
+              Equipment: dropdown (with default selected)
+              <br/>
+              Flat image: dropdown (with default (for equipment) selected). Option to upload new file.
+              <br/>
+              <br/>
+              <br/>
+              Radiation image file: file selector. Option to search for existing file on server.
+              <br/>
+              Temperature (C): input (populate with default value)
+              <br/>
+              Exposure time (s): input (populate with default value)
+              <br/>
+              Dark image file: dropdown (populate with default file). Option to upload new file.
+              <br/>
+              Image filter method: dropdown with only 3x3 median available for now (with default selected)
+              <br/>
+              Background subtraction method: dropdown of options (e.g. quadratic) (with default selected)
+              <br/>
+              <br/>
+              <br/>
+              Bright image file: file selector. Option to search for existing file on server.
+              <br/>
+              Dark image file for bright correction: dropdown (populate with default file). Option to upload new file.
+              <br/>
+
+
+
+            </Paper>
+
+            
+          </Grid>
+
+          {/* Image(s) */}
+
+          <Grid container xs={4} direction='column' spacing={5}>
+
+            <Grid item>
+
+                <img
+		              className = 'noselect'    
+                  id="img"
+                  style={{
+                    position: "relative",
+                    marginTop: "0",
+                    marginLeft: "0",
+                    filter:
+                      "brightness(" + (100 + this.state.brightness) + "%) " + 
+                      "contrast(" + (100 + this.state.contrast) + "%) ",
+                  }}
+                  src={backend_url('img/' + this.filenum+this.state.background_corrected)}
+                  onClick={this._onMouseClick.bind(this)}
+                  alt=''
+                />
+
+{/*
+Below needs some work to make sure images are positioned properly, and ROI drawing works as expected...
+*/}
+
+                {true &&
+                  this.state.doUV && ( 
+                    <div>
+                      
+                      <img
+                        src={backend_url('UV/' + this.filenum)}
+                        style={{
+                          position: "relative",
+                          marginTop: "30vh",
+                          marginLeft: "56vw",
+                          height: "30vh",
+                          width: "19vw",
+                          filter:
+                            "brightness(" + (100 + this.state.brightness) + "%) " + 
+                            "contrast(" + (100 + this.state.contrast) + "%) ",
+
+                        }}
+                        onClick={this.UVClick}
+                        alt=''
+                      />
+                      <img
+                        src={backend_url('Cerenkov/' + this.filenum)}
+                        style={{
+                          position: "absolute",
+                          marginTop: "30vh",
+                          marginLeft: "77vw",
+                          height: "30vh",
+                          width: "19vw",
+                          filter:
+                            "brightness(" + (100 + this.state.brightness) + "%) " + 
+                            "contrast(" + (100 + this.state.contrast) + "%) ",
+
+                        }}
+                        onClick={this.UVClick}
+                        alt=''
+                      />
+                    </div>
+                )}
+
+                {/* Draw ROIs if available */}
+
+                {this.ROIs.map((Lane,l)=>{
+
+                  return(
+                    
+                    <div>
+                      
+                  {Lane.map((x,i)=>{
+                    return(
+                      
+                      <canvas
+                      key={i}
+                      className="ROI"
+                      style={{
+                        position: "absolute",
+                        backgroundColor: "transparent",
+                        zIndex: this.state.doROIs ? 11 : 10,
+                        borderRadius: "50%/50%",
+                        border:
+                          (i === this.state.selected.spot && l === this.state.selected.lane)
+                            ? "dashed 2px #0ff"
+                            : `dashed 2px #${((l%2)*15).toString(16)}${(15*(l%2)).toString(16)}${(15*(l%2)).toString(16)}`,
+                        width: "" + 2 * x[3] - 2 + "px",
+                        height: "" + 2 * x[2] - 2 + "px",
+                        marginTop: "" + x[0] - 1 * x[2] + 1 - this.state.image_size_x + "px",
+                        marginLeft: "" + x[1] - 1 * x[3] + 1 + "px",
+                      }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        this.removeROI(e,l, i);
+                      }}
+                    />
+                    );
+
+                  })}
+                  </div>)
+                })}
+
+                {/* Draw origins if available */}
+
+                {this.origins.map((x, i) => {
+                  return (
+                    <canvas
+                      className="ROI"
+                      key={i}
+                      style={{
+                        borderRadius: "50%/50%",
+                        backgroundColor: "white",
+                        position: "absolute",
+                        marginTop: "" + 1 * x[0] - 5 -this.state.image_size_y + "px",
+                        marginLeft: "" + 1 * x[1] - 5 + "px",
+                        width: "10px",
+                        height: "10px",
+                        zIndex: this.state.doROIs ? 10 : 11,
+                      }}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        this.removeOrigin(e, i);
+                      }}
+                    />
+                  );
+                })}
+
+                <Button
+                  color = 'primary' 
+                  variant = 'contained'
+                  onClick = {this.fixBackground}
+                >
+		              Perform Background Correction	   
+	     		      </Button>
+
+            </Grid>
+            <Grid item>
+              <h1>Image adjustments:</h1>
+
+                <Grid container>
+                  <Grid item xs={2}>
+                    <p>Brightness</p>
+                  </Grid>
+                  <Grid item xs={10}>
+                    <Slider
+                      id="brightness"
+                      name="brightness"
+                      label="Brigthness"
+                      valueLabelDisplay="auto"
+                      step={1}
+                      marks={true}
+                      defaultValue={this.state.brightness}
+                      min={-100}
+                      max={500}
+                      onChange={(e, value) => {
+                        this.setState({ brightness: value });
+                      }}
+                    />
+                  </Grid>
+                </Grid>
+
+                <Grid container>
+                  <Grid item xs={2}>
+                    <p>Contrast</p>
+                  </Grid>
+                  <Grid item xs={10}>
+                    <Slider
+                      id="contrast"
+                      name="contrast"
+                      label="Contrast"
+                      valueLabelDisplay="auto"
+                      step={1}
+                      marks={true}
+                      defaultValue={this.state.contrast}
+                      min={-100}
+                      max={500}
+                      onChange={(e, value) => {
+                        this.setState({ contrast: value });
+                      }}
+                    />  
+                  </Grid>
+                </Grid>
+
+                <Grid item>
+
+                  <h1>Selection:</h1>
+                  <Grid container spacing={5}>
+
+                    <Grid item>
+
+                      <FormControl component="fieldset">
+                        <RadioGroup name="select-mode"
+                          value={this.state.selectMode}
+                          onChange={(event) => {
+                              this.setState({ selectMode: event.target.value });
+                              if (event.target.value === "roi") {
+                                this.setState({ doROIs: true });
+                              } else {
+                                this.setState({ doROIs: false });
+                              }
+                            }}
+                          >
+                          <FormControlLabel value="roi" control={<Radio />} label="ROIs" />
+                          <FormControlLabel value="origin" control={<Radio />} label="Origin, SF, lanes" />
+                        </RadioGroup>
+                      </FormControl>
+
+                    </Grid>
+
+{/*
+                <Button
+                  fullWidth
+                  color="primary"
+                  variant="contained"
+                  id="Button"
+                  onClick={this.changeDoROIs}
+                >
+                  {!this.state.doROIs
+                    ? "Select ROIs"
+                    : "Select Origin/SF/Cerenkov Lanes"}
+                </Button>
+*/}
+
+
+                    <Grid item>
+                      <Button
+                        color="primary"
+                        variant="contained"
+                        onClick={this.clearROIs}
+                      >
+                        Clear all ROIs
+                      </Button>
+                    </Grid>
+
+                    <Grid item>
+                      <Button
+                        fullWidth
+                        color="primary"
+                        variant="contained"
+                        onClick={this.clearOrigins}
+                      >
+                        Clear Origins
+                      </Button>                
+                    </Grid>
+
+                  </Grid>
+
+                </Grid>
+
+
+
+            </Grid>
+          </Grid>
+
+          {/* Results */}
+          <Grid container xs={4} direction="column">
+
+            <Grid item>
+              <Paper>
+                <h1>Analysis options:</h1>
+
+                {!this.state.doUV &&(
+                <div>
+
+                  <div>
+
+                  <input type = 'range'
+                    name = {'#Lanes'}
+                    step={1} 
+                    valueLabelDisplay="on"
+                    marks={true}
+                    defaultValue={this.state.n_l}
+                    min={0}
+                    max={12}
+                    onInput={(e) => {
+                      this.setState({ n_l: e.target.value });
+                    }}
+                  />
+                  </div>
+                  <h2
+                  >
+                    #Lanes: {this.state.n_l}
+                  </h2>
+
+                <FormGroup>
+                <FormControlLabel
+                  control={<Checkbox
+                    //color="primary"
+                    //variant="contained"
+                    value={this.autoLane}
+                    onChange={(event) => {
+                      this.state.autoLane = event.target.checked;
+                    }}
+                    name="enable_auto_lane"
+                  />}
+                  label="Enable automatic lane selection"
+                />
+                </FormGroup>
+                </div>
+                )}
+{/*
+                  <Button
+                    color="primary"
+                    variant="contained"
+                    onClick={() => {
+                      console.log(this.state.autoLane);
+                      this.setState({ autoLane: !this.state.autoLane });
+                    }}
+                  >
+                    {" "}
+                    {!this.state.autoLane
+                      ? "Enable Auto Lane Select"
+                      : "Enable Manual Lane Select"}{" "}
+                  </Button>
+                  </div>
+                  )}
+*/}
+                <FormGroup>
+                <FormControlLabel
+                  control={<Checkbox
+                    //color="primary"
+                    //variant="contained"
+                    disabled={this.origins.length === 0}
+                    value={this.state.do_RF}
+                    //checked={this.state.do_RF}
+                    onChange={(event) => {
+                      this.state.do_RF = event.target.checked;
+                    }}
+                    name="enable_RF"
+                  />}
+                  label="Enable RF calculation"
+                />
+                </FormGroup>
+
                 <Button
                   color="primary"
                   variant="contained"
-                  style={{
-                    fontSize: "160%",
-                    height: "12vh",
-                    width: "12vw",
-                    position: "absolute",
-                    marginTop: "87vh",
-                    marginLeft: "87vw",
-                  }}
-                  onClick={() => {
-                    this.setState({ resultsReturned: false });
-                  }}
+                  onClick={this.submit}
                 >
-                  Reselect
+                  Update results table
                 </Button>
-              )}
-              
-              {this.state.resultsReturned === true && (
+
+                <Button
+                  disabled={!this.state.resultsReturned}
+                  color="primary"
+                  variant="contained"
+                  onClick={this.add_data}
+                >
+                  Upload to Database
+                </Button>
+
+              </Paper>
+            </Grid>
+
+            <Grid item>
+
                 <TableContainer component={Paper}>
-                  <Table
-                    style={{
-                      textAlign: "center",
-                      marginTop: "0vh",
-                      marginLeft: "682px",
-                      zIndex: 15,
-                      alignContent: "center",
-                      height: "" + this.state.results.length * 19 + "vh",
-                      width: "" + this.state.results[0].length * 4.6 + "vw",
-                      position: "absolute",
-                    }}
-                    size="medium"
-                    aria-label="a dense table"
-                  >
+                  <Table>
                     <TableHead>
-                      <TableRow style={{ textAlign: "center", height: "7vh" }}>
+                      <TableRow>
                         <TableCell
                           id="tc"
-                          padding="checkbox"
-                          style={{
-                            textAlign: "center",
-                            height: "auto !important",
-                            fontSize: "160%",
-                          }}
                         >
                           ROIS
                         </TableCell>
@@ -586,12 +949,6 @@ class Analysis extends React.Component {
                           return (
                             <TableCell
                               id="tc"
-                              style={{
-                                fontSize: "140%",
-                                textAlign: "center",
-                                alignContent: "center",
-                              }}
-                              padding="checkbox"
                               key={i}
                               align="right"
                             >
@@ -607,30 +964,25 @@ class Analysis extends React.Component {
                           <TableRow key={i}>
                             <TableCell
                               id="tc"
-                              padding="checkbox"
-                              style={{
-                                fontSize: "110%",
-                                height: "auto !important",
-                              }}
                               component="th"
                               scope="row"
                             >
-                              Spot {i + 1}
+                              <strong>Band {i + 1}</strong>
+                              <br/>Integration
+                              {this.state.do_RF && (
+                                <><br/>RF value</>
+                              )}          
                             </TableCell>
                             {lane.map((spot, j) => {
                               return (
                                 <TableCell
                                   id="tc"
-                                  padding="checkbox"
-                                  style={{
-                                    fontSize: "130%",
-                                    height: "auto !important",
-                                  }}
                                   key={j}
                                   align="right"
                                 >
-                                  {parseInt(spot[0] * 100)}%{" "}
-                                  {spot.length > 1 ? " " + spot[1] : ""}
+                                  <br/>
+                                  {(spot[0] * 100).toFixed(1)}%<br/>
+                                  {spot.length > 1 ? " " + spot[1].toFixed(2) : ""}
                                 </TableCell>
                               );
                             })}
@@ -640,344 +992,14 @@ class Analysis extends React.Component {
                     </TableBody>
                   </Table>
                 </TableContainer>
-              )}
 
-              {this.ROIs.map((Lane,l)=>{
 
-                return(
-                  
-                  <div>
-                    
-                {Lane.map((x,i)=>{
-                  return(
-                    
-                    <canvas
-                    key={i}
-                    className="ROI"
-                    style={{
-                      position: "absolute",
-                      backgroundColor: "transparent",
-                      zIndex: this.state.doROIs ? 11 : 10,
-                      borderRadius: "50%/50%",
-                      border:
-                        (i === this.state.selected.spot && l === this.state.selected.lane)
-                          ? "dashed 2px #0ff"
-                          : `dashed 2px #${((l%2)*15).toString(16)}${(15*(l%2)).toString(16)}${(15*(l%2)).toString(16)}`,
-                      width: "" + 2 * x[3] - 2 + "px",
-                      height: "" + 2 * x[2] - 2 + "px",
-                      marginTop: "" + x[0] - 1 * x[2] + 1 + "px",
-                      marginLeft: "" + x[1] - 1 * x[3] + 1 + "px",
-                    }}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      this.removeROI(e,l, i);
-                    }}
-                  />
-                  );
+            </Grid>
+          </Grid>
 
-                })}
-                </div>)
-              })}
-              {this.origins.map((x, i) => {
-                return (
-                  <canvas
-                    className="ROI"
-                    key={i}
-                    style={{
-                      borderRadius: "50%/50%",
-                      backgroundColor: "white",
-                      position: "absolute",
-                      marginTop: "" + 1 * x[0] - 5 + "px",
-                      marginLeft: "" + 1 * x[1] - 5 + "px",
-                      width: "10px",
-                      height: "10px",
-                      zIndex: this.state.doROIs ? 10 : 11,
-                    }}
-                    onClick={(e) => {
-                      e.preventDefault();
-                      this.removeOrigin(e, i);
-                    }}
-                  />
-                );
-              })}
-
-              
-             
-              
-              
-              
-                <img
-		  className = 'noselect'    
-                  id="img"
-                  style={{
-                    position: "absolute",
-                    filter: "brightness(10)",
-                    filter:
-                      "contrast(" + (100 + 10 * this.state.contrast) + "%)",
-                  }}
-                  src={this.url + '/img/' + this.filenum+this.state.background_corrected}
-                  onClick={this._onMouseClick.bind(this)}
-                  alt=''
-                />
-              
-
-              {!this.state.resultsReturned && (
-                <div>
-                  {true &&
-                    this.state.doUV && ( 
-                      <div>
-                        
-                        <img
-                          src={this.url + '/UV/' + this.filenum}
-                          style={{
-                            position: "absolute",
-                            marginTop: "30vh",
-                            marginLeft: "56vw",
-                            height: "30vh",
-                            width: "19vw",
-                            filter:
-                              "contrast(" +
-                              (100 + 10 * this.state.contrast) +
-                              "%)",
-                          }}
-                          onClick={this.UVClick}
-                          alt=''
-                        />
-                        <img
-                          src={this.url + '/Cerenkov/' + this.filenum}
-                          style={{
-                            position: "absolute",
-                            marginTop: "30vh",
-                            marginLeft: "77vw",
-                            height: "30vh",
-                            width: "19vw",
-                            filter:
-                              "contrast(" +
-                              (100 + 10 * this.state.contrast) +
-                              "%)",
-                          }}
-                          onClick={this.UVClick}
-                          alt=''
-                        />
-                      </div>
-                    )}
-                    {!this.state.doUV &&(
-                    <div>
-                      <Button
-                        color="primary"
-                        variant="contained"
-                        style={{
-                          fontSize: "120%",
-                          height: "12vh",
-                          width: "12vw",
-                          position: "absolute",
-                          marginTop: "40vh",
-                          marginLeft: "60vw",
-                        }}
-                        onClick={() => {
-                          this.state.doRF === "Enable RF Calculation"
-                            ? this.setState({ doRF: "Disable RF Calculation" })
-                            : this.setState({ doRF: "Enable RF Calculation" });
-                        }}
-                      >
-                        {this.state.doRF}
-                      </Button>
-                      <div>
-			
-                      <input type = 'range'
-                        name = {'#Lanes'}
-                        style={{
-                          position: "absolute",
-                          height: "11vh",
-                          width: "12vw",
-                          marginTop: "59vh",
-                          marginLeft: "80vw",
-                        }}
-                        step={1} 
-                valueLabelDisplay="on"
-                        marks={true}
-                        defaultValue={this.state.n_l}
-                        min={0}
-                        max={12}
-                        onInput={(e) => {
-                          this.setState({ n_l: e.target.value });
-                        }}
-                      />
-                      </div>
-                      <h2
-                        style={{
-                          position: "absolute",
-                          height: "8vh",
-                          width: "18vh",
-                          fontSize: "140%",
-                          marginTop: "56vh",
-                          marginLeft: "82vw",
-                        }}
-                      >
-                        #Lanes: {this.state.n_l}
-                      </h2>
-                  
-                      <Button
-                        color="primary"
-                        variant="contained"
-                        style={{
-                          fontSize: "100%",
-                          height: "12vh",
-                          width: "12vw",
-                          position: "absolute",
-                          marginTop: "40vh",
-                          marginLeft: "80vw",
-                        }}
-                        onClick={() => {
-                          console.log(this.state.autoLane);
-                          this.setState({ autoLane: !this.state.autoLane });
-                        }}
-                      >
-                        {" "}
-                        {!this.state.autoLane
-                          ? "Enable Auto Lane Select"
-                          : "Enable Manual Lane Select"}{" "}
-                      </Button>
-                      </div>
-                      )}
-                    
-		   
-			<Button variant = 'contained' onClick = {this.fixBackground} color = 'primary' style = {{height:'12vh',width:'12vw',position:'absolute',marginLeft:'0px',marginTop:'682px'}}>
-		        Perform Background Correction	   
-	     		</Button>
-		   
-                  
-                      
-                      
-                    
-                  
-                    <Slider
-                      valueLabelDisplay="auto"
-                      style={{
-                        position: "absolute",
-                        height: "8vh",
-                        width: "32vw",
-                        marginTop: "3vh",
-                        marginLeft: "60vw",
-                      }}
-                      step={3}
-                      marks={true}
-                      defaultValue={this.state.contrast}
-                      min={-9}
-                      max={21}
-                      label={"Contrast"}
-                      onChange={(e, value) => {
-                        this.setState({ contrast: value });
-                      }}
-                    >
-                      Contrast
-                    </Slider>
-                  
-                  
-                    <h1
-                      style={{
-                        position: "absolute",
-                        height: "2vh",
-                        width: "10vw",
-                        marginTop: "0vh",
-                        marginLeft: "76vw",
-                      }}
-                    >
-                      Contrast
-                    </h1>
-                  
-                  
-                    <Button
-                      color="primary"
-                      variant="contained"
-                      style={{
-                        fontSize: "190%",
-                        height: "12vh",
-                        width: "12vw",
-                        position: "absolute",
-                        marginTop: "70vh",
-                        marginLeft: "80vw",
-                      }}
-                      onClick={this.submit}
-                    >
-                      Submit
-                    </Button>
-                  
-                  
-                    <Button
-                      color="primary"
-                      variant="contained"
-                      style={{
-                        fontSize: "90%",
-                        position: "absolute",
-                        height: "12vh",
-                        width: "12vw",
-                        marginTop: "70vh",
-                        marginLeft: "60vw",
-                      }}
-                      id="Button"
-                      onClick={this.changeDoROIs}
-                    >
-                      {!this.state.doROIs
-                        ? "Select ROIs"
-                        : "Select Origin/SF/Cerenkov Lanes"}
-                    </Button>
-                  
-                  
-                  
-                    <Button
-                      color="primary"
-                      variant="contained"
-                      style={{
-                        fontSize: "170%",
-                        height: "12vh",
-                        width: "12vw",
-                        position: "absolute",
-                        marginTop: "10vh",
-                        marginLeft: "80vw",
-                      }}
-                      onClick={this.clearROIs}
-                    >
-                      Clear ROIs
-                    </Button>
-                    <Button
-                  color="primary"
-                  variant="contained"
-                  style={{
-                    fontSize: "100%",
-                    height: "12vh",
-                    width: "12vw",
-                    position: "absolute",
-                    marginTop: "87vh",
-                    marginLeft: "682px",
-                  }}
-                  onClick={this.add_data}
-                >
-                  Upload to Database
-                </Button>
-                    <Button
-                      color="primary"
-                      variant="contained"
-                      style={{
-                        fontSize: "170%",
-                        height: "12vh",
-                        width: "12vw",
-                        position: "absolute",
-                        marginTop: "10vh",
-                        marginLeft: "60vw",
-                      }}
-                      onClick={this.clearOrigins}
-                    >
-                      Clear Origins
-                    </Button>
-                  
-                </div>
-              )}
-
-              
-            </div>
-          
+        </Grid>
         </div>
+                  
       </ThemeProvider>
     );
   }

@@ -725,7 +725,8 @@ SECRET_KEY = os.getenv('FLASK_APP_SECRET_KEY')
 SESSION_TYPE = 'filesystem'
 app.config.from_object(__name__)
 Session(app)
-CORS(app)
+CORS(app, support_credentials=True)
+
 
 
 # --------------
@@ -872,6 +873,7 @@ def sign_in():
     session['based_arr'] = arr
     print(session['email'])
     return 'kk'
+
 @app.route('/analysis_edit/<filename>',methods = ['POST'])
 @cross_origin(supports_credentials=True)
 def analysis_edit(filename):
@@ -887,6 +889,7 @@ def analysis_edit(filename):
     ##print(request.form['autoLane'])
     ##print(request.form['autoLane']=='true' and (not doRF and not doUV))
     ##print(autoLane)
+
     try:
         newOrigins = ast.literal_eval(request.form.getlist('origins')[0])
         
@@ -895,6 +898,7 @@ def analysis_edit(filename):
         newOrigins = []
     print('newo',newOrigins)
     newOrigins = [newOrigins]
+
     newROIs = (request.form.getlist('ROIs'))
     #print(newROIs)
     #print(newROIs[0])
@@ -925,6 +929,7 @@ def retrieve_analysis(filename):
     session['cerenkovradii']=np.load(retrieve_image_path('cerenkovradii',filename))
     analysis_retrieved = retrieve_initial_analysis(filename)
     return{'ROIs':analysis_retrieved['ROIs'],'origins':analysis_retrieved['origins'],'doRF':analysis_retrieved['doRF'],'filenumber':filename}
+
 @app.route('/time', methods = ['POST','GET'])
 @cross_origin(supports_credentials=True)
 def createFile():
