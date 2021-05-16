@@ -373,18 +373,6 @@ class Analysis extends React.Component {
     }
   }
 
-/*  
-  changeDoROIs = () => {
-    if (this.state.doROIs) {
-      this.setState({ doROIs: false });
-      this.setState({ selectMode: "origin" });
-    } else {
-      this.setState({ doROIs: true });
-      this.setState({ selectMode: "roi" });
-    }
-  };
-*/
-
   add_data = () => {
     this.setState({ dataUploaded: true });
     
@@ -402,11 +390,6 @@ class Analysis extends React.Component {
     data.append("origins", JSON.stringify(this.origins));
     data.append("n_l", this.state.n_l);
     data.append("doRF", this.state.do_RF);
-//    if (this.state.do_RF === "Disable RF Calculation") {
-//      data.append("do_RF", "true");
-//    } else {
-//      data.append("do_RF", "false");
-//    }
     console.log(this.state.autoLane);
     if (this.state.autoLane === true) {
       data.append("autoLane", "true");
@@ -513,8 +496,8 @@ class Analysis extends React.Component {
   render() {
     // Overall render a grid layout
     // Left: analysis options
-    // Middle: main image(s), with brightness and contrast controls... also toggles to help with ROI and origin selection
-    // Right: analysis results, save/export, etc...
+    // Right top: main image(s), brightness/contrast, toggle ROI/origins
+    // Right bottom: analysis results, save/export, etc...
     
     return (
       <ThemeProvider theme={this.theme}>
@@ -580,7 +563,7 @@ class Analysis extends React.Component {
 
           {/* Image(s) */}
 
-          <Grid container xs={4} direction='column' spacing={5}>
+          <Grid container xs={8} direction='column' spacing={3}>
 
             <Grid item>
 
@@ -789,21 +772,6 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
 
                     </Grid>
 
-{/*
-                <Button
-                  fullWidth
-                  color="primary"
-                  variant="contained"
-                  id="Button"
-                  onClick={this.changeDoROIs}
-                >
-                  {!this.state.doROIs
-                    ? "Select ROIs"
-                    : "Select Origin/SF/Cerenkov Lanes"}
-                </Button>
-*/}
-
-
                     <Grid item>
                       <Button
                         color="primary"
@@ -832,10 +800,8 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
 
 
             </Grid>
-          </Grid>
 
-          {/* Results */}
-          <Grid container xs={4} direction="column">
+            {/* Results */}
 
             <Grid item>
               <Paper>
