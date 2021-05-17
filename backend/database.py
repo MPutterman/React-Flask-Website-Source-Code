@@ -120,6 +120,7 @@ class User(UserMixin, Base):
     # Supported preferences:
     # default_equipment_id (equipment id)
     # default_exposure_time (seconds)
+    # default_exposure_temp (C)
     # default_flat_image (image id)
     # default_dark_image (image id)
     # default_plate_type (plate id)
