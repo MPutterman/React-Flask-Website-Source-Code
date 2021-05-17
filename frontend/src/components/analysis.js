@@ -1,5 +1,6 @@
 // TODO:
-// I've probably broken things related to "doUV"
+// I've probably broken things related to "doUV". (In general, someone wouldn't select origins etc without 
+//   a brightfield or UV image... but if they want to, might as well allow it.)
 // When change origins and ROIs, need to reset something so 'autolane' will work correctly.
 // I'm not sure how "n_l" and autolane work together.
 // Upload to database seems not working. Maybe instead of "save" we instead have a "delete from database" button?
@@ -68,17 +69,17 @@ class Analysis extends React.Component {
         },
       },
     });
-    this.rads = [];
     this.origins = [];
     this.ROIs = [[]];
     this.filenum = this.props.match.params.filenumber;
     console.log(this.filenum)
-    this.ret = [];
     this.submit = this.submit.bind(this);
+    this.add_data = this.add_data.bind(this);
     this.clearOrigins = this.clearOrigins.bind(this);
     this.clearROIs = this.clearROIs.bind(this);
     this.removeROI = this.removeROI.bind(this);
     this.removeOrigin = this.removeOrigin.bind(this);
+    this.originsDefined = this.originsDefined.bind(this);
     this.state = {
       arr_files: [],
       string_files: [],
@@ -370,14 +371,20 @@ class Analysis extends React.Component {
           console.log(this.ROIs,this.state.selected)
           return res;
         })
+      }
     }
-  }
 
-  add_data = () => {
+    // TODO: eventually update this to return true if origins are _fully_ defined (i.e. origins and solvent fronts).
+    // For now, if we have at least 3 points, assume the origins are properly defined.
+    originsDefined() {
+      return this.origins.length >= 3;
+    }
+
+  add_data() {
     this.setState({ dataUploaded: true });
-    
     return axios.post(backend_url('upload_data/'+this.filenum)).then(res=>{alert(res.data.Status)});
   };
+
   submit() {
     console.log(this.origins)
     // if (this.state.Cerenkovname === "") {
@@ -390,12 +397,13 @@ class Analysis extends React.Component {
     data.append("origins", JSON.stringify(this.origins));
     data.append("n_l", this.state.n_l);
     data.append("doRF", this.state.do_RF);
-    console.log(this.state.autoLane);
-    if (this.state.autoLane === true) {
-      data.append("autoLane", "true");
-    } else {
-      data.append("autoLane", "false");
-    }
+    data.append("autoLane", !this.originsDefined())
+//    console.log(this.state.autoLane);
+//    if (this.state.autoLane === true) {
+//      data.append("autoLane", "true");
+//    } else {
+//      data.append("autoLane", "false");
+//    }
     return axios
       .post(backend_url('analysis_edit/' + this.filenum), data, {
         headers: {
@@ -411,6 +419,7 @@ class Analysis extends React.Component {
         
       }).catch('An Error Occurred');
   }
+
   incVert = () => {
     if (this.state.selected.lane === UNDEFINED) {
       return;
@@ -773,18 +782,24 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
                     </Grid>
 
                     <Grid item>
-                      <Button
-                        color="primary"
-                        variant="contained"
-                        onClick={this.clearROIs}
-                      >
-                        Clear all ROIs
-                      </Button>
+                        <Button
+                          color="primary"
+                          variant="contained"
+                          onClick={this.clearROIs}
+                        >
+                          Clear all ROIs
+                        </Button>
+                        <Button
+                          color="primary"
+                          variant="contained"
+                          //onClick={this.autoselectROIs}
+                        >
+                          Autoselect ROIs (not yet implemented)
+                        </Button>
                     </Grid>
 
                     <Grid item>
                       <Button
-                        fullWidth
                         color="primary"
                         variant="contained"
                         onClick={this.clearOrigins}
@@ -801,84 +816,74 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
 
             </Grid>
 
-            {/* Results */}
+            {/* Analysis options */}
 
             <Grid item>
               <Paper>
                 <h1>Analysis options:</h1>
 
-                {!this.state.doUV &&(
-                <div>
+                <Grid container direction="row">
+                  <Grid item>
+                    {/* Compute RF values? Only enable if origins have been defined. 
+                        TODO: something not quite working with the checked/unchecked state */}
+                    <FormGroup>
+                    <FormControlLabel
+                      control={<Checkbox
+                        //color="primary"
+                        //variant="contained"
+                        disabled={!this.originsDefined()}
+                        checked={this.state.do_RF}
+                        value={this.state.do_RF ? 'on' : 'off'}
+                        //checked={this.state.do_RF}
+                        onChange={(event) => {
+                          this.state.do_RF = event.target.checked;
+                        }}
+                        name="enable_RF"
+                      />}
+                      label="Enable RF calculation"
+                    />
+                    </FormGroup>
+                  </Grid>
 
-                  <div>
+                  <Grid item>
 
-                  <input type = 'range'
-                    name = {'#Lanes'}
-                    step={1} 
-                    valueLabelDisplay="on"
-                    marks={true}
-                    defaultValue={this.state.n_l}
-                    min={0}
-                    max={12}
-                    onInput={(e) => {
-                      this.setState({ n_l: e.target.value });
-                    }}
-                  />
-                  </div>
-                  <h2
-                  >
-                    #Lanes: {this.state.n_l}
-                  </h2>
+                    {/* If origins are not defined, user must select the number of lanes */}
 
-                <FormGroup>
-                <FormControlLabel
-                  control={<Checkbox
-                    //color="primary"
-                    //variant="contained"
-                    value={this.autoLane}
-                    onChange={(event) => {
-                      this.state.autoLane = event.target.checked;
-                    }}
-                    name="enable_auto_lane"
-                  />}
-                  label="Enable automatic lane selection"
-                />
-                </FormGroup>
-                </div>
-                )}
-{/*
-                  <Button
-                    color="primary"
-                    variant="contained"
-                    onClick={() => {
-                      console.log(this.state.autoLane);
-                      this.setState({ autoLane: !this.state.autoLane });
-                    }}
-                  >
-                    {" "}
-                    {!this.state.autoLane
-                      ? "Enable Auto Lane Select"
-                      : "Enable Manual Lane Select"}{" "}
-                  </Button>
-                  </div>
-                  )}
-*/}
-                <FormGroup>
-                <FormControlLabel
-                  control={<Checkbox
-                    //color="primary"
-                    //variant="contained"
-                    disabled={this.origins.length === 0}
-                    value={this.state.do_RF}
-                    //checked={this.state.do_RF}
-                    onChange={(event) => {
-                      this.state.do_RF = event.target.checked;
-                    }}
-                    name="enable_RF"
-                  />}
-                  label="Enable RF calculation"
-                />
-                </FormGroup>
+                    <FormGroup>
+                    <FormControlLabel
+                      control={<Checkbox
+                        //color="primary"
+                        //variant="contained"
+                        //disabled={this.originsDefined}
+                        disabled
+                        checked={!this.originsDefined()}
+                        //onChange={(event) => {
+                        //  this.state.autoLane = event.target.checked;
+                        //}}
+                        name="enable_auto_lane"
+                      />}
+                      label="Enable automatic lane selection"
+                    />
+                    </FormGroup>
+
+                    <p>Number of lanes: {this.state.n_l}</p>
+                    <input type = 'range'
+                      disabled={this.originsDefined()}
+                      name = {'#Lanes'}
+                      step={1} 
+                      valueLabelDisplay="on"
+                      marks={true}
+                      defaultValue={this.state.n_l}
+                      min={0}
+                      max={12}
+                      onInput={(e) => {
+                        this.setState({ n_l: e.target.value });
+                      }}
+                    />
+
+                  </Grid>
+
+                </Grid>
 
                 <Button
                   color="primary"
@@ -899,6 +904,8 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
 
               </Paper>
             </Grid>
+
+            {/* Results */}
 
             <Grid item>
 
