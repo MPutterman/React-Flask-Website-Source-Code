@@ -102,6 +102,7 @@ class User(UserMixin, Base):
     last_name = Column(String(64))
     email = Column(String(254), nullable=False) # max lenth of an email address 
     is_deleted = Column(Boolean, default=False, nullable=False)
+    preferences = Column(Text, default='')
     org_list = relationship("Organization", secondary=user_org_map) 
     analysis_list=relationship("Analysis",secondary=user_analysis_map)
 
@@ -112,6 +113,19 @@ class User(UserMixin, Base):
             col.name: getattr(self, col.name)
                 for col in columns
         }
+
+    #def getPreference(key):
+    #def setPreference(key, value):
+
+    # Supported preferences:
+    # default_equipment_id (equipment id)
+    # default_exposure_time (seconds)
+    # default_flat_image (image id)
+    # default_dark_image (image id)
+    # default_plate_type (plate id)
+    # default_cover_type (cover id)
+    # default_background_correction (enum: linear | quadratic | ...)
+    # default_filtering (enum: 3x3 median | ...)
 
 class Organization(Base):
     __tablename__ = 'organization'
