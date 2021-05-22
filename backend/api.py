@@ -207,8 +207,13 @@ class analysis():
         return arr
     @staticmethod
     def numLanes_finder(ROIs):
-        if len(ROIs)<=2:
+        if len(ROIs)<=1:
             return 1
+        if len(ROIs)==2:
+            if abs(ROIs[0][1]-ROIs[1][1])>25:
+                return 2
+            else:
+                return 1
         print('3',ROIs)
         losses = []
         lanes=[]
@@ -220,17 +225,18 @@ class analysis():
         start = max(int(len(ROIs)/3-1),1)
         print('start',start)
         print(len(ROIs))
-        for j in range(start,len(ROIs)+4):
+        for j in range(start,len(ROIs)+2):
             if j>len(ROIs):
                 lanes.append(j)
                 losses.append(2)
-            try:
-                print(j)
-                centers, loss = kmeans(ROIs,j)
-                losses.append(100*loss+2)
-                lanes.append(j)
-            except:
-                break
+            else:
+                try:
+                    print(j)
+                    centers, loss = kmeans(ROIs,j)
+                    losses.append(100*loss+2)
+                    lanes.append(j)
+                except:
+                    break
         print(lanes,losses)
         kn = KneeLocator(lanes, losses, curve='convex', direction='decreasing')
         print(kn,kn.knee,kn.elbow)
