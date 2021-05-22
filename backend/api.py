@@ -3,11 +3,12 @@
 # Main Flask api documentation: https://flask.palletsprojects.com/en/1.1.x/api/
 
 import time
-
+from scipy.cluster.vq import vq, kmeans,whiten
 from flask import Flask, request,Response,send_file,send_from_directory,make_response,Response,session
 from skimage import io, morphology, filters,transform, segmentation,exposure
 from skimage.util import invert
 import scipy
+from kneed import KneeLocator
 from matplotlib import pyplot as plt
 from matplotlib import use,gridspec
 from skimage.measure import label
@@ -204,6 +205,36 @@ class analysis():
             arr.append((round(center[0]+(UR-DR)/2),round(center[1]+(RR-LR)/2)))
         ###print(arr)
         return arr
+    @staticmethod
+    def numLanes_finder(ROIs):
+        if len(ROIs)<=2:
+            return 1
+        print('3',ROIs)
+        losses = []
+        lanes=[]
+        ROIs = np.asarray(ROIs)
+        ROIs = ROIs[:,1]*100
+        ROIs = np.expand_dims(ROIs,axis=1)
+        ROIs = whiten(ROIs)
+        tim = time.time()
+        start = max(int(len(ROIs)/3-1),1)
+        print('start',start)
+        print(len(ROIs))
+        for j in range(start,len(ROIs)+4):
+            if j>len(ROIs):
+                lanes.append(j)
+                losses.append(2)
+            try:
+                print(j)
+                centers, loss = kmeans(ROIs,j)
+                losses.append(100*loss+2)
+                lanes.append(j)
+            except:
+                break
+        print(lanes,losses)
+        kn = KneeLocator(lanes, losses, curve='convex', direction='decreasing')
+        print(kn,kn.knee,kn.elbow)
+        return int(kn.knee)
     def computeXY_circle(self,img,rowMin,rowMax,colMin,colMax,multiply_place=True):
         colRadiusSquared = ((colMax-colMin)/2)**2
         rowRadiusSquared = ((rowMax-rowMin)/2)**2
@@ -1021,9 +1052,12 @@ def give(filename):
     filen = retrieve_image_path('cerenkovdisplay',filename)
     print(filen)
     return send_file(filen)
-@app.route('/radius/<filename>/<x>/<y>/<shift>',methods = ['GET'])
+@app.route('/radius/<filename>/<x>/<y>/<shift>',methods = ['POST'])
 @cross_origin(supports_credentials=True)
 def findRadius(filename,x,y,shift):
+    ROIs = request.form.getlist('ROIs')
+    ROIs = ast.literal_eval(ROIs[0])
+    print(ROIs)
     
     tim = time.time()
     img = session['cerenkovradii']
@@ -1060,7 +1094,13 @@ def findRadius(filename,x,y,shift):
     if shift ==('1'):
         rowRadius,colRadius = 0,0
     rowRadius,colRadius = min(max(rowRadius+3,14),55),min(max(colRadius+3,14),55)
-    return{"col":col,"row":row,"colRadius":colRadius,"rowRadius":rowRadius}
+    
+    
+    ROIs[0].append([int(y),int(x),int(rowRadius),int(colRadius)])
+    ROIs = analysis.flatten(ROIs)
+    print('2',ROIs)
+    num_lanes = analysis.numLanes_finder(ROIs)
+    return{"col":col,"row":row,"colRadius":colRadius,"rowRadius":rowRadius,"n_l":num_lanes}
 @app.route('/UV/<filename>',methods = ['GET'])
 @cross_origin(supports_credentials=True)
 def giveUV(filename):
