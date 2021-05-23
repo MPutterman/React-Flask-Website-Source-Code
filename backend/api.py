@@ -674,6 +674,9 @@ def makeFileArray(fileN,fileN1):
     return fileN
 def add_dir(email):
     #print('here')
+    # TODO: change file structure to
+    # /image/<equip_ip>/dark, flat, bright, radiation ??
+
     os.mkdir(f"./users/{email}")
     os.mkdir(f"./users/{email}/files")
     file = open(f"./users/{email}/files/desc.txt", "w")
@@ -717,16 +720,22 @@ def findFiles(lanes,cerenkName,darkName,flatName,UVName,UVFlatName):
             names.append(arr)
     return names
 
-app = Flask(__name__)
+# Import server configuration info
 from dotenv import load_dotenv
 load_dotenv()
-SECRET_KEY = os.getenv('FLASK_APP_SECRET_KEY')
-#put secret key in env
-SESSION_TYPE = 'filesystem'
-app.config.from_object(__name__)
+
+# App setup and configuration
+app = Flask(__name__)
+#SECRET_KEY = os.getenv('FLASK_APP_SECRET_KEY')
+app.secret_key = os.getenv('FLASK_APP_SECRET_KEY') # TODO: rename to FLASK_SESSION_SECRET_KEY
+#SESSION_TYPE = 'filesystem'
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config.from_object(__name__)  # still need this?
 Session(app)
 CORS(app, support_credentials=True)
 
+# Define appication-wide configuration variables
+app.config['session_timeout'] = 10 # minutes
 
 
 # --------------
@@ -738,7 +747,7 @@ def initialize():
     db_create_tables() # won't always do this
     db_add_test_data() # won't always do this
     session.permanent = True
-    # app.permanent_session_lifetime = timedelta(minutes=5)
+    app.permanent_session_lifetime = timedelta(minutes=app.config['session_timeout'])
 
 
 # -------------------
@@ -1110,6 +1119,8 @@ def upload_data(filename):
      
     
 if __name__ == '__main__':
+    # TODO: consider what should go here or at the top of this file
+    # (This is only run when it is the main app, not included in another file)
     ##print("Running!")
     app.run(host='0.0.0.0',debug=False,port=5000)
 
