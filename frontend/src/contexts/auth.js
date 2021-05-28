@@ -3,6 +3,7 @@
 // * https://marmelab.com/react-admin/Authentication.html
 // * https://kentcdodds.com/blog/authentication-in-react-applications (nice thoughts on keep separate the public and authenticated sites)
 // * https://soshace.com/react-user-login-authentication-using-usecontext-and-usereducer/ (most of initial code design was from here)
+// * https://medium.com/@thanhbinh.tran93/private-route-public-route-and-restricted-route-with-react-router-d50b27c15f5e (more thoughts on private routes)
 
 // TODO:
 // * Still considering what is the best way to handle unexpected login or logout errors. 
@@ -177,7 +178,6 @@ export async function authLogin(dispatch, data) {
         const user = response.data['current_user'];
         if (user) {
             dispatch({ type: 'LOGIN_SUCCESS', payload: user });
-            localStorage.setItem('currentUser', JSON.stringify(user));
             return true;
         } else {
             dispatch({ type: 'LOGIN_ERROR', error: response.data['error'] });
@@ -207,7 +207,6 @@ export async function authLogout(dispatch) {
         const user = response.data['current_user'];
         if (!user) {
             dispatch({ type: 'LOGOUT' });
-            localStorage.removeItem('currentUser');
             return true;
         } else {
             dispatch({ type: 'LOGOUT_ERROR', error: response.data['error']});
