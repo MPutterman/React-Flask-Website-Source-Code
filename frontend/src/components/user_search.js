@@ -1,4 +1,7 @@
-import React, {useState, useEffect} from "react";
+// TODO:
+// * Add filters and sorting (server side) in case of large number of elements.  Will need a form to do this.
+
+import React, {useState, useEffect } from "react";
 import { useHistory } from 'react-router-dom';
 import axios from "axios";
 import * as FormData from "form-data";
@@ -13,8 +16,6 @@ import { DataGrid } from "@material-ui/data-grid";
    DataGrid documentation: https://material-ui.com/api/data-grid/
    DataGrid column definitions: https://material-ui.com/components/data-grid/columns/#column-definitions
 */
-
-// TODO: add filters and sorting (server side).  Will need a form to do this.
 
 const UserSearch = (props) => {
 
@@ -31,7 +32,7 @@ const UserSearch = (props) => {
     ];
 
     // State
-    var first_render = true;
+    const [firstRender, setFirstRender] = useState(true);
     const [userList, setUserList] = useState([]);
     const [organizationList, setOrganizationList] = useState([]);
 
@@ -70,9 +71,8 @@ const UserSearch = (props) => {
     useEffect(() => {
         getUserList(); //(props.match.params.id);
         getOrganizationList();
-        console.log("In useEffect #1 => ", userList, organizationList);
-        first_render = false;
-    }, [first_render]); 
+        setFirstRender(false);
+    }, [firstRender]); 
 
     const onReset = () => {
         // TODO: Reset all filters and sorting to defaults

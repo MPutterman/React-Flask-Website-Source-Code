@@ -12,6 +12,7 @@
     "@testing-library/user-event": "^7.1.2",
     "axios": "^0.20.0",
     "babel-jest": "^26.6.3",
+    "bcryptjs": "^2.4.3",
     "formik": "^2.2.6",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",

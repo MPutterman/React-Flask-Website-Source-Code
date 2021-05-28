@@ -1,13 +1,13 @@
+// TODO:
+// * Replace backend 'url' property with function in main config file
+
+
 import React from "react";
-//, { useState, useEffect } from "react";
 import "../App.css";
 import axios from "axios";
 import Button from "@material-ui/core/Button";
 import Slider from "@material-ui/core/Slider";
-//import { palette } from "@material-ui/system";
-import { createMuiTheme, ThemeProvider } from "@material-ui/core/styles";
-import blueGrey from "@material-ui/core/colors/blueGrey";
-import CssBaseline from "@material-ui/core/CssBaseline";
+import { blueGrey } from "@material-ui/core/colors";
 //import { makeStyles } from "@material-ui/core/styles";
 import Table from "@material-ui/core/Table";
 import TableBody from "@material-ui/core/TableBody";
@@ -23,7 +23,6 @@ import SearchField from "react-search-field";
 //import ReactSlider from 'react-slider'
 import GoogleLogin from 'react-google-login';
 
-
 class Home extends React.Component {
   constructor(props) {
     super(props);
@@ -34,24 +33,6 @@ class Home extends React.Component {
     this.UVFlatReference = React.createRef();
     this.brightReference = React.createRef();
     this.brightFlatReference = React.createRef();
-    this.theme = createMuiTheme({
-      palette: {
-        type: "dark",
-        primary: {
-          light: blueGrey[500],
-          main: blueGrey[800],
-          dark: blueGrey[900],
-          contrastText: "#fff",
-        },
-
-        secondary: {
-          light: "#ff7961",
-          main: blueGrey[700],
-          dark: "#002884",
-          contrastText: "#000",
-        },
-      },
-    });
     this.rads = [];
     this.origins = [];
     this.ROIs = [];
@@ -622,8 +603,6 @@ class Home extends React.Component {
 
   render() {
     return (
-      <ThemeProvider theme={this.theme}>
-        <CssBaseline />
         <div id="container">
           {this.state.showData && (
             <div>
@@ -1669,7 +1648,6 @@ class Home extends React.Component {
             </div>
           )}
         </div>
-      </ThemeProvider>
     );
   }
 }

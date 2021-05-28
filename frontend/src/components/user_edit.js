@@ -1,3 +1,11 @@
+// TODO:
+// * Need to do some error checking to avoid duplicate accounts with same email address. Duplicates break
+//   retrieval from database
+// * Currently using this page for new user registration. In practice probably want a multi-step verification
+// * Need to add better rendering of password (hidden) and maybe visible/invisible toggle
+// * Need to improve changing of password, maybe as a separate form with more authentication checks (fresh login),
+//   and require successful entry of previous password.  Also a 'forgot password' functionality is needed.
+
 import React, {useState, useEffect} from "react";
 import axios from "axios";
 import * as FormData from "form-data";
@@ -10,6 +18,7 @@ import Button from "@material-ui/core/Button";
 import Select from "@material-ui/core/Select";
 import MenuItem from "@material-ui/core/MenuItem";
 import InputLabel from "@material-ui/core/InputLabel";
+
 
 // TODO: need to run: npm install @material-ui/lab
 import { AlertList, Alert } from '../components/alerts';
@@ -32,14 +41,16 @@ import { AlertList, Alert } from '../components/alerts';
    Using functional version (rather than class) to enable use of React-Hook-Form library
 */
 
-// User Edit form
+// User Edit form.  If props.match.params.id was passed in, edit the existing user.  If not, create a new user.
 const UserEdit = (props) => {
+
 
     const initialUserState = {
         user_id: null,
         first_name: '',
         last_name: '',
         email: '',
+        password: '',
         org_list: [],
     };
 
@@ -63,16 +74,18 @@ const UserEdit = (props) => {
     };
     
     // Retrieve user with specified id from the database
+    // TODO: Error handling if user is not found... need to redirect to not found page
     const getUser = (id) => {
-        axios.get(backend_url('user/load/' + id))
-        .then((response) => {
-            setCurrentUser(response.data);
-            console.log ("In getUser: response data => ", response.data);
-        })
-        .catch((e) => {
-            console.error("GET /user/edit/" + id + ": " + e);
-        });
-
+        if (id) {
+            axios.get(backend_url('user/load/' + id))
+            .then((response) => {
+                setCurrentUser(response.data);
+                console.log ("In getUser: response data => ", response.data);
+            })
+            .catch((e) => {
+                console.error("GET /user/edit/" + id + ": " + e);
+            });
+        }
     }
 
     // Retrieve list of available organizations (for now all organizations)
@@ -117,8 +130,9 @@ const UserEdit = (props) => {
         formData.append('first_name', data.first_name);
         formData.append('last_name', data.last_name);
         formData.append('email', data.email);
+        formData.append('password', data.password);
         formData.append('org_list', data.org_list);
-        
+
         const config = {     
             headers: { 'content-type': 'multipart/form-data' }
         }
@@ -225,7 +239,30 @@ const UserEdit = (props) => {
                   }
                 />
 
-                {/* TODO: password field, but might use Google signin API */}
+                <Controller
+                  control={control}
+                  name="password"
+                  rules= {{
+                    required: {value:true, message:"Password is required"},
+                    // TODO: add some rules for strictness
+                  }}
+                  render={({field, fieldState, formState}) =>
+                  <TextField
+                    label="Password:"
+                    helperText={formState.errors.password ? formState.errors.password.message : ''}
+                    autoComplete="password"
+                    placeholder="Password"
+                    fullWidth
+                    variant='outlined'
+                    onChange={field.onChange}
+                    onBlur={field.onBlur}
+                    value = {field.value}
+                    error={Boolean(fieldState.error)}
+                  />
+                  }
+                />
+                <p>TODO: update with visible/invisible, and add more security for changing this!</p>
+
 
                 {/* TODO: This element is not well-rendered. Need to look into better Material-UI options.
                     TODO: helperText doesn't work with grouped elements. Not to explore best practices here for displaying errors.  */}
@@ -269,8 +306,6 @@ const UserEdit = (props) => {
                 <Button type="submit" >Save Changes</Button>
                 <Button type="reset"> Cancel</Button>
                 <Button type="delete" >Delete (not yet working)</Button>
-
-                {/* TODO: there is a Material-UI element for temporary status messages -- use that instead */ }
 
                 {message ? ( 
 
