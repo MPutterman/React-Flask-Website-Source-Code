@@ -1,5 +1,6 @@
 // TODO:
 // * Should profile link to the profile edit page, or just a page to view?
+// * Currently when open menu, the AppBar squeezes... but not the main part of the screen. Any way to easily change that?
 
 import React from 'react';
 import clsx from 'clsx';
@@ -98,15 +99,13 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const MenuAppBar = (props) => {
-  const classes = useStyles();
-  //const theme = useTheme();
-  const [open, setOpen] = React.useState(false);
-  const [anchorEl, setAnchorEl] = React.useState(null);
-  const [anchorE2, setAnchorE2] = React.useState(null);
+export default function MenuAppBar() {
 
-  const openAppMenu = Boolean(anchorEl);
-  const openUserMenu = Boolean(anchorE2);
+  const classes = useStyles();
+  const theme = useTheme();
+  const [openDrawer, setOpenDrawer] = React.useState(false);
+  const [openUserMenu, setOpenUserMenu] = React.useState(false);
+  const [anchorE1, setAnchorE1] = React.useState(null);
 
   const history = useHistory();
 
@@ -116,21 +115,18 @@ const MenuAppBar = (props) => {
 
   // Event handlers
 
-  const handleClickUserMenu = (event) => {
-    setAnchorE2(event.currentTarget);
+  const handleOpenUserMenu = (event) => {
+    setAnchorE1(event.currentTarget);
+    setOpenUserMenu(true);
   };
 
-  const handleCloseAppMenu = () => {
-    setAnchorEl(null);
-  };
-
-  const handleUserAccount = () => {
-    handleCloseUserMenu(null);
+  const handleUserAccount = (event) => {
+    handleCloseUserMenu(event);
     history.push('/user/edit/' + session['authUser']['user_id']); 
   }
 
-  async function handleUserLogout() {
-    handleCloseUserMenu(null);
+  async function handleUserLogout(event) {
+    handleCloseUserMenu(event);
     let response = await authLogout(dispatch); 
     history.push('/user/login');
   }
@@ -139,15 +135,17 @@ const MenuAppBar = (props) => {
     history.push('/user/login');
   }
 
-  const handleCloseUserMenu = () => {
-    setAnchorE2(null);
+  const handleCloseUserMenu = (event) => {
+    setAnchorE1(event.currentTarget);
+    setOpenUserMenu(false);
   };
+
   const handleDrawerOpen = () => {
-    setOpen(true);
+    setOpenDrawer(true);
   };
 
   const handleDrawerClose = () => {
-    setOpen(false);
+    setOpenDrawer(false);
   };
 
 
@@ -169,11 +167,11 @@ const MenuAppBar = (props) => {
       </div>
      
 
-      <AppBar style={{topMargin: '50'}} position="fixed" className={clsx(classes.appBar, {[classes.appBarShift]: open, })} >
+      <AppBar style={{topMargin: '50'}} position="fixed" className={clsx(classes.appBar, {[classes.appBarShift]: openDrawer, })} >
         <Toolbar>
           <IconButton
             edge="start"
-            className={clsx(classes.menuButton, open && classes.hide)}
+            className={clsx(classes.menuButton, openDrawer && classes.hide)}
             color="inherit"
             aria-label="open drawer"
             onClick={handleDrawerOpen}
@@ -190,14 +188,14 @@ const MenuAppBar = (props) => {
                 aria-label="account of current user"
                 aria-controls="menu-user"
                 aria-haspopup="true"
-                onClick={handleClickUserMenu}
+                onClick={handleOpenUserMenu}
                 color="inherit"
               >
                 <AccountCircle />
               </IconButton>
               <Menu
                 id="menu-user"
-                anchorE1={anchorE2}
+                anchorE1={anchorE1}
                 anchorOrigin={{
                   vertical: 'top',
                   horizontal: 'right',
@@ -224,7 +222,7 @@ const MenuAppBar = (props) => {
         className={classes.drawer}
         variant="persistent"
         anchor="left"
-        open={open}
+        open={openDrawer}
         classes={{
           paper: classes.drawerPaper,
         }}
@@ -284,5 +282,3 @@ const MenuAppBar = (props) => {
     </div>
   );
 }
-
-export default MenuAppBar

@@ -261,7 +261,6 @@ const UserEdit = (props) => {
                   />
                   }
                 />
-                <p>TODO: update with visible/invisible, and add more security for changing this!</p>
 
 
                 {/* TODO: This element is not well-rendered. Need to look into better Material-UI options.
