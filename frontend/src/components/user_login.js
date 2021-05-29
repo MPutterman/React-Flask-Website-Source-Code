@@ -4,6 +4,7 @@
 
 import React from "react";
 import { authLogin, authLogout, useAuthState, useAuthDispatch } from '../contexts/auth';
+import { usePrefState } from '../contexts/prefs';
 import backend_url from './config.js';
 import { withRouter } from "react-router";
 import { useHistory } from 'react-router-dom';
@@ -31,6 +32,7 @@ const UserLogin = (props) => {
     // Connect to Auth context
     const dispatch = useAuthDispatch();
     const session = useAuthState(); // provides a dictionary containing auth, authUser, loading, error, errorMessage
+    const prefs = usePrefState(); // provides a dictionary of preferences
 
     // Form hooks
     // mode is the render mode (both onChange and onBlur)
@@ -41,19 +43,26 @@ const UserLogin = (props) => {
 
     async function onLogin(data, e) {
 
-        console.log('session value is: =>', session);
-        console.log("UserLogin form submit: data => ", data);
+        //console.log('session value is: =>', session);
+        //console.log("UserLogin form submit: data => ", data);
 
-        let response = await authLogin(dispatch, data);
-        if (response) {    
-            history.push('/home'); // TODO: change to user's prefered landing page (or default landing page)
-        }
+        return await authLogin(dispatch, data)
+        .then( (response) => {
+            console.log('response =>', response);
+            if (response) {
+                const url = prefs['prefs']['general']['redirect_after_login'];    
+                console.log('here url=>', url)
+                history.push(url); 
+            }
+        });
     }
 
     async function onLogout(data, e) {
-        let response = await authLogout(dispatch);
+        return await authLogout(dispatch)
         // TODO: if received an error, where to redirect?
-        history.push('/user/login')
+        .then( (response) => {
+            history.push('/user/login')
+        });
     }
 
     const onRegister = () => {

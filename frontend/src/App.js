@@ -1,6 +1,8 @@
 // TODO:
 // * Consider creating a config file to store routes. This could then also be used for menu generation.
-// * TODO: add protection of routes for logged in users
+// * Add protection of routes for logged in users
+// * Move the 'snackbar' component here to allow for global message updating... there is a good example
+//   here: https://browntreelabs.com/snackbars-in-react-redux-and-material-ui/
 
 import React from 'react';
 
@@ -10,8 +12,9 @@ import "./App.css";
 import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
 import { blueGrey } from '@material-ui/core/colors';
 
-// Import authentication
+// Import authentication and preferences
 import { AuthProvider } from './contexts/auth';
+import { PrefProvider } from './contexts/prefs';
 
 // Import main interface components
 import MenuAppBar from './components/menu_app_bar';
@@ -62,6 +65,7 @@ const App = (props) => {
     return (
       <>
       <AuthProvider>
+      <PrefProvider>
         <ThemeProvider theme={darkMode}>
         <CssBaseline />
         <Router>
@@ -90,6 +94,7 @@ const App = (props) => {
             </Switch>
         </Router>
         </ThemeProvider>
+      </PrefProvider>
       </AuthProvider>
       </>
     );

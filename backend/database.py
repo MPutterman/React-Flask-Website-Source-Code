@@ -13,7 +13,7 @@
 
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy import Table, Column, ForeignKey
-from sqlalchemy import Integer, String, Float, Text, DateTime, LargeBinary, Enum, Boolean,BigInteger
+from sqlalchemy import Integer, String, Float, Text, DateTime, LargeBinary, Enum, Boolean, PickleType, BigInteger
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.orm import Session, sessionmaker, scoped_session
 from sqlalchemy.orm import joinedload, selectinload
@@ -116,7 +116,7 @@ class User(UserMixin, Base):
     password_hash = Column(Text) # TODO: can be limited to length 60, but need correct type (String doesn't work)
     is_active = Column(Boolean, default=True, nullable=False)
     is_deleted = Column(Boolean, default=False, nullable=False)
-    preferences = Column(Text, default='')
+    prefs = Column(PickleType)
     org_list = relationship("Organization", secondary=user_org_map) 
     analysis_list=relationship("Analysis",secondary=user_analysis_map)
 
@@ -355,8 +355,10 @@ def db_add_test_data():
     org2 = Organization(name = 'UCLA Ahmanson Translational Theranosticis Division', org_id = 21857,plate_list=[plate1],cover_list = [cover])
     org3 = Organization(name = 'Imaginary University Deparment of Radiochemistry',org_id = 25987)
     db_session.add_all([org1, org2, org3])
-    db_session.add(User(first_name = 'Alice', last_name = 'Armstrong', email = 'alice@armstrong.com', password_hash='$2b$12$jojM5EuDHREVES2S0OpLbuV.oDjqXWJ/wq9x07HwSQRfdpEUHLqNG', org_list=[org1])) # PASSWORD 123
-    db_session.add(User(first_name = 'Bob', last_name = 'Brown', email = 'bob@brown.com',password_hash='$2b$12$kA7FRa6qA./40Pmtmi6mRelW2cnkhcOHtsKelIMVezDlF33YF62C2', org_list=[org1,org2])) # PASSWORD 123
+    prefs1 = { 'general': {'redirect_after_login': '/',}, }
+    prefs2 = { 'general': {'redirect_after_login': '/user/search',}, }
+    db_session.add(User(first_name = 'Alice', last_name = 'Armstrong', email = 'alice@armstrong.com', password_hash='$2b$12$jojM5EuDHREVES2S0OpLbuV.oDjqXWJ/wq9x07HwSQRfdpEUHLqNG', org_list=[org1], prefs=prefs1)) # PASSWORD 123
+    db_session.add(User(first_name = 'Bob', last_name = 'Brown', email = 'bob@brown.com',password_hash='$2b$12$kA7FRa6qA./40Pmtmi6mRelW2cnkhcOHtsKelIMVezDlF33YF62C2', org_list=[org1,org2], prefs=prefs2)) # PASSWORD 123
     db_session.add(User(first_name = 'Cathy', last_name = 'Chen', email = 'cathy@chen.com',org_list=[org1,org2]))
     db_session.add(User(first_name = 'David', last_name = 'Delgado', email = 'david@delgado.com',org_list=[org1,org2]))
     db_session.add(User(first_name = 'Elaine', last_name = 'Eastman', email = 'elaine@eastman.com',org_list=[org1,org2]))

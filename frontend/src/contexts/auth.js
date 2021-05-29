@@ -172,7 +172,7 @@ export async function authLogin(dispatch, data) {
 
     dispatch({ type: 'REQUEST_LOGIN' });
 
-    axios.post(backend_url('user/login'), formData, requestOptions)
+    return axios.post(backend_url('user/login'), formData, requestOptions)
     .then((response) => {
         console.log ('POST /user/login, response =>', response.data);
         const user = response.data['current_user'];
@@ -201,7 +201,7 @@ export async function authLogout(dispatch) {
         headers: { 'content-type': 'multipart/form-data' }
     }
 
-    axios.post(backend_url('user/logout'), formData, requestOptions)
+    return axios.post(backend_url('user/logout'), formData, requestOptions)
     .then((response) => {
         console.log ('POST /user/logout, response =>', response.data);
         const user = response.data['current_user'];
@@ -210,7 +210,7 @@ export async function authLogout(dispatch) {
             return true;
         } else {
             dispatch({ type: 'LOGOUT_ERROR', error: response.data['error']});
-            return false;
+            return true;
         }
     })
     .catch((e) => {

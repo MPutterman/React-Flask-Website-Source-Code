@@ -19,6 +19,8 @@
 # * A few sites have recommended using '/api' at the beginning of all backend to help better separate frontend and backend
 # * A lot of session files get created per request (for Mike). Does this happen for others too?
 # * Need to look up how to split initialization activities between (if __name__ == '__main__':) section and @app.before_first_request
+# * Need to prevent saving of empty password to user profile (e.g. when create account from google login, or when update account
+#   after Google login)
 
 import time
 
