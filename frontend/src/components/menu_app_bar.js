@@ -4,8 +4,7 @@
 
 import React from 'react';
 import clsx from 'clsx';
-import {Link, NavLink} from "react-router-dom";
-import { useHistory } from 'react-router-dom';
+import { useHistory, useLocation, Link, NavLink} from "react-router-dom";
 
 // Import authentication
 import { authLogin, authLogout, useAuthState, useAuthDispatch } from '../contexts/auth';
@@ -109,6 +108,8 @@ const MenuAppBar = (props) => {
 
   const history = useHistory();
 
+  const location = useLocation();
+
   // Connect to Auth context
   const dispatch = useAuthDispatch();
   const session = useAuthState();
@@ -164,7 +165,7 @@ const MenuAppBar = (props) => {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" className={classes.title}>
-            Route
+            {location.pathname}
           </Typography>
           {session['auth'] ? (
             <div>
@@ -221,11 +222,11 @@ const MenuAppBar = (props) => {
           </IconButton>
         </div>
         <Divider />
-        <List>
+        <List >
           <ListItem button key={'home'}>
             <NavLink to={'/'} className="nav-link">
                 <ListItemIcon><HomeIcon /></ListItemIcon>
-                <ListItemText primary={'Home'} />
+                <ListItemText button style={{textDecoration: 'none',}} primary={'Home'} />
             </NavLink>
           </ListItem>
           <ListItem button key={'new analysis'}>
@@ -255,14 +256,14 @@ const MenuAppBar = (props) => {
 
           <ListItem button key={'about'}>
             <NavLink to={'/about'} className="nav-link">
-              <ListItemText primary={'About'} />
+              <ListItemText secondary={'About'} />
             </NavLink>
           </ListItem>
 
         </List>
       </Drawer>
  
-      <div className={clsx(classes.content, {[classes.contentShift]: openDrawer, })} >
+      <div style={{position: 'absolute', topMargin: '180'}} className={clsx(classes.content, {[classes.contentShift]: openDrawer, })} >
 
         {/* Logo */}
         <div>
