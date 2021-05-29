@@ -17,10 +17,11 @@
 #   to execute a FRONTEND redirect
 #   an extra layer of protection in backend using @flask_login.login_required
 # * A few sites have recommended using '/api' at the beginning of all backend to help better separate frontend and backend
-# * A lot of session files get created per request (for Mike). Does this happen for others too?
+# * A lot of flask_session files get created per request (for Mike). Does this happen for others too?
 # * Need to look up how to split initialization activities between (if __name__ == '__main__':) section and @app.before_first_request
 # * Need to prevent saving of empty password to user profile (e.g. when create account from google login, or when update account
 #   after Google login)
+# * Need to look at difference between DB session versus connection... maybe not using correctly
 
 import time
 
@@ -795,9 +796,9 @@ def initialize():
 #@app.before_request
 #def initialize_request():
 
-#app.teardown_request
-#def teardown():
-#    db_cleanup()
+@app.teardown_request
+def teardown(exception):
+    db_cleanup()
 
 # -------------------
 # USER-related routes
