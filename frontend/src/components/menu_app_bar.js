@@ -85,21 +85,21 @@ const useStyles = makeStyles((theme) => ({
       easing: theme.transitions.easing.sharp,
       duration: theme.transitions.duration.leavingScreen,
     }),
-    marginLeft: -drawerWidth,
+    marginLeft: 0,
   },
   contentShift: {
     transition: theme.transitions.create('margin', {
       easing: theme.transitions.easing.easeOut,
       duration: theme.transitions.duration.enteringScreen,
     }),
-    marginLeft: 0,
+    marginLeft: drawerWidth,
   },
   title: {
     flexGrow: 1,
   },
 }));
 
-export default function MenuAppBar() {
+const MenuAppBar = (props) => {
 
   const classes = useStyles();
   const theme = useTheme();
@@ -151,23 +151,8 @@ export default function MenuAppBar() {
 
   return (
 
-    <div className={classes.root}>
-
-      {/* Logo */}
-      <div className='header'>
-          <img 
-            style={{width: '10%', height: '10%', }}
-            src={process.env.PUBLIC_URL + "/logo_UCLA_blue_boxed.png"}
-            alt='logo'
-          />
-          <h1>
-            van Dam Lab - Radio-TLC Analyzer
-          </h1>
-          <br />
-      </div>
-     
-
-      <AppBar style={{topMargin: '50'}} position="fixed" className={clsx(classes.appBar, {[classes.appBarShift]: openDrawer, })} >
+      <>
+      <AppBar style={{topMargin: '30'}} position="fixed" className={clsx(classes.appBar, {[classes.appBarShift]: openDrawer, })} >
         <Toolbar>
           <IconButton
             edge="start"
@@ -179,7 +164,7 @@ export default function MenuAppBar() {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" className={classes.title}>
-            Name of current route
+            Route
           </Typography>
           {session['auth'] ? (
             <div>
@@ -277,8 +262,28 @@ export default function MenuAppBar() {
         </List>
       </Drawer>
  
-      <main />
+      <div className={clsx(classes.content, {[classes.contentShift]: openDrawer, })} >
 
-    </div>
+        {/* Logo */}
+        <div>
+            <img 
+              style={{width: '10%', height: '10%', }}
+              src={process.env.PUBLIC_URL + "/logo_UCLA_blue_boxed.png"}
+              alt='logo'
+            />
+            <h1>
+              van Dam Lab - Radio-TLC Analyzer
+            </h1>
+            <br />
+        </div>
+        <div>
+            {props.children}
+        </div>
+      
+
+      </div>
+      </>
   );
 }
+
+export default MenuAppBar;

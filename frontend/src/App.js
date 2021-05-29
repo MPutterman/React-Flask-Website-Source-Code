@@ -69,9 +69,7 @@ const App = (props) => {
         <ThemeProvider theme={darkMode}>
         <CssBaseline />
         <Router>
-            <div>
-                <MenuAppBar />
-            </div>
+        <MenuAppBar>
             <Switch>
                 <Route path = '/search' component={Database}/>
                 <Route path='/start' component={Start}/>
@@ -92,6 +90,7 @@ const App = (props) => {
                 */}
                 <Route component={Error404} /> {/* No match */}
             </Switch>
+        </MenuAppBar>
         </Router>
         </ThemeProvider>
       </PrefProvider>
