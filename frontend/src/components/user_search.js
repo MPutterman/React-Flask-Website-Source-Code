@@ -33,7 +33,7 @@ const UserSearch = (props) => {
     ];
 
     // State
-    const [firstRender, setFirstRender] = useState(true);
+    const [renderOnce] = useState(true);
     const [loading, setLoading] = useState(true); // Support for loading indicator
     const [userList, setUserList] = useState([]);
     const [organizationList, setOrganizationList] = useState([]);
@@ -41,7 +41,7 @@ const UserSearch = (props) => {
     // Retrieve user with specified id from the database
     const getUserList = (filters) => {
         setLoading(true);
-        axios.get(backend_url('user/search'))
+        return axios.get(backend_url('user/search'))
         .then((response) => {
             // Reformat... return as array indexed by ID... but DataGrid wants list of dicts
             response.data.map((element, index) => {
@@ -61,7 +61,7 @@ const UserSearch = (props) => {
     // Retrieve list of organizations
     // NOTE: not being used right now
     const getOrganizationList = () => {
-        axios.get(backend_url('organization/search'))
+        return axios.get(backend_url('organization/search'))
         .then((response) => {
             setOrganizationList(response.data);
             //console.log("in getOrganizationList: response data => ", response.data);
@@ -71,13 +71,10 @@ const UserSearch = (props) => {
         });
     }
 
-    // useEffect fires after render. This one is conditional on changes in props.match.params.id
-    // Because this is set by the url/route, it will be activated the first time the page is visited
     useEffect(() => {
         getUserList(); //(props.match.params.id);
         getOrganizationList();
-        setFirstRender(false);
-    }, [firstRender]); 
+    }, [renderOnce]); 
 
     const onReset = () => {
         // TODO: Reset all filters and sorting to defaults

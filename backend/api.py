@@ -809,12 +809,12 @@ def teardown(exception):
 def session_load():
     user = flask_login.current_user
     if (user.is_authenticated):
-        print("GET /api/session/load, retrieved user_id = " + str(user.user_id) + "\n")
+        #print("GET /api/session/load, retrieved user_id = " + str(user.user_id) + "\n")
         user_dict = user.as_dict()
         user_dict.pop('password_hash') # Remove password_hash before returning to frontend
         return ({ 'current_user': user_dict })
     else:
-        print("GET /api/session/load, not logged in\n")
+        #print("GET /api/session/load, not logged in\n")
         return ({ 'current_user': None })
 
 

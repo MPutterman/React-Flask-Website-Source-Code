@@ -6,7 +6,7 @@
 // * Need to improve changing of password, maybe as a separate form with more authentication checks (fresh login),
 //   and require successful entry of previous password.  Also a 'forgot password' functionality is needed.
 
-import React, {useState, useEffect} from "react";
+import React from "react";
 import axios from "axios";
 import * as FormData from "form-data";
 import backend_url from './config.js';
@@ -15,6 +15,7 @@ import { useForm, Controller } from "react-hook-form";
 import Input from "@material-ui/core/Input";
 import TextField from "@material-ui/core/TextField";
 import Button from "@material-ui/core/Button";
+import CircularProgress from "@material-ui/core/CircularProgress";
 import Select from "@material-ui/core/Select";
 import MenuItem from "@material-ui/core/MenuItem";
 import InputLabel from "@material-ui/core/InputLabel";
@@ -54,9 +55,10 @@ const UserEdit = (props) => {
         org_list: [],
     };
 
-    const [currentUser, setCurrentUser] = useState(initialUserState);
-    const [message, setMessage] = useState('');
-    const [availableOrganizations, setAvailableOrganizations] = useState([]);
+    const [loading, setLoading] = React.useState('false');
+    const [currentUser, setCurrentUser] = React.useState(initialUserState);
+    const [message, setMessage] = React.useState('');
+    const [availableOrganizations, setAvailableOrganizations] = React.useState([]);
 
     // Form hooks
     // mode is the render mode (both onChange and onBlur)
@@ -66,7 +68,7 @@ const UserEdit = (props) => {
     // Actions when form is submitted
     // TODO: need to handle other types of submit, e.g. delete?
     const onSubmit = (data, e) => {
-      console.log("UserEdit form submit: data => ", data);
+      //console.log("UserEdit form submit: data => ", data);
       updateUser(data)
       // Temporary... after saving, re-retrieve the user to change currentUser and trigger useEffect
       // so cancel will now revert to the last saved value
@@ -75,21 +77,23 @@ const UserEdit = (props) => {
     
     // Retrieve user with specified id from the database
     // TODO: Error handling if user is not found... need to redirect to not found page
-    const getUser = (id) => {
+    async function getUser(id) {
+        setLoading(true);
         if (id) {
             axios.get(backend_url('user/load/' + id))
             .then((response) => {
                 setCurrentUser(response.data);
-                console.log ("In getUser: response data => ", response.data);
+                setLoading(false);
             })
             .catch((e) => {
                 console.error("GET /user/edit/" + id + ": " + e);
+                setLoading(false);
             });
         }
     }
 
     // Retrieve list of available organizations (for now all organizations)
-    const getOrganizations = () => {
+    async function getOrganizations() {
         axios.get(backend_url('organization/search'))
         .then((response) => {
             setAvailableOrganizations(response.data);
@@ -100,31 +104,32 @@ const UserEdit = (props) => {
         });
     }
 
-    // useEffect fires after render. This one is conditional on changes in props.match.params.id
-    // Because this is set by the url/route, it will be activated the first time the page is visited
-    useEffect(() => {
+    // Call this upon first value of props.match.params.id (should only run once)
+    React.useEffect(() => {
+        console.log("In useEffect #1"); // currentUser and availableOrganizations are updated asynchronously
         getUser(props.match.params.id);
         getOrganizations();
-        console.log("In useEffect #1 => ", currentUser, availableOrganizations);
     }, [props.match.params.id]);
 
     // This second useEffect is triggered whenever 'currentUser' changes (i.e. after loading from database).
     // When triggered, it sets the defaultValues of the form to currentUser, then triggers the form to reset.
-    // This causes the form fields to fill in with the newly retrieved data in currentUser
-    useEffect(() => {
+    // This causes the form fields to fill in with the newly retrieved data in currentUser.
+    // TODO: for some reason if I try to put reset(currentUser) in the getUser function it doesn't
+    // properly reset the form...
+    React.useEffect(() => {
         console.log("In useEffect #2 => ", currentUser); //initUser);
         reset(currentUser);
     }, [currentUser]);
 
 
     const onReset = () => {
-        console.log("In resetUser: currentUser => ", currentUser);
+        //console.log("In resetUser: currentUser => ", currentUser);
         reset(currentUser);
 
     }
 
     // Save the user information back to the database
-    const updateUser = (data) => {
+    async function updateUser(data) {
         var formData = new FormData();
         formData.append('user_id', data.user_id);
         formData.append('first_name', data.first_name);
@@ -137,13 +142,18 @@ const UserEdit = (props) => {
             headers: { 'content-type': 'multipart/form-data' }
         }
 
-        axios.post(backend_url('user/save'), formData, config)
+        setLoading(true);
+        return axios.post(backend_url('user/save'), formData, config)
         .then((response) => {
             console.log(response.data);
             setMessage("success");
+            setCurrentUser(response.data);
+            reset(currentUser);
+            setLoading(false);
         })
         .catch((e) => {
             console.log("POST /user/save: " + e);
+            setLoading(false);
         });
     }
 
@@ -164,7 +174,9 @@ const UserEdit = (props) => {
 
     return (
 
-          <div className="UserEditForm" width="50vw">
+          <div className="UserEditForm" style={{ maxWidth: '350px',}}>
+
+              {loading ? (<><p>Loading... </p><CircularProgress/></>) : (
             
               <form onSubmit={handleSubmit(onSubmit)} onReset={onReset}> 
 
@@ -299,12 +311,12 @@ const UserEdit = (props) => {
                 />
                 <br/>
 
-                <Button type="link">Add New Organization (not yet working)</Button>
+                <Button fullWidth variant='outlined' type="link">Add New Organization (not yet working)</Button>
                 <br/>
 
-                <Button type="submit" >Save Changes</Button>
-                <Button type="reset"> Cancel</Button>
-                <Button type="delete" >Delete (not yet working)</Button>
+                <Button fullWidth variant='outlined' type="submit" >Save Changes</Button>
+                <Button fullWidth variant='outlined' type="reset"> Cancel</Button>
+                <Button fullWidth variant='outlined' type="delete" >Delete (not yet working)</Button>
 
                 {message ? ( 
 
@@ -322,7 +334,7 @@ const UserEdit = (props) => {
                 )}
 
                </form>
-
+              )}
           </div>
         );
     
