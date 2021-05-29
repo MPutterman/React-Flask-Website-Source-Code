@@ -72,7 +72,7 @@ const UserLogin = (props) => {
 
     return (
 
-          <div className="UserLoginForm" width="50vw">
+          <div className="UserLoginForm" style = {{ maxWidth: '250px', margin: 'auto', }}>
 
             {session['auth'] ? (  // If logged in:
               <form onSubmit={handleSubmit(onLogout)}>
