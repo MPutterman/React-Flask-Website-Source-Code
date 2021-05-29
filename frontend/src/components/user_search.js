@@ -10,6 +10,7 @@ import { withRouter } from "react-router";
 import { useForm, Controller } from "react-hook-form";
 import Input from "@material-ui/core/Input";
 import Button from "@material-ui/core/Button";
+import CircularProgress from "@material-ui/core/CircularProgress";
 import { DataGrid } from "@material-ui/data-grid";
 
 /* Useful documentation:
@@ -33,11 +34,13 @@ const UserSearch = (props) => {
 
     // State
     const [firstRender, setFirstRender] = useState(true);
+    const [loading, setLoading] = useState(true); // Support for loading indicator
     const [userList, setUserList] = useState([]);
     const [organizationList, setOrganizationList] = useState([]);
 
     // Retrieve user with specified id from the database
     const getUserList = (filters) => {
+        setLoading(true);
         axios.get(backend_url('user/search'))
         .then((response) => {
             // Reformat... return as array indexed by ID... but DataGrid wants list of dicts
@@ -46,10 +49,12 @@ const UserSearch = (props) => {
                 //element['id'] = index; // DataGrid requires 'id' property
             })
             setUserList(response.data);
-            console.log ("In getUsers: response data => ", response.data);
+            //console.log ("In getUsers: response data => ", response.data);
+            setLoading(false);
         })
         .catch((e) => {
             console.error("GET /user/search (filters: " + filters + "): " + e);
+            setLoading(false);
         });
     }
 
@@ -59,7 +64,7 @@ const UserSearch = (props) => {
         axios.get(backend_url('organization/search'))
         .then((response) => {
             setOrganizationList(response.data);
-            console.log("in getOrganizationList: response data => ", response.data);
+            //console.log("in getOrganizationList: response data => ", response.data);
         })
         .catch((e) => {
             console.error("GET /organization/search: " + e);
@@ -94,6 +99,7 @@ const UserSearch = (props) => {
                   columns={columns}
                   pageSize={10} // default page size
                   autoHeight
+                  loading={loading}
                   density="compact"
                   rowsPerPageOptions={[10,25,100]}
                   paginationMode="client" // for now client (and return all rows)... later use database pagination
@@ -102,9 +108,9 @@ const UserSearch = (props) => {
                   onRowClick={onRowClick}
                   
               />
-          ) : (
-              <p>No results found</p>
-          )}
+          ) : 
+            loading ? (<p>Loading... <CircularProgress/></p>) : (<p>No results found</p>)
+          }
           
         </div>
         </>

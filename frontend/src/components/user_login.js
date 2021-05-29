@@ -12,6 +12,8 @@ import { useForm, Controller } from "react-hook-form";
 import Input from "@material-ui/core/Input";
 import TextField from "@material-ui/core/TextField";
 import Button from "@material-ui/core/Button";
+import CircularProgress from "@material-ui/core/CircularProgress";
+//import LoadingButton from "@material-ui/lab/LoadingButton";
 import Select from "@material-ui/core/Select";
 import MenuItem from "@material-ui/core/MenuItem";
 import InputLabel from "@material-ui/core/InputLabel";
@@ -28,6 +30,10 @@ import { AlertList, Alert } from '../components/alerts';
 const UserLogin = (props) => {
 
     const history = useHistory();
+
+    // Support for 'loading' spinner while login/logout in progress
+    const [loginPending, setLoginPending] = React.useState(false);
+    const [logoutPending, setLogoutPending] = React.useState(false);
 
     // Connect to Auth context
     const dispatch = useAuthDispatch();
@@ -46,6 +52,7 @@ const UserLogin = (props) => {
         //console.log('session value is: =>', session);
         //console.log("UserLogin form submit: data => ", data);
 
+        setLoginPending(true);
         return await authLogin(dispatch, data)
         .then( (response) => {
             console.log('response =>', response);
@@ -54,14 +61,17 @@ const UserLogin = (props) => {
                 console.log('here url=>', url)
                 history.push(url); 
             }
+            setLoginPending(false);
         });
     }
 
     async function onLogout(data, e) {
+        setLogoutPending(true);
         return await authLogout(dispatch)
         // TODO: if received an error, where to redirect?
         .then( (response) => {
             history.push('/user/login')
+            setLogoutPending(false);
         });
     }
 
@@ -77,7 +87,7 @@ const UserLogin = (props) => {
             {session['auth'] ? (  // If logged in:
               <form onSubmit={handleSubmit(onLogout)}>
                 <p>Welcome, {session['authUser']['first_name']}. </p>
-                <Button type="submit" variant="outlined" onClick={onLogout}>Logout</Button>
+                <Button type="submit" variant="outlined" onClick={onLogout}>{logoutPending ? (<CircularProgress/>) : null}Logout</Button>
               </form>
 
             ) : (
@@ -138,7 +148,7 @@ const UserLogin = (props) => {
                 />
                 </FormGroup>
 
-                <Button fullWidth type="submit" variant="outlined">Login</Button>
+                <Button fullWidth type="submit" variant="outlined">{loginPending ? (<CircularProgress/>) : null}Login</Button>
 
                 <Button fullWidth variant="outlined" onClick={onRegister}>Register for Account</Button>
 
