@@ -63,7 +63,7 @@ export const AuthProvider = ({ children }) => {
 
 // Reducer component
 
-const defaultPrefs = {
+export const defaultPrefs = {
     general: {
         redirect_after_login: '/',                 // relative url
     },

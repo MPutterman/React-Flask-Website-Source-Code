@@ -17,7 +17,7 @@ import { ConfigProvider } from './contexts/config';
 import { AuthProvider } from './contexts/auth';
 
 // Import main interface components
-import MenuAppBar from './components/menu_app_bar';
+import Layout from './components/layout';
 
 // Import Router and pages
 import {BrowserRouter as Router, Switch, Route } from "react-router-dom";
@@ -69,7 +69,7 @@ const App = (props) => {
         <ThemeProvider theme={darkMode}>
         <CssBaseline />
         <Router>
-        <MenuAppBar>
+        <Layout>
             <Switch>
                 <Route path = '/search' component={Database}/>
                 <Route path='/start' component={Start}/>
@@ -90,7 +90,7 @@ const App = (props) => {
                 */}
                 <Route component={Error404} /> {/* No match */}
             </Switch>
-        </MenuAppBar>
+        </Layout>
         </Router>
         </ThemeProvider>
       </AuthProvider>

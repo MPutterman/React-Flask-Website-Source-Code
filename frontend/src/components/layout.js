@@ -98,7 +98,7 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
-const MenuAppBar = (props) => {
+const Layout = (props) => {
 
   const classes = useStyles();
   const theme = useTheme();
@@ -287,4 +287,4 @@ const MenuAppBar = (props) => {
   );
 }
 
-export default MenuAppBar;
+export default Layout;
