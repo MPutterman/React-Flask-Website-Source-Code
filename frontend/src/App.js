@@ -21,7 +21,7 @@ import Layout from './components/layout';
 
 // Import Router and pages
 import {BrowserRouter as Router, Switch, Route } from "react-router-dom";
-import Home from './components/home';
+import Start from './components/start';
 import About from './components/about';
 import Contact from './components/contact';
 import Error404 from './components/error404';
@@ -29,7 +29,7 @@ import Error404 from './components/error404';
 import Analysis from './components/analysis';
 import Database from './components/database'
 import Submission from './components/submission'
-import Start from './components/start'
+//import Start from './components/start'
 //import User from './components/user';
 import UserEdit from './components/user_edit';
 import UserSearch from "./components/user_search";
@@ -71,11 +71,11 @@ const App = (props) => {
         <Router>
         <Layout>
             <Switch>
-                <Route path = '/search' component={Database}/>
+                <Route path = '/analysis/search' component={Database}/>
                 <Route path='/start' component={Start}/>
-                <Route path='/submission' component={Submission}/>
+                <Route path='/analysis/new' component={Submission}/>
                 <Route path='/analysis/:filenumber' component={Analysis}/>
-                <Route exact path='/' component={Home} />
+                <Route exact path='/' component={Start} />
                 <Route path='/contact' component={Contact} />
                 <Route path='/about' component={About} />
                 <Route exact path='/user/edit/:id' component={UserEdit} />

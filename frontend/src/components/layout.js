@@ -153,7 +153,7 @@ const Layout = (props) => {
   return (
 
       <>
-      <AppBar style={{topMargin: '30'}} position="fixed" className={clsx(classes.appBar, {[classes.appBarShift]: openDrawer, })} >
+      <AppBar style={{height: '5vh', topMargin: '0'}} position="fixed" className={clsx(classes.appBar, {[classes.appBarShift]: openDrawer, })} >
         <Toolbar>
           <IconButton
             edge="start"
@@ -169,7 +169,7 @@ const Layout = (props) => {
           </Typography>
           {session['auth'] ? (
             <div>
-              <p>{session['authUser']['first_name']} {session['authUser']['last_name']}</p>
+              {session['authUser']['first_name']} {session['authUser']['last_name']}
               <IconButton
                 aria-label="account of current user"
                 aria-controls="menu-user"
@@ -230,19 +230,19 @@ const Layout = (props) => {
             </NavLink>
           </ListItem>
           <ListItem button key={'new analysis'}>
-            <NavLink to={'/new-analysis'} className="nav-link">
+            <NavLink to={'/analysis/new'} className="nav-link">
                         <ListItemIcon><AddIcon /></ListItemIcon>
                       <ListItemText primary={'New Analysis'} />
             </NavLink>
             </ListItem>
           <ListItem button key={'Search Database'}>
-            <NavLink to={'/search'} className="nav-link">
+            <NavLink to={'/analysis/search'} className="nav-link">
                         <ListItemIcon><AddIcon /></ListItemIcon>
                       <ListItemText primary={'Search Database'} />
             </NavLink>
           </ListItem>
           <ListItem button key={'load analysis'}>
-            <NavLink to={'/load-analysis'} className="nav-link">
+            <NavLink to={'/analysis/load'} className="nav-link">
               <ListItemIcon><EditIcon /></ListItemIcon>
               <ListItemText primary={'Load Analysis'} />
             </NavLink>
@@ -263,7 +263,7 @@ const Layout = (props) => {
         </List>
       </Drawer>
  
-      <div style={{position: 'absolute', topMargin: '180'}} className={clsx(classes.content, {[classes.contentShift]: openDrawer, })} >
+      <div style={{'margin-top': '5vh'}} className={clsx(classes.content, {[classes.contentShift]: openDrawer, })} >
 
         {/* Logo */}
         <div>
@@ -272,9 +272,8 @@ const Layout = (props) => {
               src={process.env.PUBLIC_URL + "/logo_UCLA_blue_boxed.png"}
               alt='logo'
             />
-            <h1>
-              van Dam Lab - Radio-TLC Analyzer
-            </h1>
+            <h1>van Dam Lab - Radio-TLC Analyzer</h1>
+            <h2>Semi-automated computation of lane composition and RF values</h2>
             <br />
         </div>
         <div>

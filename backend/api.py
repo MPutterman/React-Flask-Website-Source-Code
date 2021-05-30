@@ -823,20 +823,18 @@ def session_load():
         return ({ 'current_user': None })
 
 
+# TODO: add error checking if not found
 @app.route('/user/load/<id>', methods = ['GET'])
 @cross_origin(supports_credentials=True)
 def user_load(id):
-    try:
-        from database import db_user_load
-        user = db_user_load(id)
-        data = user.as_dict()
-        data['org_list'] = [org.org_id for org in user.org_list]
-        return data
-    finally:
-        db_cleanup()
+    from database import db_user_load
+    user = db_user_load(id)
+    data = user.as_dict()
+    data['org_list'] = [org.org_id for org in user.org_list]
+    return data
 
 # Return a list of users (array of dict)
-# TODO: read in parameter strings from request for filtering, pagination, order, etc...
+# TODO: read in parameter strings from request for filtering, pagination, order, etc.
 @app.route('/user/search', methods = ['GET', 'POST']) # QUESTION: need GET and POST?
 @cross_origin(supports_credentials=True)
 def user_search():
@@ -1138,7 +1136,9 @@ def createFile():
         data['ROIs'] = [current_analysis.ROIs]
         data['origins'] = []
         data['doRF'] = False
-        data['user_id'] = flask_login.current_user.get_id()  # From session
+
+        data['user_id'] = flask_login.current_user.get_id()
+        
         db_analysis_save_initial(data, tim)
         #print('success')
         
@@ -1155,6 +1155,7 @@ def give(filename):
     filen = retrieve_image_path('cerenkovdisplay',filename)
     print(filen)
     return send_file(filen)
+
 @app.route('/radius/<filename>/<x>/<y>/<shift>',methods = ['GET'])
 @cross_origin(supports_credentials=True)
 def findRadius(filename,x,y,shift):
@@ -1195,11 +1196,13 @@ def findRadius(filename,x,y,shift):
         rowRadius,colRadius = 0,0
     rowRadius,colRadius = min(max(rowRadius+3,14),55),min(max(colRadius+3,14),55)
     return{"col":col,"row":row,"colRadius":colRadius,"rowRadius":rowRadius}
+
 @app.route('/UV/<filename>',methods = ['GET'])
 @cross_origin(supports_credentials=True)
 def giveUV(filename):
     filen = './UPLOADS/'+filename+'/UV.png' 
     return send_file(filen)
+
 @app.route('/Cerenkov/<filename>',methods = ['GET'])
 @cross_origin(supports_credentials=True)
 def giveCerenkov(filename):
@@ -1223,6 +1226,7 @@ def data():
     filename = str(np.load(f'./database/{name}.npy'))
     #print('fname:',filename)
     return {'Key':filename}
+
 @app.route('/results/<filename>',methods = ['GET'])
 @cross_origin(supports_credentials=True)
 def results(filename):
@@ -1232,11 +1236,13 @@ def results(filename):
 
         #print(analysis_results)
         return{"arr":analysis_results}
+
 @app.route('/upload_data/<filename>',methods=['POST'])
 @cross_origin(supports_credentials=True)
 def upload_data(filename):
     analysis = retrieve_initial_analysis(filename)
-    data = {}
+    data = request.form.to_dict()
+    data['user_id'] = flask_login.current_user.get_id()
     db_analysis_save(request.form.to_dict(),filename)
     return 'yes'
 

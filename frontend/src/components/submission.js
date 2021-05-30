@@ -1,30 +1,15 @@
 import React from "react"; 
-//, { useState, useEffect } from "react";
 import "../App.css";
 import axios from "axios";
 import Button from "@material-ui/core/Button";
 import LinearProgress from "@material-ui/core/LinearProgress";
-//import Slider from "@material-ui/core/Slider";
-//import { palette } from "@material-ui/system";
-import { createMuiTheme, ThemeProvider } from "@material-ui/core/styles";
 import blueGrey from "@material-ui/core/colors/blueGrey";
 import CssBaseline from "@material-ui/core/CssBaseline";
-//import { makeStyles } from "@material-ui/core/styles";
-//import Table from "@material-ui/core/Table";
-//import TableBody from "@material-ui/core/TableBody";
-//import TableCell from "@material-ui/core/TableCell";
-//import TableContainer from "@material-ui/core/TableContainer";
-//import TableHead from "@material-ui/core/TableHead";
-//import TableRow from "@material-ui/core/TableRow";
-//import Paper from "@material-ui/core/Paper";
-//import Typography from "@material-ui/core/Typography";
-//import { PassThrough } from "stream";
-//import { thisExpression } from "@babel/types";
-//import SearchField from "react-search-field";
-//import ReactSlider from 'react-slider'
-//import GoogleLogin from 'react-google-login';
 import {withRouter} from "react-router";
-import {Link} from 'react-router-dom'
+import {Link} from 'react-router-dom';
+import { backend_url } from './config';
+import Grid from "@material-ui/core/Grid";
+import Divider from "@material-ui/core/Divider";
 
 // TODO: here's a nice tutorial on adding a progress bar for uploads...
 // TODO: here's a video on using it with React-hook-form
@@ -43,25 +28,6 @@ class Submission extends React.Component {
     this.UVFlatReference = React.createRef();
     this.brightReference = React.createRef();
     this.brightFlatReference = React.createRef();
-    this.fileLink = React.createRef();
-    this.theme = createMuiTheme({
-      palette: {
-        type: "dark",
-        primary: {
-          light: blueGrey[500],
-          main: blueGrey[800],
-          dark: blueGrey[900],
-          contrastText: "#fff",
-        },
-
-        secondary: {
-          light: "#ff7961",
-          main: blueGrey[700],
-          dark: "#002884",
-          contrastText: "#000",
-        },
-      },
-    });
     this.filenum=0
     this.state = {
       arr_files: [],
@@ -203,213 +169,18 @@ class Submission extends React.Component {
 
   render() {
     return (
-      <ThemeProvider theme={this.theme}>
-        <CssBaseline />
-        <div id="container">
-          
-          
-              
-                <div>
-                  
-                      <Button
-                        color="primary"
-                        variant="contained"
-                        style={{
-                          fontSize: "2.5vh",
-                          position: "absolute",
-                          marginTop: "80vh",
-                          marginLeft: "80vw",
-                          width: "20vw",
-                          height: "20vh",
-                        }}
+        <div> 
 
-                        onClick={this.onFileUpload}
-                        disabled={this.state.disabled}
-                      >
-                        Submit
-                      </Button>
-                    
-                  
-                    <input
-                      type="file"
-                      hidden
-                      ref={this.UVFlatReference}
-                      onChange={(e) => {
-                        this.setState({
-                          UVFlatname: e.target.value.substr(
-                            e.target.value.indexOf("FAKEPATH/") + 13
-                          ),
-                          UVFlat: e.target.files[0],
-                        });
-                      }}
-                    />
-                  
-                  
-                    <Button
-                      color="primary"
-                      variant="contained"
-                      style={{
-                        fontSize: "2vh",
-                        position: "absolute",
-                        marginTop: "45vh",
-                        marginLeft: "40vw",
-                        width: "20vw",
-                        height: "20vh",
-                      }}
-                      onClick={() => this.UVFlatReference.current.click()}
-                    >
-                      UV Flatfield Upload (optional): {this.state.UVFlatname}
-                    </Button>
-                  
+        <h1 align="center">Click on the buttons below to choose images for upload</h1>
 
-                  
-                    <input
-                      type="file"
-                      hidden
-                      ref={this.UVReference}
-                      onChange={(e) => {
-                        this.setState({
-                          UVname: e.target.value.substr(
-                            e.target.value.indexOf("FAKEPATH/") + 13
-                          ),
-                          UV: e.target.files[0],
-                        });
-                      }}
-                    />
-                  
-                  
-                    <Button
-                      style={{
-                        fontSize: "2.5vh",
-                        position: "absolute",
-                        marginTop: "20vh",
-                        marginLeft: "40vw",
-                        width: "20vw",
-                        height: "20vh",
-                      }}
-                      color="primary"
-                      variant="contained"
-                      onClick={() => this.UVReference.current.click()}
-                    >
-                      UV Upload (optional): {this.state.UVname}
-                    </Button>
-                  
+        <Grid container direction='col' spacing={3}>
+        <Grid container direction='row' xs='12' spacing={2} >
 
-                  
-                    <input
-                      type="file"
-                      hidden
-                      ref={this.brightFlatReference}
-                      onChange={(e) => {
-                        this.setState({
-                          brightFlatname: e.target.value.substr(
-                            e.target.value.indexOf("FAKEPATH/") + 13
-                          ),
-                          BrightFlat: e.target.files[0],
-                        });
-                      }}
-                    />
-                  
-                  
-                    <Button
-                      color="primary"
-                      variant="contained"
-                      style={{
-                        fontSize: "2vh",
-                        position: "absolute",
-                        marginTop: "45vh",
-                        marginLeft: "70vw",
-                        width: "20vw",
-                        height: "20vh",
-                      }}
-                      onClick={() => this.brightFlatReference.current.click()}
-                    >
-                      Bright Flatfield Upload (optional):{" "}
-                      {this.state.brightFlatname}
-                    </Button>
-                  
-                  
-                      <Button
-                        color="primary"
-                        variant="contained"
-                        style={{
-                          fontSize: "2vh",
-                          position: "absolute",
-                          marginTop: "70vh",
-                          marginLeft: "40vw",
-                          width: "20vw",
-                          height: "20vh",
-                        }}
-                        onClick={this.onFileUpload}
-                        disabled={this.state.disabled}
-                      >
-                        Use Sample Data
-                      </Button>
-                    
+          <Grid item xs={4}>
+              <h2 align="center">Radiation images</h2>
+              <Grid container direction='column' spacing={1}>
 
-                   <Button
-                      color="primary"
-                      variant="contained"
-                      onClick={(e) => {
-                        this.dataLink.current.click()
-                      }}
-                      style={{
-                        fontSize: "5.5vh",
-                        textAlign: "center",
-                        position: "absolute",
-                        marginTop: "0vh",
-                        marginLeft: "0vw",
-                        width: "100vw",
-                        height: "10vh",
-                        backgroundColor: blueGrey[900],
-                      }}
-                    >
-                      Click Here to Search Our Database Instead
-                    </Button>
-                  
-                    <Link type = 'hidden' ref={this.dataLink} style={{
-                      display:'none',
-                      fontSize: "2.5vh",
-                      position: "absolute",
-                      marginTop: "44vh",
-                      marginLeft: "41vw",
-                      width: "0vw",
-                      height: "0vh",
-                    }} to={{ pathname: '/search'}} >click here</Link> 
-                  
-                    <input
-                      type="file"
-                      hidden
-                      ref={this.brightReference}
-                      onChange={(e) => {
-                        this.setState({
-                          Brightname: e.target.value.substr(
-                            e.target.value.indexOf("FAKEPATH/") + 13
-                          ),
-                          Bright: e.target.files[0],
-                        });
-                      }}
-                    />
-                
-                  
-                    <Button
-                      color="primary"
-                      style={{
-                        fontSize: "2vh",
-                        position: "absolute",
-                        marginTop: "20vh",
-                        marginLeft: "70vw",
-                        width: "20vw",
-                        height: "20vh",
-                      }}
-                      variant="contained"
-                      onClick={() => this.brightReference.current.click()}
-                    >
-                      Brightfield Upload (optional): {this.state.Brightname}
-                    </Button>
-                  
-
-                  
+                  <Grid item>                  
                     <input
                       type="file"
                       hidden
@@ -424,65 +195,16 @@ class Submission extends React.Component {
                       }}
                     />
                     <Button
-                      style={{
-                        fontSize: "2.5vh",
-                        position: "absolute",
-                        marginTop: "20vh",
-                        marginLeft: "10vw",
-                        width: "20vw",
-                        height: "20vh",
-                      }}
+                      fullWidth
                       color="primary"
                       variant="contained"
                       onClick={() => this.cerenkovReference.current.click()}
                     >
-                      Cerenkov Upload: {this.state.Cerenkovname}
+                      Cerenkov Image: {this.state.Cerenkovname}
                     </Button>
-                  
+                  </Grid>
 
-                  
-                    <input
-                      type="file"
-                      hidden
-                      ref={this.flatReference}
-                      onChange={(e) => {
-                        this.setState({
-                          Flatname: e.target.value.substr(
-                            e.target.value.indexOf("FAKEPATH/") + 13
-                          ),
-                          Flat: e.target.files[0],
-                        });
-                      }}
-                    />
-                  
-                  <Link type = 'hidden' ref={this.fileLink} style={{
-                      display:'none',
-                      fontSize: "2.5vh",
-                      position: "absolute",
-                      marginTop: "44vh",
-                      marginLeft: "41vw",
-                      width: "0vw",
-                      height: "0vh",
-                    }} to={{ pathname: '/analysis/'+this.filenum}} >click here</Link> 
-
-                    <Button
-                      style={{
-                        fontSize: "2.3vh",
-                        position: "absolute",
-                        marginTop: "45vh",
-                        marginLeft: "10vw",
-                        width: "20vw",
-                        height: "20vh",
-                      }}
-                      color="primary"
-                      variant="contained"
-                      onClick={() => this.flatReference.current.click()}
-                    >
-                      Flatfield Upload (optional): {this.state.Flatname}
-                    </Button>
-                  
-
-                  
+                  <Grid item>
                     <input
                       type="file"
                       hidden
@@ -496,30 +218,211 @@ class Submission extends React.Component {
                         });
                       }}
                     />
-                  
-                  
                     <Button
-                      style={{
-                        fontSize: "2.3vh",
-                        position: "absolute",
-                        marginTop: "70vh",
-                        marginLeft: "10vw",
-                        width: "20vw",
-                        height: "20vh",
-                      }}
+                      fullWidth
                       color="primary"
                       variant="contained"
                       onClick={() => this.darkReference.current.click()}
                     >
-                      Darkfield Upload (optional): {this.state.Darkname}
+                      Cerenkov Dark Image (optional): {this.state.Darkname}
                     </Button>
-                  
-                </div>
+                  </Grid>
+
+
+                  <Grid item>                  
+                    <input
+                      type="file"
+                      hidden
+                      ref={this.flatReference}
+                      onChange={(e) => {
+                        this.setState({
+                          Flatname: e.target.value.substr(
+                            e.target.value.indexOf("FAKEPATH/") + 13
+                          ),
+                          Flat: e.target.files[0],
+                        });
+                      }}
+                    />
+                    <Button
+                     fullWidth
+                      color="primary"
+                      variant="contained"
+                      onClick={() => this.flatReference.current.click()}
+                    >
+                      Cerenkov Flat Image (optional): {this.state.Flatname}
+                    </Button>
+                  </Grid>
+
+                </Grid>
+            
+            </Grid>
+
+          <Grid item xs={4}>
+              <h2 align="center">Brightfield images (All optional)</h2>
+              <Grid container direction='column' spacing={1}>
+
+                  <Grid item>
+                    <input
+                      type="file"
+                      hidden
+                      ref={this.brightReference}
+                      onChange={(e) => {
+                        this.setState({
+                          Brightname: e.target.value.substr(
+                            e.target.value.indexOf("FAKEPATH/") + 13
+                          ),
+                          Bright: e.target.files[0],
+                        });
+                      }}
+                    />
+                    <Button
+                      fullWidth
+                      color="primary"
+                      variant="contained"
+                      onClick={() => this.brightReference.current.click()}
+                    >
+                      Brightfield Image: {this.state.Brightname}
+                    </Button>
+                  </Grid>
+
+                  <Grid item>
+                    <input
+                      type="file"
+                      hidden
+                      ref={this.brightFlatReference}
+                      onChange={(e) => {
+                        this.setState({
+                          brightFlatname: e.target.value.substr(
+                            e.target.value.indexOf("FAKEPATH/") + 13
+                          ),
+                          BrightFlat: e.target.files[0],
+                        });
+                      }}
+                    />
+                    <Button
+                      fullWidth
+                      color="primary"
+                      variant="contained"
+                      onClick={() => this.brightFlatReference.current.click()}
+                    >
+                      Brightfield Flat Image:{" "}
+                      {this.state.brightFlatname}
+                    </Button>
+                  </Grid>
+
+                </Grid>
+            </Grid>
+
+            <Grid item xs={4}>
+            
+              <h2 align="center">UV images (All optional)</h2>
+              <Grid container direction='column' spacing={1}>
+
+                  <Grid item>
+                    <input
+                      type="file"
+                      hidden
+                      ref={this.UVReference}
+                      onChange={(e) => {
+                        this.setState({
+                          UVname: e.target.value.substr(
+                            e.target.value.indexOf("FAKEPATH/") + 13
+                          ),
+                          UV: e.target.files[0],
+                        });
+                      }}
+                    />
+                    <Button
+                      fullWidth
+                      color="primary"
+                      variant="contained"
+                      onClick={() => this.UVReference.current.click()}
+                    >
+                      UV Image: {this.state.UVname}
+                    </Button>
+                  </Grid>
+
+                  <Grid item>
+                    <input
+                      type="file"
+                      hidden
+                      ref={this.UVFlatReference}
+                      onChange={(e) => {
+                        this.setState({
+                          UVFlatname: e.target.value.substr(
+                            e.target.value.indexOf("FAKEPATH/") + 13
+                          ),
+                          UVFlat: e.target.files[0],
+                        });
+                      }}
+                    />
+                    <Button
+                      fullWidth
+                      color="primary"
+                      variant="contained"
+                      onClick={() => this.UVFlatReference.current.click()}
+                    >
+                      UV Flat Image: {this.state.UVFlatname}
+                    </Button>
+                  </Grid>
+                </Grid>
               
+            </Grid>
+          </Grid>
+        </Grid>
+
+        <h1 align="center">Submission options</h1>
+
+        <Grid container direction="row" spacing="{10}">
+            <Grid item xs={4}>
+                      <Button
+                        fullWidth
+                        color="primary"
+                        variant="contained"
+                        style={{
+                          //fontSize: "2vh",
+                          //position: "absolute",
+                          //marginTop: "70vh",
+                          //marginLeft: "40vw",
+                          //width: "20vw",
+                          //height: "20vh",
+                        }}
+                        onClick={this.onFileUpload}
+                        disabled={this.state.disabled}
+                      >
+                        Use Sample Data
+                      </Button>
+            </Grid>
+            <Grid item xs={4}>
+
+                    <Link
+                      type = 'hidden'
+                      ref={this.fileLink}
+                      style={{
+                        display:'none',
+                      }}
+                      to={{ pathname: '/analysis/'+this.filenum}}
+                    >click here</Link> 
+
+            </Grid>
+            <Grid item xs={4}>
+
+                      <Button
+                        fullWidth
+                        color="primary"
+                        variant="contained"
+                        onClick={this.onFileUpload}
+                        disabled={this.state.disabled}
+                      >
+                        Submit files to start analysis
+                      </Button>
+                
+              </Grid>
+            </Grid>
+
+
             </div>
-          
-        
-      </ThemeProvider>
+   
     );
   }
 }

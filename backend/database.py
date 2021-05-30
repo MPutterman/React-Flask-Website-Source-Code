@@ -60,7 +60,7 @@ Base.query = db_session.query_property()
 # Cleanup
 def db_cleanup():
     db_session.close()
-    db_engine.dispose()
+    #db_engine.dispose()
 
 
 # Define association tables
@@ -388,12 +388,14 @@ def db_add_test_data():
 # NOTE: 'scalar' method returns 'None' if no entry is found, or one object. Raises exception of more than 1 result found.
 # TODO: Figure out handling of ID-not found
 def db_user_load(id):
+    db_session.begin()
     user = User.query.options(selectinload(User.org_list)).filter_by(user_id=id).scalar() # scalar returns a single record or 'None'; raises exception if >1 found
     db_session.commit()
     #db_session.close()
     return user
 
 def db_user_load_by_email(email):
+    db_session.begin()
     user = User.query.options(selectinload(User.org_list)).filter_by(email=email).scalar() # scalar returns a single record or 'None'; raises exception if >1 found
     db_session.commit()
     #db_session.close()
@@ -424,7 +426,7 @@ def db_user_save(data):
     db_session.commit()
     newdata = user.as_dict()
     newdata['org_list'] = [org.org_id for org in user.org_list]
-    db_session.close()
+    #db_session.close()
     #print ("data_after:")
     #print(newdata)
     return newdata
@@ -439,7 +441,7 @@ def db_user_search():
         current_user = user.as_dict()
         current_user['org_list'] = [org.org_id for org in user.org_list]
         data.append(current_user)
-    db_session.close()
+    #db_session.close()
     return dumps(data)
 
 # Return a list of organizations
@@ -484,6 +486,7 @@ def find_images(data):
 
 
 def retrieve_initial_analysis(analysis_id):
+    #db_session.begin()   # TODO: why does this cause "transaction is already begun" error?
     tim = time.time()
     analysis = Analysis.query.filter(Analysis.analysis_id==analysis_id).one()
     analysis_dict = {}
@@ -500,20 +503,24 @@ def retrieve_initial_analysis(analysis_id):
         analysis_dict['UVName']=Image.query.filter(Image.image_type==ImageType.uv , Image.analysis_list.any(analysis_id=analysis_id)).one().name
     if Image.query.filter(Image.image_type==ImageType.bright , Image.analysis_list.any(analysis_id=analysis_id)).all():
         analysis_dict['BrightName']=Image.query.filter(Image.image_type==ImageType.bright , Image.analysis_list.any(analysis_id=analysis_id)).one().name
+    db_session.commit()
     return analysis_dict
+
 def analysis_info(analysis_id):
     db_session.begin()
     analysis = Analysis.query.filter(Analysis.analysis_id == analysis_id).one()
+    db_session.commit()
     return analysis.as_dict()
+
 def retrieve_image_path(image_type,analysis_id):
-    
-        
     if 'cerenkov' in  image_type:
         image = CachedImage.query.filter(CachedImage.image_type ==find_image_type(image_type), CachedImage.analysis_id==analysis_id).one()
     else:
         image = Image.query.filter(Image.image_type==find_image_type(image_type), Image.analysis_id==analysis_id).one()
     return image.image_path
+
 def db_analysis_save(data,analysis_id):
+    db_session.begin()
     if data['user_id']:
         user_id = data['user_id']
     else:
@@ -527,7 +534,7 @@ def db_analysis_save(data,analysis_id):
     user.analysis_list.append(analysis)
     db_session.add(user)
     db_session.commit()
-    db_session.close()
+#    db_session.close()
 
 def db_analysis_edit(data,analysis_id):
     
@@ -537,7 +544,7 @@ def db_analysis_edit(data,analysis_id):
     analysis.origin_list = Origin.build_origins(data['origins'])
     db_session.add(analysis)
     db_session.commit()
-    db_session.close()
+#    db_session.close()
     
 def find_path(image_type,analysis_id):
     if image_type =='cerenkovdisplay':
@@ -549,8 +556,9 @@ def find_path(image_type,analysis_id):
     else:
         ending='.npy'
     return f'./UPLOADS/{analysis_id}/{image_type}{ending}'
+
 def db_analysis_save_initial(data,analysis_id):
-    db_session.begin()
+    #db_session.begin()  # TODO: why does this cause "transaction is already begun" error?
     images = []
     for image_type in ['dark','flat','radio','uv','bright']:
         if data[f'{image_type}_name']:
@@ -573,6 +581,6 @@ def db_analysis_save_initial(data,analysis_id):
     user = User.query.filter(User.user_id==user_id).one()
     user.analysis_list.append(analysis)
     db_session.add(user)
-    db_session.flush()
+    #db_session.flush()
     db_session.commit()
 

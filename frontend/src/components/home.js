@@ -24,7 +24,8 @@ import SearchField from "react-search-field";
 import GoogleLogin from 'react-google-login';
 
 class Home extends React.Component {
-  constructor(props) {
+
+/*  constructor(props) {
     super(props);
     this.darkReference = React.createRef();
     this.flatReference = React.createRef();
@@ -600,10 +601,14 @@ class Home extends React.Component {
         return res;
       })
   };
-
+*/
   render() {
     return (
         <div id="container">
+        <h1>Click on "New Analysis" at the left to begin</h1>
+        </div>
+
+{/*
           {this.state.showData && (
             <div>
               <div
@@ -1648,6 +1653,8 @@ class Home extends React.Component {
             </div>
           )}
         </div>
+
+*/}
     );
   }
 }
