@@ -181,7 +181,7 @@ const MenuAppBar = (props) => {
               </IconButton>
               <Menu
                 id="menu-user"
-                anchorE1={anchorE1}
+                anchore1={anchorE1}
                 anchorOrigin={{
                   vertical: 'top',
                   horizontal: 'right',

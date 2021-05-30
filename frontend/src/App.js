@@ -12,9 +12,9 @@ import "./App.css";
 import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
 import { blueGrey } from '@material-ui/core/colors';
 
-// Import authentication and preferences
+// Import configuration, authentication, preferences
+import { ConfigProvider } from './contexts/config';
 import { AuthProvider } from './contexts/auth';
-import { PrefProvider } from './contexts/prefs';
 
 // Import main interface components
 import MenuAppBar from './components/menu_app_bar';
@@ -64,8 +64,8 @@ const App = (props) => {
 
     return (
       <>
+      <ConfigProvider>
       <AuthProvider>
-      <PrefProvider>
         <ThemeProvider theme={darkMode}>
         <CssBaseline />
         <Router>
@@ -93,8 +93,8 @@ const App = (props) => {
         </MenuAppBar>
         </Router>
         </ThemeProvider>
-      </PrefProvider>
       </AuthProvider>
+      </ConfigProvider>
       </>
     );
 

@@ -4,7 +4,7 @@
 
 import React from "react";
 import { authLogin, authLogout, useAuthState, useAuthDispatch } from '../contexts/auth';
-import { usePrefState } from '../contexts/prefs';
+import { useConfigState } from '../contexts/config';
 import backend_url from './config.js';
 import { withRouter } from "react-router";
 import { useHistory } from 'react-router-dom';
@@ -36,9 +36,10 @@ const UserLogin = (props) => {
     const [logoutPending, setLogoutPending] = React.useState(false);
 
     // Connect to Auth context
-    const dispatch = useAuthDispatch();
-    const session = useAuthState(); // provides a dictionary containing auth, authUser, loading, error, errorMessage
-    const prefs = usePrefState(); // provides a dictionary of preferences
+    const authDispatch = useAuthDispatch();
+    const session = useAuthState(); // provides a dictionary containing auth, authUser, loading, error, errorMessage, prefs
+    const config = useConfigState();
+
 
     // Form hooks
     // mode is the render mode (both onChange and onBlur)
@@ -53,12 +54,10 @@ const UserLogin = (props) => {
         //console.log("UserLogin form submit: data => ", data);
 
         setLoginPending(true);
-        return await authLogin(dispatch, data)
+        return await authLogin(authDispatch, data)
         .then( (response) => {
-            console.log('response =>', response);
             if (response) {
-                const url = prefs['prefs']['general']['redirect_after_login'];    
-                console.log('here url=>', url)
+                const url = session.prefs['general']['redirect_after_login'];    
                 history.push(url); 
             }
             setLoginPending(false);
@@ -67,11 +66,13 @@ const UserLogin = (props) => {
 
     async function onLogout(data, e) {
         setLogoutPending(true);
-        return await authLogout(dispatch)
+        return await authLogout(authDispatch)
         // TODO: if received an error, where to redirect?
         .then( (response) => {
-            history.push('/user/login')
+            // TODO: doesn't log output, but the redirect appears to be okay...
+            //console.log ('here, config state is =>', config);
             setLogoutPending(false);
+            history.push(config['general']['redirect_after_logout']);
         });
     }
 

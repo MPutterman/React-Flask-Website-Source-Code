@@ -40,13 +40,14 @@ export function useAuthDispatch() {
   return context;
 }
 
-// Main component
+// Provider component
 
 export const AuthProvider = ({ children }) => {
 
     const [session, dispatch] = useReducer(AuthReducer, initialState);
 
     // Initialize the auth state from the server
+    // (Note functional components don't have componentDiDmount, etc...)
     useEffect(() => {
         loadSessionFromServer(dispatch); 
     }, []); 
@@ -60,24 +61,46 @@ export const AuthProvider = ({ children }) => {
     );
 };
 
-// Reducer
+// Reducer component
+
+const defaultPrefs = {
+    general: {
+        redirect_after_login: '/',                 // relative url
+    },
+    analysis: {
+        default_equipment_id: null,               // equip_id
+        default_exposure_time: null,              // seconds
+        default_exposure_temp: null,              // degrees C
+        default_flat_image_id: null,              // image_id
+        default_dark_image_id: null,              // image_id
+        default_plate_id: null,                   // plate_id
+        default_cover_id: null,                   // cover_id
+        default_background_correction: 'linear',  // enum: (linear | quadratic | ...)
+        default_filter: '3x3 median',             // enum: (3x3 median | ...)
+    },
+}
 
 export const initialState = { // This is the session info provided to child components
   auth: false,
   authUser: null,  
-  loading: true,
+  loaded: false,
   error: false,
   errorMessage: '',
+  prefs: defaultPrefs,
 };
 
 export const AuthReducer = (initialState, action) => {
+
+  let user = null;
+  let userPrefs = {};
+  let prefs = {};
 
   switch (action.type) {
 
     case "REQUEST_SESSION":
       return {
         ...initialState,
-        loading: true,
+        loaded: false,
         error: false,
         errorMessage: '',
       }
@@ -85,33 +108,51 @@ export const AuthReducer = (initialState, action) => {
     case "SESSION_ERROR":
       return {
         ...initialState,
-        loading: false,
+        loaded: false,
         error: true,
         errorMessage: action.error,
       }
 
     case "SESSION_LOADED":
+      user = action.payload.user;
+      userPrefs = action.payload.prefs;
+      prefs = defaultPrefs;
+      for (const category in userPrefs) {
+        for (const key in userPrefs[category]) {
+          prefs[category][key] = userPrefs[category][key];
+        }
+      }
       return {
         ...initialState,
-        loading: false,
-        auth: action.payload ? true : false,
-        authUser: action.payload,
+        loaded: true,
+        auth: user ? true : false,
+        authUser: user,
+        prefs: prefs,
       }
 
     case "REQUEST_LOGIN":
       return {
         ...initialState,
-        loading: true,
+        loaded: false,
         error: false,
         errorMessage: '',
       };
 
     case "LOGIN_SUCCESS":
+      user = action.payload.user;
+      userPrefs = action.payload.prefs;
+      prefs = defaultPrefs;
+      for (const category in userPrefs) {
+        for (const key in userPrefs[category]) {
+          prefs[category][key] = userPrefs[category][key];
+        }
+      }
       return {
         ...initialState,
         auth: true,
-        authUser: action.payload,
-        loading: false,
+        authUser: user,
+        prefs: prefs,
+        loaded: true,
       };
 
     case "LOGOUT":
@@ -119,12 +160,13 @@ export const AuthReducer = (initialState, action) => {
         ...initialState,
         auth: false,
         authUser: null,
+        prefs: defaultPrefs,
       };
  
     case "LOGOUT_ERROR":
       return{
         ...initialState,
-        loading: false,
+        loaded: true,
         error: true,
         errorMessage: action.error,
       }
@@ -132,7 +174,7 @@ export const AuthReducer = (initialState, action) => {
     case "LOGIN_ERROR":
       return {
         ...initialState,
-        loading: false,
+        loaded: true,
         error: true,
         errorMessage: action.error,
       };
@@ -144,13 +186,18 @@ export const AuthReducer = (initialState, action) => {
 
 // Reducer actions
 
-const loadSessionFromServer = (dispatch) => { // This one is not exported and only called internally by AuthProvider
+async function loadSessionFromServer(dispatch) { // This one is not exported and only called internally by AuthProvider
 
     dispatch({ type: 'REQUEST_SESSION' });
-    axios.get(backend_url('api/session/load'))
+    return axios.get(backend_url('api/session/load'))
     .then((response) => {
-        const user = response.data['current_user'];
-        dispatch({ type: 'SESSION_LOADED', payload: user });
+        let user = response.data.current_user;
+        let prefs = {};
+        if (user) {
+            prefs = user.prefs;
+            delete user.prefs;
+        }
+        dispatch({ type: 'SESSION_LOADED', payload: { user: user, prefs: prefs }})
     })
     .catch((e) => {
         console.log("POST /user/login, error =>" + e);
@@ -175,9 +222,12 @@ export async function authLogin(dispatch, data) {
     return axios.post(backend_url('user/login'), formData, requestOptions)
     .then((response) => {
         console.log ('POST /user/login, response =>', response.data);
-        const user = response.data['current_user'];
+        let user = response.data.current_user;
+        let prefs = {};
         if (user) {
-            dispatch({ type: 'LOGIN_SUCCESS', payload: user });
+            prefs = user.prefs;
+            delete user.prefs;
+            dispatch({ type: 'LOGIN_SUCCESS', payload: {user: user, prefs: prefs}});
             return true;
         } else {
             dispatch({ type: 'LOGIN_ERROR', error: response.data['error'] });
@@ -203,8 +253,8 @@ export async function authLogout(dispatch) {
 
     return axios.post(backend_url('user/logout'), formData, requestOptions)
     .then((response) => {
-        console.log ('POST /user/logout, response =>', response.data);
-        const user = response.data['current_user'];
+        //console.log ('POST /user/logout, response =>', response.data);
+        let user = response.data.current_user;
         if (!user) {
             dispatch({ type: 'LOGOUT' });
             return true;

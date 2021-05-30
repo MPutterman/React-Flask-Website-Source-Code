@@ -106,7 +106,7 @@ const UserSearch = (props) => {
                   
               />
           ) : 
-            loading ? (<p>Loading... <CircularProgress/></p>) : (<p>No results found</p>)
+            loading ? (<><p>Loading... </p><CircularProgress/></>) : (<p>No results found</p>)
           }
           
         </div>

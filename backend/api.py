@@ -9,6 +9,10 @@
 # * https://yasoob.me/posts/how-to-setup-and-deploy-jwt-auth-using-react-and-flask/ (handling login with react/flask combination)
 # * https://www.digitalocean.com/community/tutorials/how-to-add-authentication-to-your-app-with-flask-login (another approach)
 
+# NOTES:
+# * Need to import session from Flask, and Session from flask_session
+
+
 # TODO:
 # * We should move all the analysis-specific stuff out of here and into separate files that are just loaded in particular
 #   API calls when needed
@@ -22,10 +26,11 @@
 # * Need to prevent saving of empty password to user profile (e.g. when create account from google login, or when update account
 #   after Google login)
 # * Need to look at difference between DB session versus connection... maybe not using correctly
+# * Need to test whether session timeout is working properly, and remember-me feature
 
 import time
 
-from flask import Flask, request,Response,send_file,send_from_directory,make_response,Response#,session
+from flask import Flask, request,Response,send_file,send_from_directory,make_response,Response,session
 from skimage import io, morphology, filters,transform, segmentation,exposure
 from skimage.util import invert
 import scipy
@@ -116,7 +121,7 @@ class analysis():
         
         if doUV:
             
-            img =session['cerenkovcalc']
+            img =session.get('cerenkovcalc')
             #print(newOrigins)
             cerenks= self.calculateCerenkov(newROIs,img)
             RFs = self.calculateRF(newROIs,img)
@@ -133,7 +138,7 @@ class analysis():
             ####print(time.time()-tim)
             return cerenks_RFs
         elif doRF and not doUV:
-            img = session['cerenkovcalc']
+            img = session.get('cerenkovcalc')
             cerenks = self.calculateCerenkov(newROIs,img)
             RFs = self.calculateRF(newROIs,newOrigins,img)
             cerenks_RFs=[]
@@ -150,7 +155,7 @@ class analysis():
             return cerenks_RFs
             
         else:
-            img = session['cerenkovcalc']
+            img = session.get('cerenkovcalc')
             
             cerenks = self.calculateCerenkov(newROIs,img)
             
@@ -758,7 +763,7 @@ app.config['SESSION_PERMANENT'] = True
 #app.config['REMEMBER_COOKIE_HTTPONLY'] = True
 #app.config['SESSION_COOKIE_SAMESITE'] = 'Strict'
 app.config.from_object(__name__)  # still need this?
-session = Session(app)
+Session(app)
 
 CORS(app,
     headers=['Content-Type'],
@@ -893,7 +898,7 @@ def ret_data():
 @cross_origin(supports_credentials=True)
 def fix_background(num):
     #print('f')
-    img = session['cerenkovradii']
+    img = session.get('cerenkovradii')
     tim = time.time()
     val = img.copy()
     img-=np.min(img)
@@ -1000,7 +1005,7 @@ def sign_in():
             arr[i][j]=i+j
         
     session['based_arr'] = arr
-    print(session['email'])
+    print(session.get('email'))
     return 'kk'
 
 @app.route('/analysis_edit/<filename>',methods = ['POST'])
@@ -1133,7 +1138,7 @@ def createFile():
         data['ROIs'] = [current_analysis.ROIs]
         data['origins'] = []
         data['doRF'] = False
-        data['user_id'] = current_user.get_id() # From session
+        data['user_id'] = flask_login.current_user.get_id()  # From session
         db_analysis_save_initial(data, tim)
         #print('success')
         
@@ -1155,7 +1160,7 @@ def give(filename):
 def findRadius(filename,x,y,shift):
     
     tim = time.time()
-    img = session['cerenkovradii']
+    img = session.get('cerenkovradii')
     rowRadius = 0
     colRadius = 0
     num_zeros = 0

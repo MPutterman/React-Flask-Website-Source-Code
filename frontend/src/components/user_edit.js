@@ -89,6 +89,8 @@ const UserEdit = (props) => {
                 console.error("GET /user/edit/" + id + ": " + e);
                 setLoading(false);
             });
+        } else {
+            setLoading(false);
         }
     }
 
