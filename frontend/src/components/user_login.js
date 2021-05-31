@@ -56,15 +56,7 @@ const UserLogin = (props) => {
     const session = useAuthState(); // provides a dictionary containing auth, authUser, loading, error, errorMessage, prefs
     const config = useConfigState();
 
-
-    // Form hooks
-    // mode is the render mode (both onChange and onBlur)
-    // defaultValues defines how the form will be 'reset'. Fill back in with retrieved user info
-    const {handleSubmit, control} = useForm({mode: 'all'}); 
-
-    // Simple Schema 2
-    // NOTE: Good docs here: https://github.com/longshotlabs/simpl-schema 
-    // that describe special validation (e.g. passwordMistmatch) and customized error messages
+    // Schema for automated form
 
     const schema = new SimpleSchema ({
       email: {
@@ -79,6 +71,9 @@ const UserLogin = (props) => {
         type: String,
         //defaultValue: '',
         required: true,
+        uniforms: {
+          type: 'password',
+        }
       },
       remember: {
         label: 'Remember Me',
@@ -184,7 +179,7 @@ const UserLogin = (props) => {
         <AutoForm schema={bridge} onSubmit={onLogin} ref={ref => (formRef = ref)}>
           <AutoField name="email" />
           <ErrorField name="email" />
-          <AutoField name="password" type="password" />
+          <AutoField name="password" />
           <ErrorField name="password" />
           <AutoField name="remember" />
           <ErrorField name="remember" />
