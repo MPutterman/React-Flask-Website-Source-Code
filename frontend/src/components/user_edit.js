@@ -242,10 +242,6 @@ const UserEdit = (props) => {
               {loading ? (<><p>Loading... </p><CircularProgress/></>) : (
 
               <>
-{/*
-How to implement 'reset'?
-*/}            
-
               <AutoForm
                 schema={bridge}
                 onSubmit={onSubmit}

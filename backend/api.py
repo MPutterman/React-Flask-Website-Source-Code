@@ -66,7 +66,7 @@ from database import (
 
 class analysis():
     """Input: ROIs, n_l, origins, filename, doUV, doRF, autoLane, names"""
-    def __init__(self,ROIs,n_l,origins,filename,doUV,doRF,autoLane,names=['Sample','Sample','Sample','','','','']):
+    def __init__(self,ROIs,n_l,origins,filename,doUV,doRF,autoLane,names=['Sample','Sample','Sample','','','',''],name='',description=''):
         self.doRF=doRF
         self.ROIs = ROIs
         self.n_l=n_l
@@ -76,6 +76,8 @@ class analysis():
         self.autoLane=autoLane
         self.doUV=doUV
         self.names=names
+        self.name = name
+        self.description = description
     def upload_data(self):
         name = ''
     def __str__(self):
@@ -103,6 +105,10 @@ class analysis():
         self.doRF = doRF
     def setN_l(self,n_l):
         self.n_l=n_l
+    def setName(self,name):
+        self.name=name
+    def setDescription(self,description):
+        self.description=description
 
     def results(self):
         filename=self.filename
@@ -1060,7 +1066,14 @@ def retrieve_analysis(filename):
     session['cerenkovcalc'] = np.load(retrieve_image_path('cerenkovcalc',filename))
     session['cerenkovradii']=np.load(retrieve_image_path('cerenkovradii',filename))
     analysis_retrieved = retrieve_initial_analysis(filename)
-    return{'ROIs':analysis_retrieved['ROIs'],'origins':analysis_retrieved['origins'],'doRF':analysis_retrieved['doRF'],'filenumber':filename}
+    return{
+        'ROIs':analysis_retrieved['ROIs'],
+        'origins':analysis_retrieved['origins'],
+        'doRF':analysis_retrieved['doRF'],
+        'filenumber':filename,
+        'name':analysis_retrieved['name'],
+        'description': analysis_retrieved['description'],
+    }
 
 @app.route('/time', methods = ['POST','GET'])
 @cross_origin(supports_credentials=True)
@@ -1089,6 +1102,7 @@ def createFile():
         UVFlatName=request.form['UVFlatName']
         BrightFlatName=request.form['BrightFlatName']
         FlatName=request.form['FlatName']
+
         ##print('r',request.form)
         
         names = [CerenkovName,DarkName,FlatName,UVName,UVFlatName,BrightName,BrightFlatName]
@@ -1136,6 +1150,8 @@ def createFile():
         data['ROIs'] = [current_analysis.ROIs]
         data['origins'] = []
         data['doRF'] = False
+        data['name'] = request.form['name']
+        data['description'] = request.form['description']
 
         data['user_id'] = flask_login.current_user.get_id()
         

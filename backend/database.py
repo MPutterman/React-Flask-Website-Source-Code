@@ -1,3 +1,6 @@
+# TODO:
+# * Currently images are in different formats... this should be reconsidered in the future
+
 # NOTE: need to run: pip3 install mysql-connector-python
 # NOTE: need to run: pip3 install SQLAlchemy
 # NOTE: need to run: pip3 install flask-login
@@ -153,21 +156,6 @@ class User(UserMixin, Base):
                 for col in columns
         }
 
-    #def getPreference(key):
-    #def setPreference(key, value):
-
-    # Supported preferences:
-    # default_landing_page (relative path)
-    # default_equipment_id (equipment id)
-    # default_exposure_time (seconds)
-    # default_exposure_temp (C)
-    # default_flat_image (image id)
-    # default_dark_image (image id)
-    # default_plate_type (plate id)
-    # default_cover_type (cover id)
-    # default_background_correction (enum: linear | quadratic | ...)
-    # default_filtering (enum: 3x3 median | ...)
-
 class Organization(Base):
     __tablename__ = 'organization'
     org_id = Column(Integer, primary_key=True)
@@ -224,6 +212,13 @@ class ROI(Base):
 class Analysis(Base):
     __tablename__ = 'analysis'
     analysis_id = Column(String(12), primary_key=True)
+    name = Column(String(128), nullable=False)
+    description = Column(Text)
+    experiment_datetime = Column(DateTime) # Date of experiment
+    analysis_datetime = Column(DateTime) # Date of analysis (last change)
+    owner_id = Column(Integer, ForeignKey('user.user_id')) # User who performed the analysis
+    plate_id = Column(Integer, ForeignKey('plate.plate_id'))
+    cover_id = Column(Integer, ForeignKey('cover.cover_id'))
     #user=relationship("User",secondary=user_analysis_map)
     doRF = Column(Boolean)
     cachedimages=relationship('CachedImage',back_populates='analysis')
@@ -269,7 +264,9 @@ class Lane(Base):
     analysis_id = Column(String(12), ForeignKey('analysis.analysis_id'))
     analysis = relationship("Analysis", back_populates="lane_list")
     lane_number=Column(Integer)
+    lane_label=Column(String(128)) # Future feature
     ROI_list = relationship('ROI',back_populates='lane')
+
     @staticmethod
     def build_lanes(data):
         lane_list = []
@@ -314,11 +311,10 @@ class Image(Base):
     exp_time = Column(Float) # Exposure time (seconds)
     exp_temp = Column(Float) # Exposure temp (deg C)
     name = Column(String(128), nullable=False)
-    description = Column(Text)
-    plate_id = Column(Integer, ForeignKey('plate.plate_id'))
-    cover_id = Column(Integer, ForeignKey('cover.cover_id'))
-    image_path = Column(String(128), nullable=False)
-    # TODO: maybe point to Moe's file system DB for now?
+    description = Column(Text) # Maybe can get rid of this...?
+    image_path = Column(String(256), nullable=False) # Full path of file on server (for file system DB)
+    owner_id = Column(Integer, ForeignKey('user.user_id')) # User-ID of user that uploaded the file
+    
 
 class Plate(Base):
     __tablename__ = 'plate'
@@ -403,6 +399,7 @@ def db_user_load_by_email(email):
 
 # Save a user to the database.  Expects a dict, ant the org_list to be a list of org_ids.
 # Blank user_id means it hasn't yet been inserted to database
+# TODO: when save preferences, should we merge with existing ones, or overwrite?
 def db_user_save(data):
     #print("incoming data:")
     #print(data)
@@ -416,6 +413,9 @@ def db_user_save(data):
         user.last_name = data['last_name']
         user.email = data['email']
         user.password_hash = User.hash(data['password'])
+        # Following is not yet supported in this version of python
+        #if data.has_key('preferences'):
+        #    user.preferences = user.preferences | data['preferences']
         orgs = Organization.query.filter(Organization.org_id.in_(data['org_list'])).all() 
         user.org_list = orgs
     else:
@@ -503,6 +503,9 @@ def retrieve_initial_analysis(analysis_id):
         analysis_dict['UVName']=Image.query.filter(Image.image_type==ImageType.uv , Image.analysis_list.any(analysis_id=analysis_id)).one().name
     if Image.query.filter(Image.image_type==ImageType.bright , Image.analysis_list.any(analysis_id=analysis_id)).all():
         analysis_dict['BrightName']=Image.query.filter(Image.image_type==ImageType.bright , Image.analysis_list.any(analysis_id=analysis_id)).one().name
+    analysis_dict['name'] = analysis.name
+    analysis_dict['description'] = analysis.description
+    analysis_dict['user_id'] = analysis.owner_id
     db_session.commit()
     return analysis_dict
 
@@ -571,7 +574,7 @@ def db_analysis_save_initial(data,analysis_id):
     for image_type in ['cerenkovdisplay','cerenkovcalc','cerenkovradii']:
         img = CachedImage(image_type = image_type,image_path=find_path(image_type,analysis_id))
         cachedimages.append(img)
-    analysis = Analysis(images=images,lane_list=lane_list,cachedimages = cachedimages,analysis_id = analysis_id, origin_list = origin_list,doRF=doRF)
+    analysis = Analysis(images=images,lane_list=lane_list,cachedimages = cachedimages,analysis_id = analysis_id, origin_list = origin_list,doRF=doRF, name=data['name'], description=data['description'], owner_id=data['user_id'])
     db_session.add(analysis)
     db_session.flush()
     if data['user_id'] is not None:

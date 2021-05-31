@@ -1,5 +1,10 @@
 // TODO: 
-// * For axios defaults, not sure which are critical to the sessions now working properly
+// * Consider a wrapper for API calls. The following looks nice and simple:
+//   https://medium.com/@baraa_81910/api-requests-wrapper-with-react-redux-5498d5889c70.
+//   This will help to automatically manage authentication with the backend,
+//   and probably help to mediate permissions, etc...
+// * For axios defaults, not sure which are critical to the sessions now working properly,
+//   need to figure this out.
 
 import axios from "axios";
 
