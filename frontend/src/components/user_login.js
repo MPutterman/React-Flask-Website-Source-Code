@@ -21,15 +21,31 @@ import FormGroup from "@material-ui/core/FormGroup";
 import FormControlLabel from "@material-ui/core/FormControlLabel";
 import Checkbox from "@material-ui/core/Checkbox";
 
+import {
+  AutoForm,
+  AutoField, AutoFields,
+  ErrorField, ErrorsField,
+  SubmitField,
+} from 'uniforms-material';
+//import { JSONSchemaBridge } from 'uniforms-bridge-json-schema';
+import SimpleSchema from 'simpl-schema';
+import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
+//import Ajv from 'ajv';
+
 import Visibility from '@material-ui/icons/Visibility';
 import VisibilityOff from '@material-ui/icons/VisibilityOff';
 import { AlertList, Alert } from '../components/alerts';
 
 
 // User Login form
+
 const UserLogin = (props) => {
 
+    let formRef; // use to access reset() and submit() methods...
+
     const history = useHistory();
+
+    const [defaults, setDefaults] = React.useState( {email: '', password: '', remember: false} );
 
     // Support for 'loading' spinner while login/logout in progress
     const [loginPending, setLoginPending] = React.useState(false);
@@ -45,6 +61,78 @@ const UserLogin = (props) => {
     // mode is the render mode (both onChange and onBlur)
     // defaultValues defines how the form will be 'reset'. Fill back in with retrieved user info
     const {handleSubmit, control} = useForm({mode: 'all'}); 
+
+    // Simple Schema 2
+    // NOTE: Good docs here: https://github.com/longshotlabs/simpl-schema 
+    // that describe special validation (e.g. passwordMistmatch) and customized error messages
+
+    const schema = new SimpleSchema ({
+      email: {
+        label: 'Email',
+        type: String,
+        //defaultValue: '',
+        required: true,
+        regEx: SimpleSchema.RegEx.EmailWithTLD,
+      },
+      password: {
+        label: 'Password',
+        type: String,
+        //defaultValue: '',
+        required: true,
+      },
+      remember: {
+        label: 'Remember Me',
+        type: Boolean,
+        defaultValue: false,
+      }
+    })
+    var bridge = new SimpleSchema2Bridge(schema);
+
+
+    // JSON Form schema
+    /*
+    const schema = {
+      title: 'Login details',
+      type: 'object',
+      properties: {
+        email: {
+          type: 'string',
+          //required: true,
+          format: 'email',
+          message: {
+            'required': 'Email address is required',
+            'format': 'Invalid email address',
+          }
+        },
+        password: {
+          type: 'string',
+          //required: true,
+          message: {
+            'required': 'Password is required',
+          }
+        },
+        remember: { type: 'boolean' },
+      },
+      required: ['email', 'password',],
+    };
+
+    const ajv = new Ajv({ allErrors: true, useDefaults: true });
+
+    function createValidator(schema: object) {
+      const validator = ajv.compile(schema);
+
+      return (model: object) => {
+        validator(model);
+        console.log('output =>', validator.errors?.length ? { details: validator.errors } : null);
+        return validator.errors?.length ? { details: validator.errors } : null;
+      };
+    }
+
+    const schemaValidator = createValidator(schema);
+
+    const bridge = new JSONSchemaBridge(schema, schemaValidator); //UserLoginValidator); //schemaValidator); //UserLoginValidator);
+
+*/
 
     // Handlers
 
@@ -82,83 +170,57 @@ const UserLogin = (props) => {
     }
 
     return (
+        <>
 
-          <div className="UserLoginForm" style = {{ maxWidth: '250px', margin: 'auto', }}>
+        {session['auth'] ? (  // If logged in:
+          <form onSubmit={onLogout}>
+            <p>Welcome, {session['authUser']['first_name']}. </p>
+            <Button type="submit" variant="outlined" onClick={onLogout}>{logoutPending ? (<CircularProgress/>) : null}Logout</Button>
+          </form>
 
-            {session['auth'] ? (  // If logged in:
-              <form onSubmit={handleSubmit(onLogout)}>
-                <p>Welcome, {session['authUser']['first_name']}. </p>
-                <Button type="submit" variant="outlined" onClick={onLogout}>{logoutPending ? (<CircularProgress/>) : null}Logout</Button>
-              </form>
+        ) : (
 
-            ) : (
-              <form onSubmit={handleSubmit(onLogin)}> 
+        <div className="UserLoginForm" style = {{ maxWidth: '250px', margin: 'auto', }}>
+        <AutoForm schema={bridge} onSubmit={onLogin} ref={ref => (formRef = ref)}>
+          <AutoField name="email" />
+          <ErrorField name="email" />
+          <AutoField name="password" type="password" />
+          <ErrorField name="password" />
+          <AutoField name="remember" />
+          <ErrorField name="remember" />
+          <SubmitField>Login</SubmitField>
 
-                <Controller
-                  control={control}
-                  name="email"
-                  rules= {{
-                    required: {value:true, message:"Email is required"},
-                    pattern: {value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i, message: "Invalid email address"},
-                  }}
-                  render={({field, fieldState, formState}) =>
-                  <TextField
-                    label="Email address:"
-                    helperText={formState.errors.email ? formState.errors.email.message : ''}
-                    autoComplete="email"
-                    placeholder="Email address"
-                    fullWidth
-                    variant='outlined'
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    value = {field.value}
-                    error={Boolean(fieldState.error)}
-                  />
-                  }
-                />
+          <Button fullWidth variant="outlined" onClick={onRegister}>Register for Account</Button>
 
-                <Controller
-                  control={control}
-                  name="password"
-                  type="password"
-                  rules= {{
-                    required: {value:true, message:"Password is required"},
-                  }}
-                  render={({field, fieldState, formState}) =>
-                  <TextField
-                    label="Password:"
-                    helperText={formState.errors.last_name ? formState.errors.last_name.message : ''}
-                    autoComplete="password"
-                    placeholder="Password"
-                    fullWidth
-                    variant='outlined'
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    value = {field.value}
-                    error={Boolean(fieldState.error)}
-                  />
-                  }
-                />
+        </AutoForm>
+        </div>
 
-                <FormGroup>
-                <FormControlLabel
-                  control={<Checkbox
-                    name="remember"
-                  />}
-                  label="Remember Me"
-                />
-                </FormGroup>
-
-                <Button fullWidth type="submit" variant="outlined">{loginPending ? (<CircularProgress/>) : null}Login</Button>
-
-                <Button fullWidth variant="outlined" onClick={onRegister}>Register for Account</Button>
-
-               </form>
-            )}
-
-          </div>
+        )}
+        </>
     );
     
 }
+
+export const UserLoginValidator = (model) => {
+  const details = [];
+
+  if (!model.email) {
+    //errors.email = 'Email address is required';
+    details.push({dataPath: '.email', propertyName: 'email', message: 'Email address is required'});
+  } else {
+    // REF: https://www.w3resource.com/javascript/form/email-validation.php
+    let pattern = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
+    if (!model.email.match(pattern)) {
+      details.push({dataPath: '.email', propertyName: 'email', message: 'Invalid email address'});
+    }
+  }
+
+  if (!model.password) {
+    //errors.password = 'Password is required';
+    details.push({dataPath: '.password', propertyName: 'password', message: 'Password is required'});
+  }
+
+  return details.length ? { 'details': details } : null;
+};
 
 export default withRouter(UserLogin);
