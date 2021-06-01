@@ -2,7 +2,6 @@
 // * Find a way to capture some information about the file when upload to image table
 //   such as description, filename(?), type(dark, radiation, etc...)
 // * Find a way to select previously uploaded images, not always uploading new ones
-// * Clean up state -- there is a lot that is no longer needed
 
 import React from "react"; 
 import axios from "axios";
@@ -23,43 +22,7 @@ import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 
 class Submission extends React.Component {
   constructor(props) {
-    axios.defaults.withCredentials = true
     super(props);
-    this.filenum=0
-    this.state = {
-      arr_files: [],
-      string_files: [],
-      n_l: 0,
-      selected: 1000,
-      enterC: "",
-      enterD: "",
-      enterF: "",
-      enterUV: "",
-      enterUVF: "",
-      enterL: "",
-      autoLane: true,
-      showData: false,
-      submitted: false,
-      UVImg: 0,
-      dataName: "",
-      doRF: "Enable RF Calculation",
-      CerenkovImg: 0,
-      brightness: 0,
-      contrast: 0,
-      show_us: "About Us",
-      start: false,
-      dataUploaded: false,
-      resultsReturned: false,
-      results: [[]],
-      makeUpdate: 0,
-      doROIs: false,
-      ImgReturned: false,
-      img: 0,
-      background_corrected:'',
-      name:''
-      
-    };
-    console.log(backend_url(''))
     axios.defaults.withCredentials = true
 
     this.formRef = null;
@@ -122,37 +85,7 @@ class Submission extends React.Component {
 
   }
 
-  makeData = (arr) => {
-    arr = Object.assign({}, arr);
-    return arr;
-  };
-  calculate_vh = (px) => {
-    var vh = window.innerHeight / 100;
-    return px / vh;
-  };
-  calculate_vw = (px) => {
-    var vw = window.innerWidth / 100;
-    return px / vw;
-  };
-  
-  onReturnProcessed = (res) => {
-    this.filenum = res.data.res
-    this.setState({})
-    console.log(this.filenum)
-    const {history} = this.props;
-    history.push('/analysis/' + this.filenum);
-    
-    
-    
-    this.setState({ ImgReturned: true });
-    console.log(res.data);
-    
-    this.setState({ makeUpdate: 109 });
-  };
-  
-  
   onFileUpload = (data) => {
-    this.setState({ submitted: true });
     let formData = new FormData();
 
     // Add meta informatoin
@@ -217,17 +150,12 @@ class Submission extends React.Component {
 
     return axios.post(backend_url('/time'), formData, config)
     .then((res) => {
-      this.onReturnProcessed(res);
-      return res;
+      let filenum = res.data.res;
+      const {history} = this.props;
+      history.push('/analysis/' + filenum);
+      return res; // Need this?
     })
   };
-
-  handleSubmitClick=()=>{
-    if (!this.state.submitDisabled){
-      return
-    }
-    this.state.submitDisabled=true
-  }
 
   render() {
     return (
