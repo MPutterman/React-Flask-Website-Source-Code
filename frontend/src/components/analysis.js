@@ -167,6 +167,31 @@ class Analysis extends React.Component {
     var vw = window.innerWidth / 100;
     return px / vw;
   };
+  getRadius = (x,y,shift)=>{
+    let data = new FormData()
+    data.append('ROIs',JSON.stringify(this.ROIs))
+    return axios.post(
+      backend_url(
+        'radius/'+this.filenum+
+        `/`+x+`/`
+        +y+`/`+
+        shift
+        )
+        ,data, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+      }},).then((res) => {
+        this.ROIs[0].push([
+          
+          res.data.row,
+          res.data.col,
+          res.data.rowRadius,
+          res.data.colRadius,
+        ]);
+        this.setState({ n_l:res.data.n_l });
+        return res;
+      });
+  }
   UVClick = (e) => {
     var x = e.nativeEvent.offsetX;
     var y = e.nativeEvent.offsetY;
@@ -180,19 +205,7 @@ class Analysis extends React.Component {
       this.origins.push([y,x]);
       this.setState({ makeUpdate: 1 });
     } else {
-      return axios
-        .get(backend_url('radius/' + this.filenum + `/` + x + `/` + y + `/` + shift))
-        .then((res) => {
-          this.ROIs[0].push([
-            
-            res.data.row,
-            res.data.col,
-            res.data.rowRadius,
-            res.data.colRadius,
-          ]);
-          this.setState({ makeUpdate: 8 });
-          return res;
-        });
+      this.getRadius(x,y,shift)
     }
   };
   fixBackground = ()=>{
@@ -357,20 +370,7 @@ class Analysis extends React.Component {
       y = parseInt(y);
       var shift = e.shiftKey ? 1 : 0;
       console.log(shift);
-      return axios
-        .get(backend_url('radius/' + this.filenum + `/` + x + `/` + y + `/` + shift))
-        .then((res) => {
-          this.ROIs[0].push([
-            res.data.row,
-            res.data.col,
-            
-            res.data.rowRadius,
-            res.data.colRadius,
-          ]);
-          this.setState({ selected: {lane:0,spot:this.ROIs[0].length-1} });
-          console.log(this.ROIs,this.state.selected)
-          return res;
-        })
+      this.getRadius(x,y,shift)
       }
     }
 
@@ -486,19 +486,7 @@ class Analysis extends React.Component {
       var y = parseInt(e.nativeEvent.offsetY);
       var shift = e.shiftKey ? 1 : 0;
       console.log(shift);
-      return axios
-        .get(backend_url('radius/' + this.filenum + `/` + x + `/` + y + `/` + shift))
-        .then((res) => {
-          this.ROIs[0].push([
-            res.data.row,
-            res.data.col,
-            
-            res.data.rowRadius,
-            res.data.colRadius,
-          ]);
-          this.setState({ selected: {lane:0,spot:this.ROIs[0].length-1} });
-          return res;
-        });
+      this.getRadius(x,y,shift)
     }
   }
   
@@ -511,6 +499,7 @@ class Analysis extends React.Component {
     return (
       <ThemeProvider theme={this.theme}>
         <CssBaseline />
+        
         <div style={{ position: "relative",}}>
         <Grid container direction='row' xs='12'>
 
