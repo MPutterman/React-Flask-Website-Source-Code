@@ -63,17 +63,18 @@ export const preferences = {
             // Warn if equipment doesn't support cooling?
         }
 
-        default_flat_image_id: {
-            description: 'Default flat image ID for new analysis',
-            type: 'select',
-            options: ''
-
-        } null,              // image_id
+        //default_bright_image_exposure_time: '',   // OMIT FOR NOW
+        //default_bright_image_exposure_temp: '',   // OMIT FOR NOW
+        default_use_flat_correction: true,        
+        default_flat_image_id: null,              // image_id
+        default_use_dark_correction: true,
         default_dark_image_id: null,              // image_id
         default_plate_id: null,                   // plate_id
         default_cover_id: null,                   // cover_id
-        default_background_correction: 'linear',  // enum: (linear | quadratic | ...)
-        default_filter: '3x3 median',             // enum: (3x3 median | ...)
+        favorite_plate_id: null,                  // list of plate_ids
+        favorite_cover_id: null,                  // list of cover_ids
+        default_background_correction: 'linear',  // enum: (none | linear | quadratic | ...)
+        default_filter_correction: '3x3 median',  // enum: (none | 3x3 median | ...)
     },
 }
 

@@ -1,7 +1,56 @@
-// TODO:
-// * Find a way to capture some information about the file when upload to image table
-//   such as description, filename(?), type(dark, radiation, etc...)
-// * Find a way to select previously uploaded images, not always uploading new ones
+/* TODO:
+
+* Need some kind of file-uploader component (popup?)... also for equipment and organizations...
+--- choose file
+--- type (radiation, bright, dark, etc...) -- default set by parent component
+--- equipment_id -- pre-fill with pref, but also include popup to select existing or add new
+--- name (from filename but allow change)
+--- exposure time -- pre-fill with prefs
+--- exposure temperature - pre-fill with prefs
+--- upload/save (and get image_id value to feed to parent)
+
+
+* Need to revamp the interface a bit to gather all the needed fields...
+   SECTION 1 (analysis metadata)
+   - name (short description)
+   - description
+   - date(?)
+   - equipment_id (hidden field)
+   ---- Take this from the first image uploaded
+   ---- Error if any images have different equipment ID
+   - plate_type (pref if defined, or use picker, include option to add new)
+   - cover_type (pref if defined, or use picker, include option to add new)
+
+   SECTION 2 (primary files -- include equip_id from above)
+   [Assume these are new images, but also provide a way to pick existing ones(?)]
+   - radiation image 
+   --- name (default to filename, but allow change)
+   --- datetime (get from file?)
+   --- exp time
+   --- exp temp
+   - brightfield image
+   --- name (default to filename, but allow change)
+   --- datetime (get from file?)
+   --- exp time
+   --- exp temp
+
+   SECTION 3 (correction)
+   - use dark correction?
+   - dark image (pref if defined, or use picker, include option to add new)
+   --- name
+   --- datetime (get from file?)
+   --- exp time
+   --- exp temp
+   
+   - use flat correction?
+   - flat image (pref if defined, or use picker, include option to add new)
+   --- name
+   --- datetime (get from file?)
+   --- exp time
+   --- exp temp
+   - background correction method [none, uniform, gradient, ...] (pref by default)
+   - filtering method [none, 3x3 median filtering, ...] (pref by default)
+*/
 
 import React from "react"; 
 import axios from "axios";
