@@ -979,39 +979,105 @@ def fix_background(num):
     img.save(filepath)
     return {'r':2}
 
-@app.route('/user/login', methods=['POST'])
+@app.route('/user/login/<login_method>', methods=['POST'])
 @cross_origin(supports_credentials=True)
-def user_login():
-    # Set up hashing
-    import bcrypt
-    email = request.form['email']
-    remember = request.form['remember']
+def user_login(login_method):
     from database import db_user_load_by_email
-    user = db_user_load_by_email(email)
-    if (user == None):
-        return {
-            'error': True,
-            'message': "User email not found",
-            'current_user': None,
-        }
+    if login_method=='basic':
+        # Set up hashing
+        import bcrypt
+        email = request.form['email']
+        print(request.form['remember'])
+        remember = request.form['remember']=='true'
         
-    if (bcrypt.checkpw(request.form['password'].encode('utf8'), user.password_hash.encode('utf8'))):
-        #user.setAuthenticated() # Do something here to set when logged in
+        user = db_user_load_by_email(email)
+        if (user == None):
+            return {
+                'error': True,
+                'message': "User email not found",
+                'current_user': None,
+            }
+            
+        if (bcrypt.checkpw(request.form['password'].encode('utf8'), user.password_hash.encode('utf8'))):
+            #user.setAuthenticated() # Do something here to set when logged in
+            session.permanent = True
+            flask_login.login_user(user, remember) # Part of flask_login
+            user_dict = user.as_dict()
+            user_dict.pop('password_hash') # Remove password_hash before sending to front_end
+            return {
+                'error': False,
+                'message': "Successful login",
+                'current_user': user_dict,
+            }
+
+        else:
+            return {
+                'error': True,
+                'message': "Password mismatch",
+                'current_user': None,
+            }
+    elif login_method=='google':
+        from google.oauth2 import id_token
+        from google.auth.transport import requests
+        token = request.form['tokenId']
+        
+        remember = request.form['remember']=='false'
+        client_id = os.getenv('REACT_APP_GOOGLE_OAUTH_CLIENT')
+        try:
+            id_info = id_token.verify_oauth2_token(token, requests.Request(),client_id)
+        except:
+            return{
+                'error':True,
+                'message':'Invalid Token',
+                'current_user':None
+            }
+
+        if id_info['iss'] != 'https://accounts.google.com' and id_info['iss']!='accounts.google.com':
+            return {
+                'error':True,
+                'message':'Wrong Auth Provider',
+                'current_user':None
+            }
+        
+        if id_info['aud'] not in [client_id]:
+            return{
+                'error':True,
+                'message':'Faulty or Faked Token',
+                'current_user':None
+            }
+        if id_info['exp']<time.time():
+            return{
+                'error':True,
+                'message':'Past Expiry Time',
+                'current_user':None
+            }
+        email = id_info['email']
+        
+        user = db_user_load_by_email(email)
+        if (user == None):
+            return {
+                'error': True,
+                'message': "User email not found",
+                'current_user': None,
+            }
         session.permanent = True
         flask_login.login_user(user, remember) # Part of flask_login
         user_dict = user.as_dict()
-        user_dict.pop('password_hash') # Remove password_hash before sending to front_end
         return {
             'error': False,
             'message': "Successful login",
             'current_user': user_dict,
         }
+        
+        
+    
 
+        
     else:
         return {
-            'error': True,
-            'message': "Password mismatch",
-            'current_user': None,
+            'error':True,
+            'message':'Invalid Login Type',
+            'current_user': None
         }
 
 @app.route('/user/logout', methods=['POST'])
@@ -1069,9 +1135,7 @@ def analysis_edit(filename):
         newOrigins = ast.literal_eval(request.form.getlist('origins')[0])
         
     except:
-        print('NOO')
         newOrigins = []
-    print('newo',newOrigins)
     newOrigins = [newOrigins]
 
     newROIs = (request.form.getlist('ROIs'))
@@ -1208,7 +1272,7 @@ def give(filename):
     filen = retrieve_image_path('cerenkovdisplay',filename)
     print(filen)
     return send_file(filen)
-@app.route('/radius/<filename>/<x>/<y>/<shift>',methods = ['POST'])
+@app.route('/radius/<filename>/<x>/<y>/<shift>',methods = ['POST', 'GET'])
 @cross_origin(supports_credentials=True)
 def findRadius(filename,x,y,shift):
     ROIs = request.form.getlist('ROIs')

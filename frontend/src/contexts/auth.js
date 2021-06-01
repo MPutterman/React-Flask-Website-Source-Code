@@ -205,7 +205,37 @@ async function loadSessionFromServer(dispatch) { // This one is not exported and
 
     });
 }
+export async function authGoogleLogin(dispatch,data){
+  var formData=new FormData();
+  formData.append('tokenId',data.tokenId)
+  formData.append('remember',false)
+  const requestOptions = {     
+    headers: { 'content-type': 'multipart/form-data' }
+  }
+  dispatch({ type: 'REQUEST_LOGIN' });
+  return axios.post(backend_url('user/login/google'), formData, requestOptions)
+  .then((response) => {
+    console.log ('POST /user/login/google, response =>', response.data);
+    let user = response.data.current_user;
+    let prefs = {};
+    
+    if (user) {
+        prefs = user.prefs;
+        delete user.prefs;
+        dispatch({ type: 'LOGIN_SUCCESS', payload: {user: user, prefs: prefs}});
+        return true;
+    } else {
+        dispatch({ type: 'LOGIN_ERROR', error: response.data['error'] });
+        return false;
+    }
+})
+.catch((e) => {
+    console.log("POST /user/login/google, error =>" + e);
+    dispatch({ type: 'LOGIN_ERROR', error: e });
+    return false;
+});
 
+}
 export async function authLogin(dispatch, data) {
 
     var formData = new FormData();
@@ -219,9 +249,9 @@ export async function authLogin(dispatch, data) {
 
     dispatch({ type: 'REQUEST_LOGIN' });
 
-    return axios.post(backend_url('user/login'), formData, requestOptions)
+    return axios.post(backend_url('user/login/basic'), formData, requestOptions)
     .then((response) => {
-        console.log ('POST /user/login, response =>', response.data);
+        console.log ('POST /user/login/basic, response =>', response.data);
         let user = response.data.current_user;
         let prefs = {};
         if (user) {
@@ -235,7 +265,7 @@ export async function authLogin(dispatch, data) {
         }
     })
     .catch((e) => {
-        console.log("POST /user/login, error =>" + e);
+        console.log("POST /user/login/basic, error =>" + e);
         dispatch({ type: 'LOGIN_ERROR', error: e });
         return false;
     });

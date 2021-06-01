@@ -392,6 +392,10 @@ def db_user_load(id):
 
 def db_user_load_by_email(email):
     db_session.begin()
+    users = (User.query.all())
+    print(users)
+    for user in users:
+
     user = User.query.options(selectinload(User.org_list)).filter_by(email=email).scalar() # scalar returns a single record or 'None'; raises exception if >1 found
     db_session.commit()
     #db_session.close()

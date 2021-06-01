@@ -28,7 +28,7 @@ import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 
 import { AlertList, Alert } from '../components/alerts';
-
+import jwt_decode from "jwt-decode";
 
 // User Edit form.  If props.match.params.id was passed in, edit the existing user.  If not, create a new user.
 const UserEdit = (props) => {

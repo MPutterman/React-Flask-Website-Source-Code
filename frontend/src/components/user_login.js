@@ -3,7 +3,7 @@
 // * Not yet implemented display or handling of login-errors, e.g. wrong password, etc...
 
 import React from "react";
-import { authLogin, authLogout, useAuthState, useAuthDispatch } from '../contexts/auth';
+import { authLogin, authLogout,authGoogleLogin, useAuthState, useAuthDispatch } from '../contexts/auth';
 import { useConfigState } from '../contexts/config';
 import backend_url from './config.js';
 import { withRouter } from "react-router";
@@ -20,6 +20,7 @@ import InputLabel from "@material-ui/core/InputLabel";
 import FormGroup from "@material-ui/core/FormGroup";
 import FormControlLabel from "@material-ui/core/FormControlLabel";
 import Checkbox from "@material-ui/core/Checkbox";
+import GoogleLogin from 'react-google-login'
 
 import {
   AutoForm,
@@ -130,7 +131,22 @@ const UserLogin = (props) => {
 */
 
     // Handlers
-
+    async function onGoogleLogin(e){
+      console.log(e)
+      setLoginPending(true);
+      let data={}
+      data.tokenId = e.tokenId
+      
+        return await authGoogleLogin(authDispatch, data)
+        .then( (response) => {
+            if (response) {
+                const url = session.prefs['general']['redirect_after_login'];    
+                history.push(url); 
+            }
+            setLoginPending(false);
+        });
+    }
+    
     async function onLogin(data, e) {
 
         //console.log('session value is: =>', session);
@@ -166,6 +182,7 @@ const UserLogin = (props) => {
 
     return (
         <>
+        
 
         {session['auth'] ? (  // If logged in:
           <form onSubmit={onLogout}>
@@ -174,7 +191,16 @@ const UserLogin = (props) => {
           </form>
 
         ) : (
-
+        <div>
+        <div style = {{position:'absolute',marginTop:'0vh',marginLeft:'0vw',zIndex:12}}>
+          {true &&<GoogleLogin
+            clientId={process.env.REACT_APP_GOOGLE_OAUTH_CLIENT}
+            buttonText="Login"
+            onSuccess={onGoogleLogin}
+            onFailure={Alert('An Error Has Occurred in the Login')}
+            cookiePolicy={'single_host_origin'}
+          />} 
+		    </div>
         <div className="UserLoginForm" style = {{ maxWidth: '250px', margin: 'auto', }}>
         <AutoForm schema={bridge} onSubmit={onLogin} ref={ref => (formRef = ref)}>
           <AutoField name="email" />
@@ -188,6 +214,7 @@ const UserLogin = (props) => {
           <Button fullWidth variant="outlined" onClick={onRegister}>Register for Account</Button>
 
         </AutoForm>
+        </div>
         </div>
 
         )}
