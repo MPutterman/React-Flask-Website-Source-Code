@@ -1,5 +1,8 @@
 /* TODO:
 
+* Really nice tutorial on modal elements (including form fields):
+https://blog.bitsrc.io/build-a-full-featured-modal-dialog-form-with-react-651dcef6c571
+
 * Need some kind of file-uploader component (popup?)... also for equipment and organizations...
 --- choose file
 --- type (radiation, bright, dark, etc...) -- default set by parent component
@@ -11,6 +14,8 @@
 
 
 * Need to revamp the interface a bit to gather all the needed fields...
+* [To divide sections can use Accordion/Tabs or Stepper (wizard of forms)...]
+
    SECTION 1 (analysis metadata)
    - name (short description)
    - description
@@ -34,7 +39,7 @@
    --- exp time
    --- exp temp
 
-   SECTION 3 (correction)
+   SECTION 3 (corrections)
    - use dark correction?
    - dark image (pref if defined, or use picker, include option to add new)
    --- name
@@ -48,8 +53,10 @@
    --- datetime (get from file?)
    --- exp time
    --- exp temp
+   - artifact elimination(?) - e.g. edge of chip etc..
    - background correction method [none, uniform, gradient, ...] (pref by default)
    - filtering method [none, 3x3 median filtering, ...] (pref by default)
+   
 */
 
 import React from "react"; 
@@ -58,6 +65,12 @@ import { withRouter } from "react-router";
 import { backend_url } from './config';
 
 import LinearProgress from "@material-ui/core/LinearProgress";
+
+import Accordion from '@material-ui/core/Accordion';
+import AccordionSummary from '@material-ui/core/AccordionSummary';
+import AccordionDetails from '@material-ui/core/AccordionDetails';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import Grid from '@material-ui/core/Grid';
 
 // Imports for automatic form generation
 import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField, LongTextField} from 'uniforms-material';
@@ -209,38 +222,84 @@ class Submission extends React.Component {
   render() {
     return (
         <div> 
-          <div>
+          <div style={{width: '500px'}}>
               <AutoForm
                 schema={this.bridge}
                 onSubmit={this.onFileUpload}
                 ref={ref => (this.formRef = ref)}
               >
+
+              <Accordion>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />} >
+                Analysis settings
+              </AccordionSummary>
+              <AccordionDetails>          
+
+                <Grid container direction='column'>
+                <Grid item>    
                 <AutoField name="name" />
                 <ErrorField name="name" />
+                </Grid>
+                <Grid item>
                 <AutoField name="description" component={LongTextField} />
                 <ErrorField name="description" />
+                </Grid>
 {/*
+                <Grid Item>
                 <AutoField name="experiment_datetime" />
                 <ErrorField name="experiment_datetime" />
+                </Grid>
 */}
+                </Grid>
+              </AccordionDetails>
+              </Accordion>
+
+              <Accordion>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />} >
+                Primary images
+              </AccordionSummary>
+              <AccordionDetails>              
+
                 <AutoField name="image_radiation" component={FileInputField} />
                 <ErrorField name="image_radiation" />
+                <AutoField name="image_brightfield" component={FileInputField} />
+                <ErrorField name="image_brightfield" />
+              
+              </AccordionDetails>
+              </Accordion>
+
+              <Accordion>
+              <AccordionSummary expandIcon={<ExpandMoreIcon />} >
+                Corrections
+              </AccordionSummary>
+              <AccordionDetails>              
+              
+                <Grid container direction='column'>
+                <Grid item>
                 <AutoField name="image_radiation_dark" component={FileInputField} />
                 <ErrorField name="image_radiation_dark" />
                 <AutoField name="image_flat" component={FileInputField} />
                 <ErrorField name="image_flat" />
-                <AutoField name="image_brightfield" component={FileInputField} />
-                <ErrorField name="image_brightfield" />
+                </Grid>
                 <p> Below are not really supported any more </p>
+                <Grid item>
                 <AutoField name="image_brightfield_flat" component={FileInputField} />
                 <ErrorField name="image_brightfield_flat" />
+                </Grid>
+                <Grid item>
                 <AutoField name="image_uv" component={FileInputField} />
                 <ErrorField name="image_uv" />
                 <AutoField name="image_uv_flat" component={FileInputField} />
                 <ErrorField name="image_uv_flat" />
-                <p>If you submit without choosing files, it will use sample data</p>
+                </Grid>
+                </Grid>
 
+              </AccordionDetails>
+              </Accordion>
+
+                <p>If you submit without choosing files, it will use sample data</p>
                 <SubmitField>Upload Files and Start Analysis</SubmitField>
+
               </AutoForm>
           </div>
       </div>
