@@ -207,11 +207,12 @@ const UserEdit = (props) => {
       org_list: {
         label: 'Organization List',
         type: Array,
-        // NOTE: this give validation failure to keep the following:
-        // Since this is asynchronously retrieved, this is intially set to empty perhaps?
+        // TODO: Need to figure out how to have 'allowedValues' here, but 
+        // since it is async retrieved the validator is created with outdated version
         //allowedValues: availableOrganizations ? availableOrganizations.map(x => (x.org_id)) : [], // make an array of org_ids
         required: true,
         // TODO: how to add a label like "Select your organization(s)"?
+        // Tried adding an extra entry with label and null value but didn't work...
         uniforms: {
           checkboxes: false,
           options: availableOrganizations ? availableOrganizations.map((x) => ({label:x.name, value:x.org_id})) : [],
