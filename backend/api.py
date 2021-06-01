@@ -1,6 +1,32 @@
 
-# RESOURCES:
-# Main Flask api documentation: https://flask.palletsprojects.com/en/1.1.x/api/
+# RESOURCES and CREDITS:
+#
+# * https://flask.palletsprojects.com/en/1.1.x/api/ (main Flask api documentation)
+# * https://flask.palletsprojects.com/en/2.0.x/config/ (how to handle app configuration)
+# * https://pythonise.com/series/learning-flask/python-before-after-request (how to use before/after request handlers)
+# * https://flask-login.readthedocs.io/en/latest/#flask_login (flask_login documentation)
+# * https://pythonhosted.org/Flask-Security/quickstart.html (use of flask_security module) -- not currently used
+# * https://yasoob.me/posts/how-to-setup-and-deploy-jwt-auth-using-react-and-flask/ (handling login with react/flask combination)
+# * https://www.digitalocean.com/community/tutorials/how-to-add-authentication-to-your-app-with-flask-login (another approach)
+
+# NOTES:
+# * Need to import session from Flask, and Session from flask_session
+
+
+# TODO:
+# * We should move all the analysis-specific stuff out of here and into separate files that are just loaded in particular
+#   API calls when needed
+# * The front end is the main place to restrict access to routes, and display 'not authorized'. Probably we should not use
+#   @flask_login.login_required in the backend. Part of this issue is it is not clear how to set up flask_login.login_view
+#   to execute a FRONTEND redirect
+#   an extra layer of protection in backend using @flask_login.login_required
+# * A few sites have recommended using '/api' at the beginning of all backend to help better separate frontend and backend
+# * A lot of flask_session files get created per request (for Mike). Does this happen for others too?
+# * Need to look up how to split initialization activities between (if __name__ == '__main__':) section and @app.before_first_request
+# * Need to prevent saving of empty password to user profile (e.g. when create account from google login, or when update account
+#   after Google login)
+# * Need to look at difference between DB session versus connection... maybe not using correctly
+# * Need to test whether session timeout is working properly, and remember-me feature
 
 import time
 from scipy.cluster.vq import vq, kmeans,whiten
@@ -25,15 +51,19 @@ from skimage.color import rgba2rgb
 import os
 from skimage import measure
 from flask_cors import CORS,cross_origin
+import flask_login
+from flask_login import LoginManager
 
 import ast
 from datetime import timedelta
 
 
 # Include database layer
-from database import retrieve_image_path,db_create_tables, db_add_test_data,retrieve_initial_analysis,db_analysis_save,db_analysis_save_initial,db_analysis_edit
-
-
+from database import (
+    db_create_tables, db_add_test_data,db_cleanup,
+    db_user_load, db_user_load_by_email,
+    retrieve_image_path,retrieve_initial_analysis,db_analysis_save,db_analysis_save_initial,db_analysis_edit
+)
 
 class analysis():
     """Input: ROIs, n_l, origins, filename, doUV, doRF, autoLane, names"""
@@ -92,7 +122,7 @@ class analysis():
         
         if doUV:
             
-            img =session['cerenkovcalc']
+            img =session.get('cerenkovcalc')
             #print(newOrigins)
             cerenks= self.calculateCerenkov(newROIs,img)
             RFs = self.calculateRF(newROIs,img)
@@ -109,7 +139,7 @@ class analysis():
             ####print(time.time()-tim)
             return cerenks_RFs
         elif doRF and not doUV:
-            img = session['cerenkovcalc']
+            img = session.get('cerenkovcalc')
             cerenks = self.calculateCerenkov(newROIs,img)
             RFs = self.calculateRF(newROIs,newOrigins,img)
             cerenks_RFs=[]
@@ -126,7 +156,7 @@ class analysis():
             return cerenks_RFs
             
         else:
-            img = session['cerenkovcalc']
+            img = session.get('cerenkovcalc')
             
             cerenks = self.calculateCerenkov(newROIs,img)
             
@@ -711,6 +741,9 @@ def makeFileArray(fileN,fileN1):
     return fileN
 def add_dir(email):
     #print('here')
+    # TODO: change file structure to
+    # /image/<equip_ip>/dark, flat, bright, radiation ??
+
     os.mkdir(f"./users/{email}")
     os.mkdir(f"./users/{email}/files")
     file = open(f"./users/{email}/files/desc.txt", "w")
@@ -754,49 +787,91 @@ def findFiles(lanes,cerenkName,darkName,flatName,UVName,UVFlatName):
             names.append(arr)
     return names
 
-app = Flask(__name__)
+# Import server configuration info
 from dotenv import load_dotenv
 load_dotenv()
-SECRET_KEY = os.getenv('FLASK_APP_SECRET_KEY')
-#put secret key in env
-SESSION_TYPE = 'filesystem'
-app.config.from_object(__name__)
+
+# App and session setup and configuration
+app = Flask(__name__)
+app.config['SECRET_KEY'] = os.getenv('FLASK_APP_SECRET_KEY') # TODO: rename to FLASK_SESSION_SECRET_KEY
+app.config['SESSION_TYPE'] = 'filesystem'
+app.config['SESSION_PERMANENT'] = True
+#app.config['SESSION_COOKIE_HTTPONLY'] = True
+#app.config['REMEMBER_COOKIE_HTTPONLY'] = True
+#app.config['SESSION_COOKIE_SAMESITE'] = 'Strict'
+app.config.from_object(__name__)  # still need this?
 Session(app)
-CORS(app, support_credentials=True)
+
+CORS(app,
+    headers=['Content-Type'],
+    expose_headers=['Access-Control-Allow-Origin'],
+    support_credentials=True
+)
+
+def login_view():
+    return "<p>ERROR: backend intercepted request intended only for logged in users. This should be prevented from the front end.</p>"
+
+login_manager = LoginManager(app)
+#login_manager.session_protection = 'strong'
+login_manager.login_view = 'login_view'
+login_manager.login_message = 'You need to be logged in to perform this request.'
+#login_manager.unauthorized = .....   ## HOW TO USE THIS?
+
+app.config['session_timeout'] = 10 # minutes
+app.permanent_session_lifetime = timedelta(minutes=app.config['session_timeout'])
+app.config['anonymous_user_name'] = 'Anonymous'
+
+@login_manager.user_loader
+def session_load_user(user_id):
+    return db_user_load(user_id)
 
 
-
-# --------------
-# Initialization
-# --------------
+# ---------------
+# Global handlers
+# ---------------
 
 @app.before_first_request
 def initialize():
     db_create_tables() # won't always do this
     db_add_test_data() # won't always do this
-    session.permanent = True
-    # app.permanent_session_lifetime = timedelta(minutes=5)
 
+#@app.before_request
+#def initialize_request():
+
+@app.teardown_request
+def teardown(exception):
+    db_cleanup()
 
 # -------------------
 # USER-related routes
 # -------------------
 
-@app.route('/user/create', methods = ['GET'])
+@app.route('/api/session/load', methods = ['GET'])
 @cross_origin(supports_credentials=True)
-def user_create():
-    # Return fields for new user with default values filled in
-    return ( {'id': None, 'firstName': None, 'lastName': None, 'email': None, 'orgList': []} )
+def session_load():
+    user = flask_login.current_user
+    if (user.is_authenticated):
+        #print("GET /api/session/load, retrieved user_id = " + str(user.user_id) + "\n")
+        user_dict = user.as_dict()
+        user_dict.pop('password_hash') # Remove password_hash before returning to frontend
+        return ({ 'current_user': user_dict })
+    else:
+        #print("GET /api/session/load, not logged in\n")
+        return ({ 'current_user': None })
 
+
+# TODO: add error checking if not found
 @app.route('/user/load/<id>', methods = ['GET'])
 @cross_origin(supports_credentials=True)
 def user_load(id):
     from database import db_user_load
-    user_dict = db_user_load(id)
-    return user_dict
+    user = db_user_load(id)
+    data = user.as_dict()
+    data['org_list'] = [org.org_id for org in user.org_list]
+    return data
 
 # Return a list of users (array of dict)
-# TODO: read in parameter strings from request for filtering, pagination, order, etc...
+# TODO: read in parameter strings from request for filtering, pagination, order, etc.
 @app.route('/user/search', methods = ['GET', 'POST']) # QUESTION: need GET and POST?
 @cross_origin(supports_credentials=True)
 def user_search():
@@ -805,23 +880,26 @@ def user_search():
     return org_list
 
 # Save the submitted user information
-# QUESTION: should we add <id> to the route?
 @app.route('/user/save', methods = ['POST'])
+#@flask_login.login_required
 @cross_origin(supports_credentials=True)
 def user_save():
     #print(request.form)
+
     data = {
         'user_id': request.form.get('user_id') or None,
         'first_name': request.form.get('first_name'),
         'last_name': request.form.get('last_name'),
         'email': request.form.get('email'),
+        'password': request.form.get('password'),
         'org_list': [int(org_id) for org_id in request.form.get('org_list').split(',') if org_id.strip()],
     }
-    # org_list arrives as a string with commands... need to split to generate an array
+    # TODO: somehow missing value is coming in as text 'null' if missing... maybe from front-end
+    if (data['user_id'] == 'null'):
+        data['user_id'] = None
+    # org_list arrives as a string with commas... need to split to generate an array
     from database import db_user_save
     user = db_user_save(data)
-    #print ("BACK in api.py, here is user: ")
-    #print (user)
     data['user_id'] = user['user_id']
     return data
 
@@ -855,7 +933,7 @@ def ret_data():
 @cross_origin(supports_credentials=True)
 def fix_background(num):
     #print('f')
-    img = session['cerenkovradii']
+    img = session.get('cerenkovradii')
     tim = time.time()
     val = img.copy()
     img-=np.min(img)
@@ -893,10 +971,130 @@ def fix_background(num):
     filepath = retrieve_image_path('cerenkovdisplay',num)
     os.remove(filepath)
     img.save(filepath)
-    
+    return {'r':2}
+
+@app.route('/user/login/<login_method>', methods=['POST'])
+@cross_origin(supports_credentials=True)
+def user_login(login_method):
+    from database import db_user_load_by_email
+    if login_method=='basic':
+        # Set up hashing
+        import bcrypt
+        email = request.form['email']
+        print(request.form['remember'])
+        remember = request.form['remember']=='true'
+        
+        user = db_user_load_by_email(email)
+        if (user == None):
+            return {
+                'error': True,
+                'message': "User email not found",
+                'current_user': None,
+            }
+            
+        if (bcrypt.checkpw(request.form['password'].encode('utf8'), user.password_hash.encode('utf8'))):
+            #user.setAuthenticated() # Do something here to set when logged in
+            session.permanent = True
+            flask_login.login_user(user, remember) # Part of flask_login
+            user_dict = user.as_dict()
+            user_dict.pop('password_hash') # Remove password_hash before sending to front_end
+            return {
+                'error': False,
+                'message': "Successful login",
+                'current_user': user_dict,
+            }
+
+        else:
+            return {
+                'error': True,
+                'message': "Password mismatch",
+                'current_user': None,
+            }
+    elif login_method=='google':
+        from google.oauth2 import id_token
+        from google.auth.transport import requests
+        token = request.form['tokenId']
+        
+        remember = request.form['remember']=='false'
+        client_id = os.getenv('REACT_APP_GOOGLE_OAUTH_CLIENT')
+        try:
+            id_info = id_token.verify_oauth2_token(token, requests.Request(),client_id)
+        except:
+            return{
+                'error':True,
+                'message':'Invalid Token',
+                'current_user':None
+            }
+
+        if id_info['iss'] != 'https://accounts.google.com' and id_info['iss']!='accounts.google.com':
+            return {
+                'error':True,
+                'message':'Wrong Auth Provider',
+                'current_user':None
+            }
+        
+        if id_info['aud'] not in [client_id]:
+            return{
+                'error':True,
+                'message':'Faulty or Faked Token',
+                'current_user':None
+            }
+        if id_info['exp']<time.time():
+            return{
+                'error':True,
+                'message':'Past Expiry Time',
+                'current_user':None
+            }
+        email = id_info['email']
+        
+        user = db_user_load_by_email(email)
+        if (user == None):
+            return {
+                'error': True,
+                'message': "User email not found",
+                'current_user': None,
+            }
+        session.permanent = True
+        flask_login.login_user(user, remember) # Part of flask_login
+        user_dict = user.as_dict()
+        return {
+            'error': False,
+            'message': "Successful login",
+            'current_user': user_dict,
+        }
+        
+        
     
 
-    return {'r':2}
+        
+    else:
+        return {
+            'error':True,
+            'message':'Invalid Login Type',
+            'current_user': None
+        }
+
+@app.route('/user/logout', methods=['POST'])
+#@flask_login.login_required
+@cross_origin(supports_credentials=True)
+def user_logout():
+    if flask_login.current_user.is_authenticated: 
+        flask_login.logout_user() # Part of flask_login
+        return {
+            'error': False,
+            'message': "Successful logout",
+            'current_user': None,
+        }
+    else:
+        return {
+            'error': True,
+            'message': "Not logged in",
+            'current_user': None,
+        }
+    
+# Google-signin
+# TODO: needs to be linked to our user table (and create a new user upon first login, if email not already exist)
+
 @app.route('/sign_in',methods=['POST'])
 @cross_origin(supports_credentials=True)
 def sign_in():
@@ -908,7 +1106,7 @@ def sign_in():
             arr[i][j]=i+j
         
     session['based_arr'] = arr
-    print(session['email'])
+    print(session.get('email'))
     return 'kk'
 
 @app.route('/analysis_edit/<filename>',methods = ['POST'])
@@ -931,9 +1129,7 @@ def analysis_edit(filename):
         newOrigins = ast.literal_eval(request.form.getlist('origins')[0])
         
     except:
-        print('NOO')
         newOrigins = []
-    print('newo',newOrigins)
     newOrigins = [newOrigins]
 
     newROIs = (request.form.getlist('ROIs'))
@@ -1041,7 +1237,9 @@ def createFile():
         data['ROIs'] = [current_analysis.ROIs]
         data['origins'] = []
         data['doRF'] = False
-        data['user_id'] = None
+
+        data['user_id'] = flask_login.current_user.get_id()
+        
         db_analysis_save_initial(data, tim)
         #print('success')
         
@@ -1058,7 +1256,7 @@ def give(filename):
     filen = retrieve_image_path('cerenkovdisplay',filename)
     print(filen)
     return send_file(filen)
-@app.route('/radius/<filename>/<x>/<y>/<shift>',methods = ['POST'])
+@app.route('/radius/<filename>/<x>/<y>/<shift>',methods = ['POST','GET'])
 @cross_origin(supports_credentials=True)
 def findRadius(filename,x,y,shift):
     ROIs = request.form.getlist('ROIs')
@@ -1066,7 +1264,7 @@ def findRadius(filename,x,y,shift):
     print(ROIs)
     
     tim = time.time()
-    img = session['cerenkovradii']
+    img = session.get('cerenkovradii')
     rowRadius = 0
     colRadius = 0
     num_zeros = 0
@@ -1112,6 +1310,7 @@ def findRadius(filename,x,y,shift):
 def giveUV(filename):
     filen = './UPLOADS/'+filename+'/UV.png' 
     return send_file(filen)
+
 @app.route('/Cerenkov/<filename>',methods = ['GET'])
 @cross_origin(supports_credentials=True)
 def giveCerenkov(filename):
@@ -1135,6 +1334,7 @@ def data():
     filename = str(np.load(f'./database/{name}.npy'))
     #print('fname:',filename)
     return {'Key':filename}
+
 @app.route('/results/<filename>',methods = ['GET'])
 @cross_origin(supports_credentials=True)
 def results(filename):
@@ -1144,32 +1344,19 @@ def results(filename):
 
         #print(analysis_results)
         return{"arr":analysis_results}
+
 @app.route('/upload_data/<filename>',methods=['POST'])
 @cross_origin(supports_credentials=True)
 def upload_data(filename):
     analysis = retrieve_initial_analysis(filename)
-    data = {}
+    data = request.form.to_dict()
+    data['user_id'] = flask_login.current_user.get_id()
     db_analysis_save(request.form.to_dict(),filename)
     return 'yes'
 
     
-     
-    
 if __name__ == '__main__':
+    # TODO: consider what should go here, in 'before_app_first_request' or at the top of this file
+    # (This is only run when it is the main app, not included in another file)
     ##print("Running!")
     app.run(host='0.0.0.0',debug=False,port=5000)
-
-    
-
-
-        
-
-        
-
-        
-        
-
-    
-    
-    
-

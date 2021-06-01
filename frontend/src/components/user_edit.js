@@ -1,4 +1,15 @@
-import React, {useState, useEffect} from "react";
+// TODO:
+// * Need to do some error checking to avoid duplicate accounts with same email address. Duplicates break
+//   retrieval from database
+// * Currently using this page for new user registration. In practice probably want a multi-step verification
+// * Need to add better rendering of password (hidden) and maybe visible/invisible toggle
+// * Need to improve changing of password, maybe as a separate form with more authentication checks (fresh login),
+//   and require successful entry of previous password.  Also a 'forgot password' functionality is needed.
+// * PERHAPS, if user_id is not valid (i.e. registering), then show passwords,
+//   otherwise omit these fields... and have a special change password form....
+// * TODO: figure out if still need all the reset-related form hooks, etc...
+
+import React from "react";
 import axios from "axios";
 import * as FormData from "form-data";
 import backend_url from './config.js';
@@ -7,45 +18,36 @@ import { useForm, Controller } from "react-hook-form";
 import Input from "@material-ui/core/Input";
 import TextField from "@material-ui/core/TextField";
 import Button from "@material-ui/core/Button";
+import CircularProgress from "@material-ui/core/CircularProgress";
 import Select from "@material-ui/core/Select";
 import MenuItem from "@material-ui/core/MenuItem";
 import InputLabel from "@material-ui/core/InputLabel";
+import { spacing } from '@material-ui/system';
+import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField,} from 'uniforms-material';
+import SimpleSchema from 'simpl-schema';
+import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 
-// TODO: need to run: npm install @material-ui/lab
 import { AlertList, Alert } from '../components/alerts';
+import jwt_decode from "jwt-decode";
 
-/* Important notes:
-   I am using Material UI for form components, and React Hook Form for handling of validation.
-   To enable React Hook Form to work with Material UI (non-native HTML5 elements), it is
-   necessary to wrap each form element in a "Controller", so that events are properly received
-   (e.g. for re-rendering). https://react-hook-form.com/api/usecontroller/controller#main
-*/
-
-/* Open questions:
-  Q: There is a provision for a customer validator function, but it is not clear how to set up
-  a custom error message.  See comments in code below.  Also see the following link:
-   https://spectrum.chat/react-hook-form/help/how-to-add-validation-for-controller-fields~4ddce901-6140-44b7-a561-384fe5c4cd6f
-*/
-
-/* Credits:
-   Borrowing from here: https://bezkoder.com/react-hooks-crud-axios-api/
-   Using functional version (rather than class) to enable use of React-Hook-Form library
-*/
-
-// User Edit form
+// User Edit form.  If props.match.params.id was passed in, edit the existing user.  If not, create a new user.
 const UserEdit = (props) => {
+
+    let formRef;
 
     const initialUserState = {
         user_id: null,
         first_name: '',
         last_name: '',
         email: '',
+        //password: '',
         org_list: [],
     };
 
-    const [currentUser, setCurrentUser] = useState(initialUserState);
-    const [message, setMessage] = useState('');
-    const [availableOrganizations, setAvailableOrganizations] = useState([]);
+    const [loading, setLoading] = React.useState('false');
+    const [currentUser, setCurrentUser] = React.useState(initialUserState);
+    const [message, setMessage] = React.useState('');
+    const [availableOrganizations, setAvailableOrganizations] = React.useState([]);
 
     // Form hooks
     // mode is the render mode (both onChange and onBlur)
@@ -55,7 +57,7 @@ const UserEdit = (props) => {
     // Actions when form is submitted
     // TODO: need to handle other types of submit, e.g. delete?
     const onSubmit = (data, e) => {
-      console.log("UserEdit form submit: data => ", data);
+      //console.log("UserEdit form submit: data => ", data);
       updateUser(data)
       // Temporary... after saving, re-retrieve the user to change currentUser and trigger useEffect
       // so cancel will now revert to the last saved value
@@ -63,20 +65,26 @@ const UserEdit = (props) => {
     };
     
     // Retrieve user with specified id from the database
-    const getUser = (id) => {
-        axios.get(backend_url('user/load/' + id))
-        .then((response) => {
-            setCurrentUser(response.data);
-            console.log ("In getUser: response data => ", response.data);
-        })
-        .catch((e) => {
-            console.error("GET /user/edit/" + id + ": " + e);
-        });
-
+    // TODO: Error handling if user is not found... need to redirect to not found page
+    async function getUser(id) {
+        setLoading(true);
+        if (id) {
+            axios.get(backend_url('user/load/' + id))
+            .then((response) => {
+                setCurrentUser(response.data);
+                setLoading(false);
+            })
+            .catch((e) => {
+                console.error("GET /user/edit/" + id + ": " + e);
+                setLoading(false);
+            });
+        } else {
+            setLoading(false);
+        }
     }
 
     // Retrieve list of available organizations (for now all organizations)
-    const getOrganizations = () => {
+    async function getOrganizations() {
         axios.get(backend_url('organization/search'))
         .then((response) => {
             setAvailableOrganizations(response.data);
@@ -87,49 +95,56 @@ const UserEdit = (props) => {
         });
     }
 
-    // useEffect fires after render. This one is conditional on changes in props.match.params.id
-    // Because this is set by the url/route, it will be activated the first time the page is visited
-    useEffect(() => {
+    // Call this upon first value of props.match.params.id (should only run once)
+    React.useEffect(() => {
+        console.log("In useEffect #1"); // currentUser and availableOrganizations are updated asynchronously
         getUser(props.match.params.id);
         getOrganizations();
-        console.log("In useEffect #1 => ", currentUser, availableOrganizations);
     }, [props.match.params.id]);
 
     // This second useEffect is triggered whenever 'currentUser' changes (i.e. after loading from database).
     // When triggered, it sets the defaultValues of the form to currentUser, then triggers the form to reset.
-    // This causes the form fields to fill in with the newly retrieved data in currentUser
-    useEffect(() => {
+    // This causes the form fields to fill in with the newly retrieved data in currentUser.
+    // TODO: for some reason if I try to put reset(currentUser) in the getUser function it doesn't
+    // properly reset the form...
+    React.useEffect(() => {
         console.log("In useEffect #2 => ", currentUser); //initUser);
         reset(currentUser);
     }, [currentUser]);
 
 
     const onReset = () => {
-        console.log("In resetUser: currentUser => ", currentUser);
+        //console.log("In resetUser: currentUser => ", currentUser);
         reset(currentUser);
 
     }
 
     // Save the user information back to the database
-    const updateUser = (data) => {
+    async function updateUser(data) {
         var formData = new FormData();
         formData.append('user_id', data.user_id);
         formData.append('first_name', data.first_name);
         formData.append('last_name', data.last_name);
         formData.append('email', data.email);
+        formData.append('password', data.password);
         formData.append('org_list', data.org_list);
-        
+
         const config = {     
             headers: { 'content-type': 'multipart/form-data' }
         }
 
-        axios.post(backend_url('user/save'), formData, config)
+        setLoading(true);
+        return axios.post(backend_url('user/save'), formData, config)
         .then((response) => {
             console.log(response.data);
             setMessage("success");
+            setCurrentUser(response.data);
+            reset(currentUser);
+            setLoading(false);
         })
         .catch((e) => {
             console.log("POST /user/save: " + e);
+            setLoading(false);
         });
     }
 
@@ -146,149 +161,139 @@ const UserEdit = (props) => {
         });
     }    
 
-    // Returns how to rener the form
+    // Schema for form
+    // NOTE: Good docs here: https://github.com/longshotlabs/simpl-schema 
+    // that describe special validation (e.g. passwordMistmatch) and customized error messages
+
+    const schema = new SimpleSchema ({
+      email: {
+        label: 'Email',
+        type: String,
+        //defaultValue: '',
+        required: true,
+        regEx: SimpleSchema.RegEx.EmailWithTLD,
+      },
+      first_name: {
+        label: 'First Name',
+        type: String,
+        required: true,
+      },
+      last_name: {
+        label: 'Last Name',
+        type: String,
+        required: true,
+      },
+      password: {
+        label: 'Password',
+        type: String,
+        required: true,
+        uniforms: {
+          type: 'password',
+        }
+      },
+      password_repeated: {
+        label: 'Repeat Password',
+        type: String,
+        required: true,
+        uniforms: {
+          type: 'password',
+        },
+        custom() {
+          if (this.value !== this.field("password").value) {
+            return "Passwords must match";
+          }
+        },
+      },
+      org_list: {
+        label: 'Organization List',
+        type: Array,
+        // NOTE: this give validation failure to keep the following:
+        // Since this is asynchronously retrieved, this is intially set to empty perhaps?
+        //allowedValues: availableOrganizations ? availableOrganizations.map(x => (x.org_id)) : [], // make an array of org_ids
+        required: true,
+        // TODO: how to add a label like "Select your organization(s)"?
+        uniforms: {
+          checkboxes: false,
+          options: availableOrganizations ? availableOrganizations.map((x) => ({label:x.name, value:x.org_id})) : [],
+        }
+      },
+      // NOTE: org_id is an array of integers, but with the request/responses, easiest to keep as strings
+      'org_list.$': {
+        type: SimpleSchema.Integer,
+      }
+    });
+
+// TODO: should put message above as 'passwordMismatch', but seems i would have
+// to then define all the messages here...
+//    SimpleSchema.messageBox.messages({
+//      en: {
+//        passwordMismatch: "Passwords must match",
+//      },
+//    });
+
+    var bridge = new SimpleSchema2Bridge(schema);
+
+    // Returns how to render the form
 
     return (
 
-          <div className="UserEditForm" width="50vw">
-            
-              <form onSubmit={handleSubmit(onSubmit)} onReset={onReset}> 
+          <div className="UserEditForm" style={{ maxWidth: '350px',}}>
 
-                <Controller
-                  control={control}
-                  name="first_name"
-                  rules= {{
-                    required: {value:true, message:"First name is required"},
-                      // Other types of validators:
-                      // minLength: {value: 3, message:"Minimum name length is 3"},
-                      // validate: ()=>{return getValues("name") === "bill";}
-                      // validate: {value: ()=>{return getValues("name") === "bill";} , message: "Name must be bill"},
-                  }}
-                  render={({field, fieldState, formState}) => 
-                  <TextField
-                    label="First name:"
-                    helperText={formState.errors.first_name ? formState.errors.first_name.message : ''}
-                    autoComplete="given-name"
-                    placeholder="First name"
-                    fullWidth
-                    variant='outlined'
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    value = {field.value}
-                    error={Boolean(fieldState.error)}
-                  />
-                  }
-                />
+              {loading ? (<><p>Loading... </p><CircularProgress/></>) : (
 
-                <Controller
-                  control={control}
-                  name="last_name"
-                  rules= {{
-                    required: {value:true, message:"Last name is required"},
-                  }}
-                  render={({field, fieldState, formState}) =>
-                  <TextField
-                    label="Last name:"
-                    helperText={formState.errors.last_name ? formState.errors.last_name.message : ''}
-                    autoComplete="family-name"
-                    placeholder="Last name"
-                    fullWidth
-                    variant='outlined'
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    value = {field.value}
-                    error={Boolean(fieldState.error)}
-                  />
-                  }
-                />
+              <>
+{/*
+How to implement 'reset'?
+*/}            
 
-                <Controller
-                  control={control}
-                  name="email"
-                  rules= {{
-                    required: {value:true, message:"Email is required"},
-                    pattern: {value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i, message: "Invalid email address"},
-                  }}
-                  render={({field, fieldState, formState}) =>
-                  <TextField
-                    label="Email address:"
-                    helperText={formState.errors.email ? formState.errors.email.message : ''}
-                    autoComplete="email"
-                    placeholder="Email address"
-                    fullWidth
-                    variant='outlined'
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    value = {field.value}
-                    error={Boolean(fieldState.error)}
-                  />
-                  }
-                />
+              <AutoForm
+                schema={bridge}
+                onSubmit={onSubmit}
+                ref={ref => (formRef = ref)}
+                model={currentUser}
+              >
+                <AutoField name="first_name" />
+                <ErrorField name="first_name" />
+                <AutoField name="last_name" />
+                <ErrorField name="last_name" />
+                <AutoField name="email" />
+                <ErrorField name="email" />
+                <AutoField name="password" />
+                <ErrorField name="password" />
+                <AutoField name="password_repeated" />
+                <ErrorField name="password_repeated" />
+                <AutoField name="org_list" />
+                <ErrorField name="org_list" />
+                <SubmitField>Save Changes</SubmitField>
 
-                {/* TODO: password field, but might use Google signin API */}
 
-                {/* TODO: This element is not well-rendered. Need to look into better Material-UI options.
-                    TODO: helperText doesn't work with grouped elements. Not to explore best practices here for displaying errors.  */}
-                <Controller
-                  control={control}
-                  name="org_list"
-                  rules= {{
-                  }}
-                  render={({field, fieldState, formState}) =>
-                  <>
-                  <InputLabel>Organization</InputLabel>
-                  <Select
-                    label="Organization:"
-                    multiple
-                    //helperText={formState.errors.orgList ? formState.errors.orgList.message : ''}
-                    autoComplete="organization"
-                    placeholder="Select your organization(s)"
-                    variant='outlined'
-                    onChange={field.onChange}
-                    onBlur={field.onBlur}
-                    value = {field.value}
-                    error={Boolean(fieldState.error)}
-                  >
-                  <MenuItem disabled value=''>Select your organization(s)</MenuItem>
-                  {
-                    // Dynamically generate the list of organizations
-                    availableOrganizations ? availableOrganizations.map(org => (
-                      <MenuItem value={org.org_id}>{org.name}</MenuItem>
-                    ))
-                    : null
-                  }
-                  </Select>
-                  </>
-                  }
-                />
-                <br/>
+              <div spacing={2}>
+              <Button fullWidth variant='outlined' type="link">Add New Organization (not yet working)</Button>
+              <br/>
 
-                <Button type="link">Add New Organization (not yet working)</Button>
-                <br/>
+              <Button fullWidth variant='outlined' type='reset' onClick={() => formRef.reset()}>Cancel</Button>
+              <Button fullWidth variant='outlined' type="delete" >Delete (not yet working)</Button>
 
-                <Button type="submit" >Save Changes</Button>
-                <Button type="reset"> Cancel</Button>
-                <Button type="delete" >Delete (not yet working)</Button>
+              </div>
+              </AutoForm>
 
-                {/* TODO: there is a Material-UI element for temporary status messages -- use that instead */ }
+              {message ? ( 
 
-                {message ? ( 
+                <>
+                <p>{message}</p>
 
-                  <>
-                  <p>{message}</p>
-
-                  <AlertList />
-                  {message === 'success' ? (
-                    <Alert severity="success">User successfully updated</Alert>
-                  ) : (
-                    <Alert severity="error">Something went wrong</Alert>
-                  )}
-                  </>
-                ):( <></>
+                <AlertList />
+                {message === 'success' ? (
+                  <Alert severity="success">User successfully updated</Alert>
+                ) : (
+                  <Alert severity="error">Something went wrong</Alert>
                 )}
+                </>
+              ):( <></>
+              )}
+              </>
 
-               </form>
-
+              )}
           </div>
         );
     

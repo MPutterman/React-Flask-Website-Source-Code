@@ -27,6 +27,8 @@ import {Link} from 'react-router-dom'
 
 
 class Start extends React.Component {
+
+/*
   constructor(props) {
     super(props);
     this.submissionLink = React.createRef();
@@ -125,13 +127,18 @@ class Start extends React.Component {
     return px / vw;
   };
  
+ */
+
   render() {
     return (
-      <ThemeProvider theme={this.theme}>
-        <CssBaseline />
         <div id="container">
+          <h1>Click on "New Analysis" or other options at the left menu to get started</h1>
+        </div>
+    );
+  }
+}
           
-          
+/*          
               
 		   <div style = {{position:'absolute',marginTop:'0vh',marginLeft:'0vw',zIndex:12}}>
 		   {true &&<GoogleLogin
@@ -222,15 +229,11 @@ class Start extends React.Component {
                       marginLeft: "41vw",
                       width: "0vw",
                       height: "0vh",
-                    }} to={{ pathname: '/submission'}} >click here</Link>
+                    }} to={{ pathname: '/analysis/new'}} >click here</Link>
                 </div>
-            
-              
-                
-              
-            
-      </ThemeProvider>
     
     )}
 }
+*/
+
 export default withRouter(Start);

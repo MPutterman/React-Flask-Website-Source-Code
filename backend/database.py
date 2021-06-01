@@ -2,9 +2,18 @@
 # NOTE: need to run: pip3 install SQLAlchemy
 # NOTE: need to run: pip3 install flask-login
 
+# REFERENCES and CREDITS:
+# * https://variable-scope.com/posts/storing-and-verifying-passwords-with-sqlalchemy (more sophisticated handling of password hashes)
+# * http://docs.sqlalchemy.org/en/14/orm/basic_relationships.html#many-to-many (how to set up data relationships with SQLAlchemy)
+#
+# * This page was useful to figure how to set up constructor for multiple inheritance with Mixin
+#   https://stackoverflow.com/questions/9575409/calling-parent-class-init-with-multiple-inheritance-whats-the-right-way
+
+
+
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy import Table, Column, ForeignKey
-from sqlalchemy import Integer, String, Float, Text, DateTime, LargeBinary, Enum, Boolean,BigInteger
+from sqlalchemy import Integer, String, Float, Text, DateTime, LargeBinary, Enum, Boolean, PickleType, BigInteger
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.orm import Session, sessionmaker, scoped_session
 from sqlalchemy.orm import joinedload, selectinload
@@ -48,6 +57,12 @@ db_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind
 Base = declarative_base()
 Base.query = db_session.query_property()
 
+# Cleanup
+def db_cleanup():
+    db_session.close()
+    #db_engine.dispose()
+
+
 # Define association tables
 
 user_org_map = Table('user_org_map', Base.metadata,
@@ -89,11 +104,8 @@ org_cover_map = Table('org_cover_map', Base.metadata,
 # )
 
 
-
 # Define data classes
 
-# See here for info on how to use 'relationship':
-# http://docs.sqlalchemy.org/en/14/orm/basic_relationships.html#many-to-many
 
 class User(UserMixin, Base):
     __tablename__ = 'user'
@@ -101,10 +113,37 @@ class User(UserMixin, Base):
     first_name = Column(String(64))
     last_name = Column(String(64))
     email = Column(String(254), nullable=False) # max lenth of an email address 
+    password_hash = Column(Text) # TODO: can be limited to length 60, but need correct type (String doesn't work)
+    is_active = Column(Boolean, default=True, nullable=False)
     is_deleted = Column(Boolean, default=False, nullable=False)
-    preferences = Column(Text, default='')
+    prefs = Column(PickleType)
     org_list = relationship("Organization", secondary=user_org_map) 
     analysis_list=relationship("Analysis",secondary=user_analysis_map)
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Needed to work with flask_login.login_manager
+        self.is_active = True
+        self.is_authenticated = True
+        self.is_anonymous = False
+
+    @classmethod
+    def hash (cls, password):
+        import bcrypt
+        return bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+
+    # Used by login_manager
+    def is_active(self):
+        return True # self.is_active
+    def is_authenticated(self):
+        return True # self.is_authenticated
+    def is_anonymous(self):
+        return False # self.is_anonymous
+    def get_id(self):
+        if self.user_id:
+            return str(self.user_id).encode('utf-8').decode('utf-8')
+        else:
+            return None
 
     def as_dict(self):
         # Returns full represenation of model.
@@ -118,6 +157,7 @@ class User(UserMixin, Base):
     #def setPreference(key, value):
 
     # Supported preferences:
+    # default_landing_page (relative path)
     # default_equipment_id (equipment id)
     # default_exposure_time (seconds)
     # default_exposure_temp (C)
@@ -315,8 +355,10 @@ def db_add_test_data():
     org2 = Organization(name = 'UCLA Ahmanson Translational Theranosticis Division', org_id = 21857,plate_list=[plate1],cover_list = [cover])
     org3 = Organization(name = 'Imaginary University Deparment of Radiochemistry',org_id = 25987)
     db_session.add_all([org1, org2, org3])
-    db_session.add(User(first_name = 'Alice', last_name = 'Armstrong', email = 'alice@armstrong.com', org_list=[org1]))
-    db_session.add(User(first_name = 'Bob', last_name = 'Brown', email = 'bob@brown.com',org_list=[org1,org2]))
+    prefs1 = { 'general': {'redirect_after_login': '/',}, }
+    prefs2 = { 'general': {'redirect_after_login': '/user/search',}, }
+    db_session.add(User(first_name = 'Alice', last_name = 'Armstrong', email = 'alice@armstrong.com', password_hash='$2b$12$jojM5EuDHREVES2S0OpLbuV.oDjqXWJ/wq9x07HwSQRfdpEUHLqNG', org_list=[org1], prefs=prefs1)) # PASSWORD 123
+    db_session.add(User(first_name = 'Bob', last_name = 'Brown', email = 'bob@brown.com',password_hash='$2b$12$kA7FRa6qA./40Pmtmi6mRelW2cnkhcOHtsKelIMVezDlF33YF62C2', org_list=[org1,org2], prefs=prefs2)) # PASSWORD 123
     db_session.add(User(first_name = 'Cathy', last_name = 'Chen', email = 'cathy@chen.com',org_list=[org1,org2]))
     db_session.add(User(first_name = 'David', last_name = 'Delgado', email = 'david@delgado.com',org_list=[org1,org2]))
     db_session.add(User(first_name = 'Elaine', last_name = 'Eastman', email = 'elaine@eastman.com',org_list=[org1,org2]))
@@ -341,21 +383,27 @@ def db_add_test_data():
 # --- roi: lane_id, <geometry description>
 # --- QUESTION... would we store the results inside the ROIs?, e.g. fields 'result_radio, 'result_rf'
 
-###  REALLY GOOD TUTORIAL HERE:
-###  https://pythonhosted.org/Flask-Security/quickstart.html#id2
-
-
 # Load a user from id. Also load the list of associated organization ids.
-# Return as a dict.
+# Return as a user object.
 # NOTE: 'scalar' method returns 'None' if no entry is found, or one object. Raises exception of more than 1 result found.
 # TODO: Figure out handling of ID-not found
 def db_user_load(id):
+    db_session.begin()
     user = User.query.options(selectinload(User.org_list)).filter_by(user_id=id).scalar() # scalar returns a single record or 'None'; raises exception if >1 found
     db_session.commit()
-    data = user.as_dict()
-    data['org_list'] = [org.org_id for org in user.org_list]
-    db_session.close()
-    return data
+    #db_session.close()
+    return user
+
+def db_user_load_by_email(email):
+    db_session.begin()
+    users = (User.query.all())
+    print(users)
+    for user in users:
+
+    user = User.query.options(selectinload(User.org_list)).filter_by(email=email).scalar() # scalar returns a single record or 'None'; raises exception if >1 found
+    db_session.commit()
+    #db_session.close()
+    return user
 
 # Save a user to the database.  Expects a dict, ant the org_list to be a list of org_ids.
 # Blank user_id means it hasn't yet been inserted to database
@@ -363,24 +411,26 @@ def db_user_save(data):
     #print("incoming data:")
     #print(data)
     db_session.begin()
+
     # If user_id exists, load user, replace data, then update
     # If user_id is empty, add a new user
-    if (data['user_id']):
+    if (data['user_id'] is not None):
         user = User.query.filter_by(user_id=data['user_id']).one()
         user.first_name = data['first_name']
         user.last_name = data['last_name']
         user.email = data['email']
+        user.password_hash = User.hash(data['password'])
         orgs = Organization.query.filter(Organization.org_id.in_(data['org_list'])).all() 
         user.org_list = orgs
     else:
-        user = User(first_name = data['first_name'], last_name = data['last_name'], email = data['email'])
+        user = User(first_name = data['first_name'], last_name = data['last_name'], email = data['email'], password_hash = User.hash(data['password']))
         orgs = Organization.query.filter(Organization.org_id.in_(data['org_list'])).all() 
         user.org_list = orgs
         db_session.add(user)
     db_session.commit()
     newdata = user.as_dict()
     newdata['org_list'] = [org.org_id for org in user.org_list]
-    db_session.close()
+    #db_session.close()
     #print ("data_after:")
     #print(newdata)
     return newdata
@@ -395,7 +445,7 @@ def db_user_search():
         current_user = user.as_dict()
         current_user['org_list'] = [org.org_id for org in user.org_list]
         data.append(current_user)
-    db_session.close()
+    #db_session.close()
     return dumps(data)
 
 # Return a list of organizations
@@ -440,6 +490,7 @@ def find_images(data):
 
 
 def retrieve_initial_analysis(analysis_id):
+    #db_session.begin()   # TODO: why does this cause "transaction is already begun" error?
     tim = time.time()
     analysis = Analysis.query.filter(Analysis.analysis_id==analysis_id).one()
     analysis_dict = {}
@@ -456,20 +507,24 @@ def retrieve_initial_analysis(analysis_id):
         analysis_dict['UVName']=Image.query.filter(Image.image_type==ImageType.uv , Image.analysis_list.any(analysis_id=analysis_id)).one().name
     if Image.query.filter(Image.image_type==ImageType.bright , Image.analysis_list.any(analysis_id=analysis_id)).all():
         analysis_dict['BrightName']=Image.query.filter(Image.image_type==ImageType.bright , Image.analysis_list.any(analysis_id=analysis_id)).one().name
+    db_session.commit()
     return analysis_dict
+
 def analysis_info(analysis_id):
     db_session.begin()
     analysis = Analysis.query.filter(Analysis.analysis_id == analysis_id).one()
+    db_session.commit()
     return analysis.as_dict()
+
 def retrieve_image_path(image_type,analysis_id):
-    
-        
     if 'cerenkov' in  image_type:
         image = CachedImage.query.filter(CachedImage.image_type ==find_image_type(image_type), CachedImage.analysis_id==analysis_id).one()
     else:
         image = Image.query.filter(Image.image_type==find_image_type(image_type), Image.analysis_id==analysis_id).one()
     return image.image_path
+
 def db_analysis_save(data,analysis_id):
+    db_session.begin()
     if data['user_id']:
         user_id = data['user_id']
     else:
@@ -483,7 +538,7 @@ def db_analysis_save(data,analysis_id):
     user.analysis_list.append(analysis)
     db_session.add(user)
     db_session.commit()
-    db_session.close()
+#    db_session.close()
 
 def db_analysis_edit(data,analysis_id):
     
@@ -493,7 +548,7 @@ def db_analysis_edit(data,analysis_id):
     analysis.origin_list = Origin.build_origins(data['origins'])
     db_session.add(analysis)
     db_session.commit()
-    db_session.close()
+#    db_session.close()
     
 def find_path(image_type,analysis_id):
     if image_type =='cerenkovdisplay':
@@ -505,8 +560,9 @@ def find_path(image_type,analysis_id):
     else:
         ending='.npy'
     return f'./UPLOADS/{analysis_id}/{image_type}{ending}'
+
 def db_analysis_save_initial(data,analysis_id):
-    db_session.begin()
+    #db_session.begin()  # TODO: why does this cause "transaction is already begun" error?
     images = []
     for image_type in ['dark','flat','radio','uv','bright']:
         if data[f'{image_type}_name']:
@@ -529,20 +585,6 @@ def db_analysis_save_initial(data,analysis_id):
     user = User.query.filter(User.user_id==user_id).one()
     user.analysis_list.append(analysis)
     db_session.add(user)
-    db_session.flush()
+    #db_session.flush()
     db_session.commit()
-
-    
-
-
-
-
-
-        
-
-        
-
-
-
-
 
