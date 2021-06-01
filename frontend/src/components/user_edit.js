@@ -1,8 +1,10 @@
 // TODO:
 // * Need to do some error checking to avoid duplicate accounts with same email address. Duplicates break
-//   retrieval from database
+//   retrieval from database. Add a front-end method just to check of existence of ID
+// * Figure out how to deal with users that use external (googleAuth or other) login
+//    - Do we allow multiple authentication methods?
 // * Currently using this page for new user registration. In practice probably want a multi-step verification
-// * Need to add better rendering of password (hidden) and maybe visible/invisible toggle
+// * Add show/hide toggle to password field?
 // * Need to improve changing of password, maybe as a separate form with more authentication checks (fresh login),
 //   and require successful entry of previous password.  Also a 'forgot password' functionality is needed.
 // * PERHAPS, if user_id is not valid (i.e. registering), then show passwords,
@@ -14,6 +16,7 @@ import axios from "axios";
 import * as FormData from "form-data";
 import backend_url from './config.js';
 import { withRouter } from "react-router";
+import { useParams } from 'react-router-dom';
 import { useForm, Controller } from "react-hook-form";
 import Input from "@material-ui/core/Input";
 import TextField from "@material-ui/core/TextField";
@@ -30,7 +33,10 @@ import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import { AlertList, Alert } from '../components/alerts';
 import jwt_decode from "jwt-decode";
 
-// User Edit form.  If props.match.params.id was passed in, edit the existing user.  If not, create a new user.
+// User Edit form
+// Special props:
+// - register - any value if desire to create a new user registration form
+// - id       - user id (if empty, create a new user)
 const UserEdit = (props) => {
 
     let formRef;
@@ -243,6 +249,7 @@ const UserEdit = (props) => {
               {loading ? (<><p>Loading... </p><CircularProgress/></>) : (
 
               <>
+              {props.register ? (<p>New user registration</p>) : (<></>)}
               <AutoForm
                 schema={bridge}
                 onSubmit={onSubmit}

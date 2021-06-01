@@ -79,7 +79,7 @@ const App = (props) => {
                 <Route path='/contact' component={Contact} />
                 <Route path='/about' component={About} />
                 <Route exact path='/user/edit/:id' component={UserEdit} />
-                <Route exact path='/user/register' component={UserEdit} />
+                <Route exact path='/user/register' render={(props)=> (<UserEdit {...props} register='true'/>)} /> 
                 <Route exact path='/user/login' component={UserLogin} />
                 <Route path='/user/search' component={UserSearch} />
                 {/*
