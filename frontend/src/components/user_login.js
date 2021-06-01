@@ -192,15 +192,6 @@ const UserLogin = (props) => {
 
         ) : (
         <div>
-        <div style = {{position:'absolute',marginTop:'0vh',marginLeft:'0vw',zIndex:12}}>
-          {true &&<GoogleLogin
-            clientId={process.env.REACT_APP_GOOGLE_OAUTH_CLIENT}
-            buttonText="Login"
-            onSuccess={onGoogleLogin}
-            onFailure={Alert('An Error Has Occurred in the Login')}
-            cookiePolicy={'single_host_origin'}
-          />} 
-		    </div>
         <div className="UserLoginForm" style = {{ maxWidth: '250px', margin: 'auto', }}>
         <AutoForm schema={bridge} onSubmit={onLogin} ref={ref => (formRef = ref)}>
           <AutoField name="email" />
@@ -214,6 +205,18 @@ const UserLogin = (props) => {
           <Button fullWidth variant="outlined" onClick={onRegister}>Register for Account</Button>
 
         </AutoForm>
+
+          <div>
+          <p>Alternatively, you can login via an external authenticator:</p>
+            {true &&<GoogleLogin
+              clientId={process.env.REACT_APP_GOOGLE_OAUTH_CLIENT}
+              buttonText="Login"
+              onSuccess={onGoogleLogin}
+              onFailure={Alert('An Error Has Occurred in the Login')}
+              cookiePolicy={'single_host_origin'}
+            />} 
+          <p>TODO: we need to add a suitable registration option for this</p>
+          </div>
         </div>
         </div>
 
