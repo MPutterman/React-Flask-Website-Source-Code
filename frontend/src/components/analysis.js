@@ -12,14 +12,13 @@
 import React from "react";
 import "../App.css";
 import axios from "axios";
+import { withRouter } from "react-router";
 import backend_url from './config.js';
+
 import Button from "@material-ui/core/Button";
 import Slider from "@material-ui/core/Slider";
-//import { palette } from "@material-ui/system";
-import { createMuiTheme, ThemeProvider } from "@material-ui/core/styles";
 import blueGrey from "@material-ui/core/colors/blueGrey";
 import CssBaseline from "@material-ui/core/CssBaseline";
-//import { makeStyles } from "@material-ui/core/styles";
 import Table from "@material-ui/core/Table";
 import TableBody from "@material-ui/core/TableBody";
 import TableCell from "@material-ui/core/TableCell";
@@ -36,14 +35,9 @@ import FormLabel from "@material-ui/core/FormLabel";
 import FormGroup from "@material-ui/core/FormGroup";
 import TextField from "@material-ui/core/TextField";
 import Checkbox from "@material-ui/core/Checkbox";
-
-//import Typography from "@material-ui/core/Typography";
-//import { PassThrough } from "stream";
-//import { thisExpression } from "@babel/types";
-//import SearchField from "react-search-field";
-//import ReactSlider from 'react-slider'
-//import GoogleLogin from 'react-google-login';
-import { withRouter } from "react-router";
+import CircularProgress from "@material-ui/core/CircularProgress";
+import Backdrop from "@material-ui/core/Backdrop";
+import { withStyles, makeStyles } from '@material-ui/core/styles';
 
 
 const UNDEFINED = 1000;  // TODO: possibly convert to "-1", unless backend also uses the '1000' value...
@@ -51,24 +45,6 @@ const UNDEFINED = 1000;  // TODO: possibly convert to "-1", unless backend also 
 class Analysis extends React.Component {
   constructor(props) {
     super(props);
-    this.theme = createMuiTheme({
-      palette: {
-        type: "dark",
-        primary: {
-          light: blueGrey[500],
-          main: blueGrey[800],
-          dark: blueGrey[900],
-          contrastText: "#fff",
-        },
-
-        secondary: {
-          light: "#ff7961",
-          main: blueGrey[700],
-          dark: "#002884",
-          contrastText: "#000",
-        },
-      },
-    });
     this.origins = [];
     this.ROIs = [[]];
     this.filenum = this.props.match.params.filenumber;
@@ -84,24 +60,23 @@ class Analysis extends React.Component {
       arr_files: [],
       string_files: [],
       n_l: 0,
-      selected: {lane:UNDEFINED,spot:200},
-      enterC: "",
-      enterD: "",
-      enterF: "",
-      enterUV: "",
-      enterUVF: "",
-      enterL: "",
+      selected: {lane:UNDEFINED,spot:UNDEFINED},
+      //enterC: "",
+      //enterD: "",
+      //enterF: "",
+      //enterUV: "",
+      //enterUVF: "",
+      //enterL: "",
       autoLane: true,
       showData: false,
       submitted: false,
       UVImg: 0,
-      dataName: "",
+      //dataName: "",
       do_RF: false,
       CerenkovImg: 0,
       brightness: 0,  // brightness setting (client side only) for radiation image
       contrast: 0,    // contrast setting (client side only) for radiation image
-      show_us: "About Us",
-      start: false,
+      //start: false,
       Darkname: "",
       Flatname: "",
       Cerenkovname: "",
@@ -129,21 +104,22 @@ class Analysis extends React.Component {
       name:'',
       image_size_x: 682, // TODO: get these from the Image
       image_size_y: 682, // TODO: get these from the Image
-      
+      updating: false,
     };
     //axios.defaults.withCredentials = true
     this.retrieve_analysis()
-    
-    
   }
 
+
   retrieve_analysis=()=>{
+    this.updating = true;
     return axios
         .get(backend_url('retrieve_analysis/' + this.filenum))
         .then((res) => {
           console.log ('response =>', res);
           this.set_data(res.data)
           this.setState({ makeUpdate: 8 });
+          this.setState({updating: false,})
           
           return res;
         });
@@ -386,18 +362,19 @@ class Analysis extends React.Component {
   };
 
   submit() {
-    console.log(this.origins)
+    console.log(this.origins);
+    this.setState({updating: true});
     // if (this.state.Cerenkovname === "") {
     //   this.setState({ Cerenkovname: "Sample" });
     // }
     let data = new FormData();
-    console.log('ROIs',this.ROIs)
+    console.log('ROIs',this.ROIs);
     data.append("ROIs", JSON.stringify(this.ROIs));
-    data.append('doUV',this.state.doUV)
+    data.append('doUV',this.state.doUV);
     data.append("origins", JSON.stringify(this.origins));
     data.append("n_l", this.state.n_l);
     data.append("doRF", this.state.do_RF);
-    data.append("autoLane", !this.originsDefined())
+    data.append("autoLane", !this.originsDefined());
 //    console.log(this.state.autoLane);
 //    if (this.state.autoLane === true) {
 //      data.append("autoLane", "true");
@@ -414,7 +391,7 @@ class Analysis extends React.Component {
         this.ROIs = res.data.ROIs
         //this.setState({})
         return axios.get(backend_url('results/'+this.filenum),).then(res2=>{
-          this.setState({ results: res2.data.arr, resultsReturned: true });
+          this.setState({ results: res2.data.arr, resultsReturned: true, updating: false });
         })
         
       }).catch('An Error Occurred');
@@ -497,10 +474,13 @@ class Analysis extends React.Component {
     // Right bottom: analysis results, save/export, etc...
     
     return (
-      <ThemeProvider theme={this.theme}>
-        <CssBaseline />
         
         <div style={{ position: "relative",}}>
+
+          <Backdrop className={this.props.classes.backdrop} open={this.state.updating} >
+            <CircularProgress color="inherit" />
+          </Backdrop>
+
         <Grid container direction='row' xs='12'>
 
           {/* Settings */}
@@ -962,8 +942,18 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
         </Grid>
         </div>
                   
-      </ThemeProvider>
     );
   }
 }
-export default withRouter(Analysis);
+
+
+// Hacky to get theme into a class component:
+const styles = (theme) => ({
+  backdrop: {
+    zIndex: theme.zIndex.drawer + 1,
+    color: '#fff',
+  },
+});
+
+
+export default withStyles(styles, {withTheme: true})(withRouter(Analysis));

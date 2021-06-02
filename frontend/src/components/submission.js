@@ -10,11 +10,17 @@ https://blog.bitsrc.io/build-a-full-featured-modal-dialog-form-with-react-651dce
 --- name (from filename but allow change)
 --- exposure time -- pre-fill with prefs
 --- exposure temperature - pre-fill with prefs
---- upload/save (and get image_id value to feed to parent)
+--- upload/save (and get image_id value to feed to parent)...
+--- QUESTION: save immediately, or track all this info until submission?
+------ Since we need to save the data to do an analysis, maybe it makes sense to save
+------ everything as we go. It would be easy to clean up analyses (and all associated images)
+------ that were not saved... or even store them in different tables and move
+------ over when saved...
 
 
 * Need to revamp the interface a bit to gather all the needed fields...
 * [To divide sections can use Accordion/Tabs or Stepper (wizard of forms)...]
+* [How to make certain things, e.g. flat image, dependent on 'use flat correction' option?]
 
    SECTION 1 (analysis metadata)
    - name (short description)
@@ -77,6 +83,9 @@ import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField, L
 import FileInputField from './filefield';
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
+import CircularProgress from "@material-ui/core/CircularProgress";
+import Backdrop from "@material-ui/core/Backdrop";
+import { withStyles, makeStyles } from '@material-ui/core/styles';
 
 // TODO: Find these web pages again:
 //  --- tutorial on adding a progress bar for uploads...
@@ -85,6 +94,9 @@ import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 class Submission extends React.Component {
   constructor(props) {
     super(props);
+    this.state = {
+      uploading: false,
+    }
     axios.defaults.withCredentials = true
 
     this.formRef = null;
@@ -94,17 +106,25 @@ class Submission extends React.Component {
         label: 'Analysis Name',
         type: String,
         required: true,
+        uniforms: {
+          extra: 'TODO: testing if this works to show tool tips',
+        }
       },
       description: {
         label: 'Analysis Description',
         type: String,
         required: false,
       },
-      //experiment_datetime: {
-      //  label: 'Experiment Date',
-      //  type: Date,
-      //  required: false,
-      //},
+      // TODO: how to prevent time from showing up?
+      // Can set type to String, but then validators etc won't work properly I assume
+      experiment_datetime: {
+        label: 'Experiment Date',
+        type: Date,
+        required: false,
+        uniforms: {
+          type: 'date',
+        }
+      },
       image_radiation: {
         label: 'Radiation Image',
         type: Blob,
@@ -141,6 +161,22 @@ class Submission extends React.Component {
         type: Blob,
         required: false,
       },
+      use_background_correct : {
+        label: 'Use background correction?',
+        type: Boolean,
+        required: false,
+      },
+      background_correct_method: {
+        label: 'Background correction method',
+        type: Array,
+        required: false,
+        maxCount: 1,
+      },
+      'background_correct_method.$': {
+        type: String,
+      },
+      
+
     });
 
     this.bridge = new SimpleSchema2Bridge(this.schema);
@@ -148,6 +184,7 @@ class Submission extends React.Component {
   }
 
   onFileUpload = (data) => {
+    this.setState({uploading: true});
     let formData = new FormData();
 
     // Add meta informatoin
@@ -213,6 +250,7 @@ class Submission extends React.Component {
     return axios.post(backend_url('/time'), formData, config)
     .then((res) => {
       let filenum = res.data.res;
+      this.setState({uploading: false});
       const {history} = this.props;
       history.push('/analysis/' + filenum);
       return res; // Need this?
@@ -221,17 +259,29 @@ class Submission extends React.Component {
 
   render() {
     return (
-        <div> 
-          <div style={{width: '500px'}}>
-              <AutoForm
-                schema={this.bridge}
-                onSubmit={this.onFileUpload}
-                ref={ref => (this.formRef = ref)}
-              >
 
-              <Accordion>
+      <div> {/*style={{width: '500px'}}>*/}
+
+          <Backdrop className={this.props.classes.backdrop} open={this.state.uploading} >
+            <CircularProgress color="inherit" />
+          </Backdrop>
+
+
+        <AutoForm
+          schema={this.bridge}
+          onSubmit={this.onFileUpload}
+          ref={ref => (this.formRef = ref)}
+        >
+
+        <Accordion defaultExpanded>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />} >
+            Analysis information and files
+          </AccordionSummary>
+          <AccordionDetails>
+
+            <Accordion defaultExpanded>
               <AccordionSummary expandIcon={<ExpandMoreIcon />} >
-                Analysis settings
+                Metadata
               </AccordionSummary>
               <AccordionDetails>          
 
@@ -244,19 +294,17 @@ class Submission extends React.Component {
                 <AutoField name="description" component={LongTextField} />
                 <ErrorField name="description" />
                 </Grid>
-{/*
                 <Grid Item>
-                <AutoField name="experiment_datetime" />
+                <AutoField name="experiment_datetime" type="date" />
                 <ErrorField name="experiment_datetime" />
                 </Grid>
-*/}
                 </Grid>
               </AccordionDetails>
-              </Accordion>
+            </Accordion>
 
-              <Accordion>
+            <Accordion>
               <AccordionSummary expandIcon={<ExpandMoreIcon />} >
-                Primary images
+                Data images
               </AccordionSummary>
               <AccordionDetails>              
 
@@ -266,11 +314,11 @@ class Submission extends React.Component {
                 <ErrorField name="image_brightfield" />
               
               </AccordionDetails>
-              </Accordion>
+            </Accordion>
 
-              <Accordion>
+            <Accordion>
               <AccordionSummary expandIcon={<ExpandMoreIcon />} >
-                Corrections
+                Image correction details
               </AccordionSummary>
               <AccordionDetails>              
               
@@ -295,15 +343,27 @@ class Submission extends React.Component {
                 </Grid>
 
               </AccordionDetails>
-              </Accordion>
+            </Accordion>
 
-                <p>If you submit without choosing files, it will use sample data</p>
-                <SubmitField>Upload Files and Start Analysis</SubmitField>
+          </AccordionDetails>
+        </Accordion>
 
-              </AutoForm>
-          </div>
+        <p>If you submit without choosing files, it will use sample data</p>
+        <SubmitField>Upload Files and Start Analysis</SubmitField>
+
+      </AutoForm>
       </div>
     );
   }
 }
-export default withRouter(Submission);
+
+// Hacky to get theme into a class component:
+const styles = (theme) => ({
+  backdrop: {
+    zIndex: theme.zIndex.drawer + 1,
+    color: '#fff',
+  },
+});
+
+
+export default withStyles(styles, {withTheme: true})(withRouter(Submission));

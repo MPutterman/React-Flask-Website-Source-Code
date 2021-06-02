@@ -218,7 +218,7 @@ const UserEdit = (props) => {
         //allowedValues: availableOrganizations ? availableOrganizations.map(x => (x.org_id)) : [], // make an array of org_ids
         required: true,
         // TODO: how to add a label like "Select your organization(s)"?
-        // Tried adding an extra entry with label and null value but didn't work...
+        // Tried adding an extra entry with label and null value(key) but didn't work...
         uniforms: {
           checkboxes: false,
           options: availableOrganizations ? availableOrganizations.map((x) => ({label:x.name, value:x.org_id})) : [],
