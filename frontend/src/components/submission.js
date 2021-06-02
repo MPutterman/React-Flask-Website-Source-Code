@@ -308,11 +308,17 @@ class Submission extends React.Component {
               </AccordionSummary>
               <AccordionDetails>              
 
-                <AutoField name="image_radiation" component={FileInputField} />
-                <ErrorField name="image_radiation" />
-                <AutoField name="image_brightfield" component={FileInputField} />
-                <ErrorField name="image_brightfield" />
-              
+                <Grid container direction="column">
+                  <Grid item>
+                    <AutoField name="image_radiation" component={FileInputField} />
+                    <ErrorField name="image_radiation" />
+                  </Grid>
+                  <Grid item>
+                    <AutoField name="image_brightfield" component={FileInputField} />
+                    <ErrorField name="image_brightfield" />
+                  </Grid>
+                </Grid>
+                
               </AccordionDetails>
             </Accordion>
 

@@ -37,6 +37,10 @@ import TextField from "@material-ui/core/TextField";
 import Checkbox from "@material-ui/core/Checkbox";
 import CircularProgress from "@material-ui/core/CircularProgress";
 import Backdrop from "@material-ui/core/Backdrop";
+import Accordion from '@material-ui/core/Accordion';
+import AccordionSummary from '@material-ui/core/AccordionSummary';
+import AccordionDetails from '@material-ui/core/AccordionDetails';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { withStyles, makeStyles } from '@material-ui/core/styles';
 
 
@@ -493,67 +497,29 @@ class Analysis extends React.Component {
             <CircularProgress color="inherit" />
           </Backdrop>
 
-        <Grid container direction='row' xs='12'>
+          <Accordion>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />} >
+              Analysis information and files
+            </AccordionSummary>
+            <AccordionDetails>
 
-          {/* Settings */}
-          <Grid item xs={4}>
-            {/* Make each setting a new row? */}
-            <Paper>
-              <h1>Analysis Options:</h1>
-              <Grid container>
-                <Grid item>
-                  Description
-                </Grid>
-                <Grid item>
-                  <TextField id='description'/>
-                </Grid>
-              </Grid>
-              <Grid container>
-                <Grid item>
-                  TLC plate type
-                </Grid>
-              </Grid>
-              Description: textfield
-              <br/>
-              Plate type: dropdown (with default selected)
-              <br/>
-              Cover type: dropdown (with default selected)
-              <br/>
-              Equipment: dropdown (with default selected)
-              <br/>
-              Flat image: dropdown (with default (for equipment) selected). Option to upload new file.
-              <br/>
-              <br/>
-              <br/>
-              Radiation image file: file selector. Option to search for existing file on server.
-              <br/>
-              Temperature (C): input (populate with default value)
-              <br/>
-              Exposure time (s): input (populate with default value)
-              <br/>
-              Dark image file: dropdown (populate with default file). Option to upload new file.
-              <br/>
-              Image filter method: dropdown with only 3x3 median available for now (with default selected)
-              <br/>
-              Background subtraction method: dropdown of options (e.g. quadratic) (with default selected)
-              <br/>
-              <br/>
-              <br/>
-              Bright image file: file selector. Option to search for existing file on server.
-              <br/>
-              Dark image file for bright correction: dropdown (populate with default file). Option to upload new file.
-              <br/>
+              <h3>TODO: Will be moving what is in the submission.js file onto this page so all aspects of analysis
+              are together and conveniently allow dynamic adjustments, changing of images and corrections, 
+              changing of ROIs etc, and showing results.</h3>
 
-
-
-            </Paper>
-
-            
-          </Grid>
+              <Button variant="contained">Update image</Button>
+            </AccordionDetails>
+          </Accordion>
 
           {/* Image(s) */}
+          <Accordion defaultExpanded>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />} >
+              Image and ROIs
+            </AccordionSummary>
+            <AccordionDetails>
 
-          <Grid container xs={8} direction='column' spacing={3}>
+          <Grid container direction='column' spacing={3}>
+
 
             <Grid item>
 
@@ -798,7 +764,9 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
 
             </Grid>
 
+
             {/* Analysis options */}
+
 
             <Grid item>
               <Paper>
@@ -886,10 +854,18 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
 
               </Paper>
             </Grid>
+          </Grid>
+
+          </AccordionDetails>
+          </Accordion>
 
             {/* Results */}
 
-            <Grid item>
+          <Accordion >
+            <AccordionSummary expandIcon={<ExpandMoreIcon />} >
+              Results and export
+            </AccordionSummary>
+            <AccordionDetails>
 
                 <TableContainer component={Paper}>
                   <Table>
@@ -948,11 +924,9 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
                   </Table>
                 </TableContainer>
 
+        </AccordionDetails>
+        </Accordion>
 
-            </Grid>
-          </Grid>
-
-        </Grid>
         </div>
                   
     );
