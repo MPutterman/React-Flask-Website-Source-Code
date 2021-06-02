@@ -72,11 +72,11 @@ class Analysis extends React.Component {
     this.origins = [];
     this.ROIs = [[]];
     this.filenum = this.props.match.params.filenumber;
-    console.log(this.filenum)
     this.submit = this.submit.bind(this);
     this.add_data = this.add_data.bind(this);
     this.clearOrigins = this.clearOrigins.bind(this);
     this.clearROIs = this.clearROIs.bind(this);
+    this.autoSelect=this.autoSelect.bind(this);
     this.removeROI = this.removeROI.bind(this);
     this.removeOrigin = this.removeOrigin.bind(this);
     this.originsDefined = this.originsDefined.bind(this);
@@ -131,7 +131,7 @@ class Analysis extends React.Component {
       image_size_y: 682, // TODO: get these from the Image
       
     };
-    //axios.defaults.withCredentials = true
+    // axios.defaults.withCredentials = true
     this.retrieve_analysis()
     
     
@@ -149,8 +149,6 @@ class Analysis extends React.Component {
         });
   }
   set_data=(res)=>{
-    console.log(res)
-    console.log(res.ROIs)
     this.ROIs= res.ROIs
     this.origins=res.origins
     this.setState({autoLane:res.autoLane,n_l:res.n_l,do_RF:res.doRF,doUV:res.doUV})
@@ -349,7 +347,21 @@ class Analysis extends React.Component {
     this.origins.splice(0, this.origins.length);
     this.setState({ makeUpdate: 10 });
   }
-
+  autoSelect() {
+    let formData=new FormData()
+    
+    let config = {
+      headers: {
+          "Content-Type": "multipart/form-data",
+      },
+    };
+    return axios.post(backend_url('autoselect/'+this.filenum), formData, config)
+    .then((res) => {
+      this.ROIs = res.data.selected_ROIs;
+      this.setState({makeUpdate:'4'})
+      return res
+    })
+  }
   removeOrigin(e, i) {
 //    if (this.state.resultsReturned) {
 //      return;
@@ -779,11 +791,12 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
                           Clear all ROIs
                         </Button>
                         <Button
+                          onClick = {this.autoSelect}
                           color="primary"
                           variant="contained"
                           //onClick={this.autoselectROIs}
                         >
-                          Autoselect ROIs (not yet implemented)
+                          Autoselect ROIs
                         </Button>
                     </Grid>
 
