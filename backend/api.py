@@ -865,7 +865,16 @@ def session_load():
         #print("GET /api/session/load, not logged in\n")
         return ({ 'current_user': None })
 
+@app.route('/autoselect/<filename>',methods=['POST','GET'])
+@cross_origin(supports_credentials=True)
+def autoselect(filename):
+    analysis_data = retrieve_initial_analysis(filename)
+    analysis_retrieve = analysis(analysis_data['ROIs'],None,analysis_data['origins'],filename,'UVName' in analysis_data, analysis_data['doRF'],False)
+    img = session['cerenkovcalc']
+    imgR=session['cerenkovradii']
+    analysis_retrieve.predict_ROIs(img,imgR)
 
+    return {'selected_ROIs':[analysis_retrieve.ROIs]}
 # TODO: add error checking if not found
 @app.route('/user/load/<id>', methods = ['GET'])
 @cross_origin(supports_credentials=True)
