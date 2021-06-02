@@ -499,7 +499,7 @@ class Analysis extends React.Component {
 
           <Accordion>
             <AccordionSummary expandIcon={<ExpandMoreIcon />} >
-              Analysis information and files
+              <h2>Analysis information and files</h2>
             </AccordionSummary>
             <AccordionDetails>
 
@@ -514,7 +514,7 @@ class Analysis extends React.Component {
           {/* Image(s) */}
           <Accordion defaultExpanded>
             <AccordionSummary expandIcon={<ExpandMoreIcon />} >
-              Image and ROIs
+              <h2>Image and ROIs</h2>
             </AccordionSummary>
             <AccordionDetails>
 
@@ -646,6 +646,7 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
                   );
                 })}
 
+
                 <Button
                   color = 'primary' 
                   variant = 'contained'
@@ -655,8 +656,11 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
 	     		      </Button>
 
             </Grid>
+
+            <div style={{width: this.state.image_size_x}} >
+
             <Grid item>
-              <h1>Image adjustments:</h1>
+              <h2>Image adjustments:</h2>
 
                 <Grid container>
                   <Grid item xs={2}>
@@ -664,6 +668,7 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
                   </Grid>
                   <Grid item xs={10}>
                     <Slider
+                      color='secondary'
                       id="brightness"
                       name="brightness"
                       label="Brigthness"
@@ -686,6 +691,7 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
                   </Grid>
                   <Grid item xs={10}>
                     <Slider
+                      color="secondary"
                       id="contrast"
                       name="contrast"
                       label="Contrast"
@@ -702,9 +708,10 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
                   </Grid>
                 </Grid>
 
+
                 <Grid item>
 
-                  <h1>Selection:</h1>
+                  <h2>Selection:</h2>
                   <Grid container spacing={5}>
 
                     <Grid item>
@@ -769,9 +776,7 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
 
 
             <Grid item>
-              <Paper>
-                <h1>Analysis options:</h1>
-
+        
                 <Grid container direction="row">
                   <Grid item>
                     {/* Compute RF values? Only enable if origins have been defined. 
@@ -840,20 +845,14 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
                   variant="contained"
                   onClick={this.submit}
                 >
-                  Update results table
+                  Refresh results table
                 </Button>
 
-                <Button
-                  disabled={!this.state.resultsReturned}
-                  color="primary"
-                  variant="contained"
-                  onClick={this.add_data}
-                >
-                  Upload to Database
-                </Button>
 
-              </Paper>
             </Grid>
+
+            </div>
+
           </Grid>
 
           </AccordionDetails>
@@ -863,9 +862,12 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
 
           <Accordion >
             <AccordionSummary expandIcon={<ExpandMoreIcon />} >
-              Results and export
+              <h2>Results and export</h2>
             </AccordionSummary>
             <AccordionDetails>
+
+                <Grid container direction="column">
+                <Grid item>
 
                 <TableContainer component={Paper}>
                   <Table>
@@ -883,7 +885,7 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
                               key={i}
                               align="right"
                             >
-                              L{i + 1}{" "}
+                              Lane {i + 1}{" "}
                             </TableCell>
                           );
                         })}
@@ -923,6 +925,19 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
                     </TableBody>
                   </Table>
                 </TableContainer>
+                </Grid>
+
+                <Grid item>
+                <Button
+                  disabled={!this.state.resultsReturned}
+                  color="primary"
+                  variant="contained"
+                  onClick={this.add_data}
+                >
+                  Upload to Database
+                </Button>
+                </Grid>
+              </Grid>
 
         </AccordionDetails>
         </Accordion>
