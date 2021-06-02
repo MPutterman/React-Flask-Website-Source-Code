@@ -1,13 +1,19 @@
 // TODO:
-// I've probably broken things related to "doUV". (In general, someone wouldn't select origins etc without 
+// * I've probably broken things related to "doUV". (In general, someone wouldn't select origins etc without 
 //   a brightfield or UV image... but if they want to, might as well allow it.)
-// When change origins and ROIs, need to reset something so 'autolane' will work correctly.
-// I'm not sure how "n_l" and autolane work together.
-// Upload to database seems not working. Maybe instead of "save" we instead have a "delete from database" button?
+// * When change origins and ROIs, need to reset something so 'autolane' will work correctly.
+// * I'm not sure how "n_l" and autolane work together.
+// * Upload to database seems not working. Maybe instead of "save" we instead have a "delete from database" button?
 // -- During testing I had a lot of issue trying to re-analyze the same analysis ID... I think we should instead save it
 // -- automatically so the images and ROIs are always available.
-// We should add export buttons (either as file, or just .CVS text that can be copied to clipboard)
-// Need to implement the left column options (and merge in file selction)
+// * We should add export buttons (either as file, or just .CVS text that can be copied to clipboard)
+// * Finish moving file upload options etc. into this file
+// * Add a timeout for server requests (not just here), and return a rejected promise if no response... this will avoid hanging
+//   of the front end in case of backend server errors...
+// * What does 'makeUpdate' with the various numbers mean?
+// * Regarding RF values, I think we should always compute these if origins are defined for at least one lane.  
+//   Maybe we can have a client-side option to show or hide those results if needed
+
 
 import React from "react";
 import "../App.css";
@@ -72,8 +78,8 @@ class Analysis extends React.Component {
       //enterUVF: "",
       //enterL: "",
       autoLane: true,
-      showData: false,
-      submitted: false,
+      //showData: false,
+      //submitted: false,
       UVImg: 0,
       //dataName: "",
       do_RF: false,
@@ -102,7 +108,7 @@ class Analysis extends React.Component {
       UVFlat: null,
       Bright: null,
       BrightFlat: null,
-      ImgReturned: false,
+      //ImgReturned: false,
       img: 0,
       background_corrected:'',
       name:'',
@@ -484,18 +490,17 @@ class Analysis extends React.Component {
   }
   
   render() {
-    // Overall render a grid layout
-    // Left: analysis options
-    // Right top: main image(s), brightness/contrast, toggle ROI/origins
-    // Right bottom: analysis results, save/export, etc...
     
     return (
         
         <div style={{ position: "relative",}}>
 
+          {/* Loading spinner effect */}
           <Backdrop className={this.props.classes.backdrop} open={this.state.updating} >
             <CircularProgress color="inherit" />
           </Backdrop>
+
+          {/* Panel - analysis information and files */}
 
           <Accordion>
             <AccordionSummary expandIcon={<ExpandMoreIcon />} >
@@ -511,7 +516,8 @@ class Analysis extends React.Component {
             </AccordionDetails>
           </Accordion>
 
-          {/* Image(s) */}
+          {/* Panel - image and ROIs */}
+
           <Accordion defaultExpanded>
             <AccordionSummary expandIcon={<ExpandMoreIcon />} >
               <h2>Image and ROIs</h2>
@@ -519,7 +525,6 @@ class Analysis extends React.Component {
             <AccordionDetails>
 
           <Grid container direction='column' spacing={3}>
-
 
             <Grid item>
 
@@ -647,13 +652,7 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
                 })}
 
 
-                <Button
-                  color = 'primary' 
-                  variant = 'contained'
-                  onClick = {this.fixBackground}
-                >
-		              Perform Background Correction	   
-	     		      </Button>
+                <Button color="primary" variant="contained" onClick={this.fixBackground}> Perform background correction </Button>
 
             </Grid>
 
@@ -712,75 +711,39 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
                 <Grid item>
 
                   <h2>Selection:</h2>
-                  <Grid container spacing={5}>
 
-                    <Grid item>
-
-                      <FormControl component="fieldset">
-                        <RadioGroup name="select-mode"
-                          value={this.state.selectMode}
-                          onChange={(event) => {
-                              this.setState({ selectMode: event.target.value });
-                              if (event.target.value === "roi") {
-                                this.setState({ doROIs: true });
-                              } else {
-                                this.setState({ doROIs: false });
-                              }
-                            }}
-                          >
-                          <FormControlLabel value="roi" control={<Radio />} label="ROIs" />
-                          <FormControlLabel value="origin" control={<Radio />} label="Origin, SF, lanes" />
-                        </RadioGroup>
-                      </FormControl>
-
-                    </Grid>
-
-                    <Grid item>
-                        <Button
-                          color="primary"
-                          variant="contained"
-                          onClick={this.clearROIs}
-                        >
-                          Clear all ROIs
-                        </Button>
-                        <Button
-                          onClick = {this.autoSelect}
-                          color="primary"
-                          variant="contained"
-                          //onClick={this.autoselectROIs}
-                        >
-                          Autoselect ROIs
-                        </Button>
-                    </Grid>
-
-                    <Grid item>
-                      <Button
-                        color="primary"
-                        variant="contained"
-                        onClick={this.clearOrigins}
+                  <FormControl component="fieldset">
+                    <RadioGroup name="select-mode"
+                      value={this.state.selectMode}
+                      onChange={(event) => {
+                          this.setState({ selectMode: event.target.value });
+                          if (event.target.value === "roi") {
+                            this.setState({ doROIs: true });
+                          } else {
+                            this.setState({ doROIs: false });
+                          }
+                        }}
                       >
-                        Clear Origins
-                      </Button>                
-                    </Grid>
+                      <FormControlLabel value="roi" control={<Radio />} label="ROIs" />
+                      <FormControlLabel value="origin" control={<Radio />} label="Origin, SF, lanes" />
+                    </RadioGroup>
+                  </FormControl>
 
-                  </Grid>
+                  <Button color="primary" variant="contained" onClick={this.clearROIs}> Clear all ROIs </Button>
+                  <Button color="primary" variant="contained" onClick={this.autoSelect}> Autoselect ROIs </Button>
+                  <Button color="primary" variant="contained" onClick={this.clearOrigins}> Clear all origins </Button>
 
                 </Grid>
 
-
-
             </Grid>
-
-
-            {/* Analysis options */}
-
 
             <Grid item>
         
                 <Grid container direction="row">
                   <Grid item>
                     {/* Compute RF values? Only enable if origins have been defined. 
-                        TODO: something not quite working with the checked/unchecked state */}
+                        TODO: something not quite working with the checked/unchecked state
+                     */}
                     <FormGroup>
                     <FormControlLabel
                       control={<Checkbox
@@ -840,14 +803,7 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
 
                 </Grid>
 
-                <Button
-                  color="primary"
-                  variant="contained"
-                  onClick={this.submit}
-                >
-                  Refresh results table
-                </Button>
-
+                <Button color="primary" variant="contained" onClick={this.submit}> Refresh results table </Button>
 
             </Grid>
 
@@ -858,7 +814,7 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
           </AccordionDetails>
           </Accordion>
 
-            {/* Results */}
+          {/* Panel - results and export options */}
 
           <Accordion >
             <AccordionSummary expandIcon={<ExpandMoreIcon />} >
@@ -873,18 +829,12 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
                   <Table>
                     <TableHead>
                       <TableRow>
-                        <TableCell
-                          id="tc"
-                        >
+                        <TableCell id="tc">
                           ROIS
                         </TableCell>
                         {this.state.results[0].map((spot, i) => {
                           return (
-                            <TableCell
-                              id="tc"
-                              key={i}
-                              align="right"
-                            >
+                            <TableCell id="tc" key={i} align="right">
                               Lane {i + 1}{" "}
                             </TableCell>
                           );
@@ -895,11 +845,7 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
                       {this.state.results.map((lane, i) => {
                         return (
                           <TableRow key={i}>
-                            <TableCell
-                              id="tc"
-                              component="th"
-                              scope="row"
-                            >
+                            <TableCell id="tc" component="th" scope="row">
                               <strong>Band {i + 1}</strong>
                               <br/>Integration
                               {this.state.do_RF && (
@@ -908,11 +854,7 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
                             </TableCell>
                             {lane.map((spot, j) => {
                               return (
-                                <TableCell
-                                  id="tc"
-                                  key={j}
-                                  align="right"
-                                >
+                                <TableCell id="tc" key={j} align="right">
                                   <br/>
                                   {(spot[0] * 100).toFixed(1)}%<br/>
                                   {spot.length > 1 ? " " + spot[1].toFixed(2) : ""}
@@ -949,7 +891,7 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
 }
 
 
-// Hacky to get theme into a class component:
+// Inject backdrop style
 const styles = (theme) => ({
   backdrop: {
     zIndex: theme.zIndex.drawer + 1,
@@ -957,5 +899,5 @@ const styles = (theme) => ({
   },
 });
 
-
+// Wrap the class to provide theme (in addition to router)
 export default withStyles(styles, {withTheme: true})(withRouter(Analysis));
