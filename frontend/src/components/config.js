@@ -2,7 +2,7 @@
 // * Consider a wrapper for API calls. The following looks nice and simple:
 //   https://medium.com/@baraa_81910/api-requests-wrapper-with-react-redux-5498d5889c70.
 //   This will help to automatically manage authentication with the backend,
-//   and probably help to mediate permissions, etc...
+//   and probably help to mediate permissions, also handling of errors, etc...
 // * For axios defaults, not sure which are critical to the sessions now working properly,
 //   need to figure this out.
 
@@ -23,7 +23,40 @@ export function backend_url(route) {
     return 'http://' + backend_ip() + ':' + backend_port() + '/' + route;
 }
 
-export default backend_url;
+// UNTESTED... MAY NOT WORK!!!
+export async function callAPI(route, method, data) {
+    switch(method) {
+
+        case 'GET':
+            return axios.get(backend_url(route))
+            .then((response) => {
+                return response;
+            })
+            .catch((e) => {
+                throw new Error ("Error returned in API call (" + method + " " + route + "): " + e);
+            });
+
+        case 'POST':
+            var formData = new FormData();
+            formData.append(data); // TODO: does this work?
+
+            const config = {     
+                headers: { 'content-type': 'multipart/form-data' }
+            }
+
+            return axios.post(backend_url(route), formData, config)
+            .then((response) => {
+                return response;
+            })
+            .catch((e) => {
+                throw new Error ("Error returned in API call (" + method + " " + route + "): " + e);
+            });
+
+        default:
+            throw new Error ("Invalid API method (" + method + ") for route '" + route + "'");
+    }
+}
+
 
 // Axios defaults
 
