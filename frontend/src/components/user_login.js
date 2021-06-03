@@ -5,7 +5,7 @@
 import React from "react";
 import { authLogin, authLogout,authGoogleLogin, useAuthState, useAuthDispatch } from '../contexts/auth';
 import { useConfigState } from '../contexts/config';
-import backend_url from './config.js';
+import { backend_url } from './config.js';
 import { withRouter } from "react-router";
 import { useHistory } from 'react-router-dom';
 import { useForm, Controller } from "react-hook-form";

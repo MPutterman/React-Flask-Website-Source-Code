@@ -14,7 +14,7 @@
 import React from "react";
 import axios from "axios";
 import * as FormData from "form-data";
-import backend_url from './config.js';
+import { backend_url } from './config.js';
 import { withRouter } from "react-router";
 import { useParams } from 'react-router-dom';
 import { useForm, Controller } from "react-hook-form";

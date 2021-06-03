@@ -5,7 +5,7 @@ import React, {useState, useEffect } from "react";
 import { useHistory } from 'react-router-dom';
 import axios from "axios";
 import * as FormData from "form-data";
-import backend_url from './config.js';
+import { backend_url } from './config.js';
 import { withRouter } from "react-router";
 import { useForm, Controller } from "react-hook-form";
 import Input from "@material-ui/core/Input";
