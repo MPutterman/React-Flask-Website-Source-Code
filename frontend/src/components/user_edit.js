@@ -197,8 +197,8 @@ const UserEdit = (props) => {
           type: 'password',
         }
       },
-      password_repeated: {
-        label: 'Repeat Password',
+      password_confirm: {
+        label: 'Confirm Password',
         type: String,
         required: true,
         uniforms: {
@@ -264,8 +264,8 @@ const UserEdit = (props) => {
                 <ErrorField name="email" />
                 <AutoField name="password" />
                 <ErrorField name="password" />
-                <AutoField name="password_repeated" />
-                <ErrorField name="password_repeated" />
+                <AutoField name="password_confirm" />
+                <ErrorField name="password_confirm" />
                 <AutoField name="org_list" />
                 <ErrorField name="org_list" />
                 <SubmitField>Save Changes</SubmitField>
