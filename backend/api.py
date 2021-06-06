@@ -891,8 +891,8 @@ def user_load(id):
 @cross_origin(supports_credentials=True)
 def user_search():
     from database import db_user_search
-    org_list = db_user_search()
-    return org_list
+    user_list = db_user_search()
+    return user_list
 
 # Save the submitted user information
 @app.route('/user/save', methods = ['POST'])
@@ -930,6 +930,17 @@ def organization_search():
     from database import db_organization_search
     org_list = db_organization_search()
     return org_list
+
+
+
+# Return a list of analyses (array of dict)
+# TODO: read in parameter strings from request for filtering, pagination, order, etc.
+@app.route('/analysis/search', methods = ['GET', 'POST']) # QUESTION: need GET and POST?
+@cross_origin(supports_credentials=True)
+def analysis_search():
+    from database import db_analysis_search
+    analysis_list = db_analysis_search()
+    return analysis_list
 
 
 
@@ -1177,12 +1188,14 @@ def retrieve_analysis(filename):
     session['cerenkovradii']=np.load(retrieve_image_path('cerenkovradii',filename))
     analysis_retrieved = retrieve_initial_analysis(filename)
     return{
+        'analysis_id':filename,
         'ROIs':analysis_retrieved['ROIs'],
         'origins':analysis_retrieved['origins'],
         'doRF':analysis_retrieved['doRF'],
         'filenumber':filename,
         'name':analysis_retrieved['name'],
         'description': analysis_retrieved['description'],
+        'owner_id': analysis_retrieved['owner_id'],
     }
 
 @app.route('/time', methods = ['POST','GET'])
@@ -1365,7 +1378,7 @@ def data():
 def results(filename):
         analysis_data = retrieve_initial_analysis(filename)
         analysis_retrieve = analysis(analysis_data['ROIs'],None,analysis_data['origins'],filename,'UVName' in analysis_data, analysis_data['doRF'],False)
-        analysis_results =analysis_retrieve.results()
+        analysis_results = analysis_retrieve.results()
 
         #print(analysis_results)
         return{"arr":analysis_results}

@@ -456,6 +456,20 @@ def db_organization_search():
     data = [org.as_dict() for org in results]
     return dumps(data) # Can directly return a list...  This returns just the list.  Use jsonify(keyname=data) if want to return with a key
 
+# Return a list of analyses.  Currently gets a list of all of them.
+# In future will accept filters (e.g. match part of name or description, filter by date,
+# filter by user, filter by organization, filter by equip_id, plate_id, cover_id, etc...
+# and sort options.
+def db_analysis_search():
+    analysis_list = Analysis.query.all()
+    db_session.commit()
+    data = []
+    for analysis in analysis_list:
+        current_analysis = analysis.as_dict()
+        data.append(current_analysis)
+    #db_session.close()
+    return dumps(data)
+
 def find_image_type(image_type):
     if image_type == 'dark':
         return ImageType.dark
@@ -509,7 +523,7 @@ def retrieve_initial_analysis(analysis_id):
         analysis_dict['BrightName']=Image.query.filter(Image.image_type==ImageType.bright , Image.analysis_list.any(analysis_id=analysis_id)).one().name
     analysis_dict['name'] = analysis.name
     analysis_dict['description'] = analysis.description
-    analysis_dict['user_id'] = analysis.owner_id
+    analysis_dict['owner_id'] = analysis.owner_id
     db_session.commit()
     return analysis_dict
 
