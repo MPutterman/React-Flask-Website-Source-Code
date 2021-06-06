@@ -33,6 +33,9 @@ import AccountCircle from '@material-ui/icons/AccountCircle';
 import AddIcon from '@material-ui/icons/Add';
 import EditIcon from '@material-ui/icons/Edit';
 import HomeIcon from '@material-ui/icons/Home';
+import SearchIcon from '@material-ui/icons/Search';
+import InfoIcon from '@material-ui/icons/Info';
+
 
 
 const drawerWidth = 120;
@@ -231,31 +234,33 @@ const Layout = (props) => {
           </ListItem>
           <ListItem button key={'new analysis'}>
             <NavLink to={'/analysis/new'} className="nav-link">
-                        <ListItemIcon><AddIcon /></ListItemIcon>
-                      <ListItemText primary={'New Analysis'} />
+              <ListItemIcon><AddIcon /></ListItemIcon>
+              <ListItemText primary={'New Analysis'} />
             </NavLink>
-            </ListItem>
+          </ListItem>
           <ListItem button key={'Search Analyses'}>
             <NavLink to={'/analysis/search'} className="nav-link">
-                        <ListItemIcon><AddIcon /></ListItemIcon>
-                      <ListItemText primary={'Search Analyses'} />
+              <ListItemIcon><SearchIcon /></ListItemIcon>
+              <ListItemText primary={'Search Analyses'} />
             </NavLink>
           </ListItem>
           <ListItem button key={'load analysis'}>
             <NavLink to={'/analysis/load'} className="nav-link">
               <ListItemIcon><EditIcon /></ListItemIcon>
-              <ListItemText primary={'Load Analysis'} />
+              <ListItemText primary={'Load/Edit Analysis'} />
             </NavLink>
           </ListItem>
 
           <ListItem button key={'user search'}>
             <NavLink to={'/user/search'} className="nav-link">
+              <ListItemIcon><SearchIcon /></ListItemIcon>
               <ListItemText primary={'Search Users'} />
             </NavLink>
           </ListItem>
 
           <ListItem button key={'about'}>
             <NavLink to={'/about'} className="nav-link">
+              <ListItemIcon><InfoIcon /></ListItemIcon>
               <ListItemText secondary={'About'} />
             </NavLink>
           </ListItem>
