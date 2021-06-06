@@ -12,16 +12,13 @@
 // * TODO: figure out if still need all the reset-related form hooks, etc...
 
 import React from "react";
-import axios from "axios";
-import * as FormData from "form-data";
-import { backend_url } from './config.js';
+import { callAPI } from './api.js';
 import { withRouter } from "react-router";
 import { useParams } from 'react-router-dom';
 import { useForm, Controller } from "react-hook-form";
 import Input from "@material-ui/core/Input";
 import TextField from "@material-ui/core/TextField";
 import Button from "@material-ui/core/Button";
-import CircularProgress from "@material-ui/core/CircularProgress";
 import Select from "@material-ui/core/Select";
 import MenuItem from "@material-ui/core/MenuItem";
 import InputLabel from "@material-ui/core/InputLabel";
@@ -29,7 +26,7 @@ import { spacing } from '@material-ui/system';
 import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField,} from 'uniforms-material';
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
-
+import Busy from '../components/busy';
 import { AlertList, Alert } from '../components/alerts';
 import jwt_decode from "jwt-decode";
 
@@ -75,8 +72,8 @@ const UserEdit = (props) => {
     async function getUser(id) {
         setLoading(true);
         if (id) {
-            axios.get(backend_url('user/load/' + id))
-            .then((response) => {
+          callAPI('GET', 'user/load/' + id)
+          .then((response) => {
                 setCurrentUser(response.data);
                 setLoading(false);
             })
@@ -91,7 +88,7 @@ const UserEdit = (props) => {
 
     // Retrieve list of available organizations (for now all organizations)
     async function getOrganizations() {
-        axios.get(backend_url('organization/search'))
+        callAPI('GET', 'organization/search')
         .then((response) => {
             setAvailableOrganizations(response.data);
             console.log("in getOrganizations: response data => ", response.data);
@@ -127,20 +124,9 @@ const UserEdit = (props) => {
 
     // Save the user information back to the database
     async function updateUser(data) {
-        var formData = new FormData();
-        formData.append('user_id', data.user_id);
-        formData.append('first_name', data.first_name);
-        formData.append('last_name', data.last_name);
-        formData.append('email', data.email);
-        formData.append('password', data.password);
-        formData.append('org_list', data.org_list);
-
-        const config = {     
-            headers: { 'content-type': 'multipart/form-data' }
-        }
-
+        // TODO: need to filter anything out of 'data'?
         setLoading(true);
-        return axios.post(backend_url('user/save'), formData, config)
+        callAPI('POST', 'user/save', data)
         .then((response) => {
             console.log(response.data);
             setMessage("success");
@@ -157,7 +143,7 @@ const UserEdit = (props) => {
     // Delete the user matching the user-id
     // NOT YET FUNCTIONAL AND BACKEND NOT IMPLEMENTED (add a status message when implement this)
     const deleteUser= () => {
-        axios.post(backend_url('user/delete/' + currentUser.id))
+        callAPI('POST', 'user/delete/' + currentUser.id)
         .then((response) => {
             console.log(response.data);
             props.history.push('/user/search');  // Does this make sense to go here after?
@@ -216,7 +202,7 @@ const UserEdit = (props) => {
         // TODO: Need to figure out how to have 'allowedValues' here, but 
         // since it is async retrieved the validator is created with outdated version
         //allowedValues: availableOrganizations ? availableOrganizations.map(x => (x.org_id)) : [], // make an array of org_ids
-        required: true,
+        required: false,
         // TODO: how to add a label like "Select your organization(s)"?
         // Tried adding an extra entry with label and null value(key) but didn't work...
         uniforms: {
@@ -240,64 +226,55 @@ const UserEdit = (props) => {
 
     var bridge = new SimpleSchema2Bridge(schema);
 
-    // Returns how to render the form
 
     return (
 
           <div className="UserEditForm" style={{ maxWidth: '350px',}}>
 
-              {loading ? (<><p>Loading... </p><CircularProgress/></>) : (
+            <Busy busy={loading} />
 
-              <>
-              {props.register ? (<p>New user registration</p>) : (<></>)}
-              <AutoForm
-                schema={bridge}
-                onSubmit={onSubmit}
-                ref={ref => (formRef = ref)}
-                model={currentUser}
-              >
-                <AutoField name="first_name" />
-                <ErrorField name="first_name" />
-                <AutoField name="last_name" />
-                <ErrorField name="last_name" />
-                <AutoField name="email" />
-                <ErrorField name="email" />
-                <AutoField name="password" />
-                <ErrorField name="password" />
-                <AutoField name="password_confirm" />
-                <ErrorField name="password_confirm" />
-                <AutoField name="org_list" />
-                <ErrorField name="org_list" />
-                <SubmitField>Save Changes</SubmitField>
+            {props.register ? (<p>New user registration</p>) : (<></>)}
 
+            <AutoForm
+              schema={bridge}
+              onSubmit={onSubmit}
+              ref={ref => (formRef = ref)}
+              model={currentUser}
+            >
+              <AutoField name="first_name" />
+              <ErrorField name="first_name" />
+              <AutoField name="last_name" />
+              <ErrorField name="last_name" />
+              <AutoField name="email" />
+              <ErrorField name="email" />
+              <AutoField name="password" />
+              <ErrorField name="password" />
+              <AutoField name="password_confirm" />
+              <ErrorField name="password_confirm" />
+              <AutoField name="org_list" />
+              <ErrorField name="org_list" />
+              <SubmitField>Save Changes</SubmitField>
 
-              <div spacing={2}>
               <Button fullWidth variant='outlined' type="link">Add New Organization (not yet working)</Button>
-              <br/>
-
               <Button fullWidth variant='outlined' type='reset' onClick={() => formRef.reset()}>Cancel</Button>
               <Button fullWidth variant='outlined' type="delete" >Delete (not yet working)</Button>
 
-              </div>
-              </AutoForm>
+            </AutoForm>
 
-              {message ? ( 
+            {message ? ( 
 
-                <>
-                <p>{message}</p>
+              <>
+              <p>{message}</p>
 
-                <AlertList />
-                {message === 'success' ? (
-                  <Alert severity="success">User successfully updated</Alert>
-                ) : (
-                  <Alert severity="error">Something went wrong</Alert>
-                )}
-                </>
-              ):( <></>
+              <AlertList />
+              {message === 'success' ? (
+                <Alert severity="success">User successfully updated</Alert>
+              ) : (
+                <Alert severity="error">Something went wrong</Alert>
               )}
               </>
+            ) : ( <></> )}
 
-              )}
           </div>
         );
     
