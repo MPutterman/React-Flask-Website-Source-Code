@@ -1,4 +1,8 @@
+
 // TODO:
+// * Add feature to export as .csv text file, excel file, etc.
+// * Add feature to export a full PDF report?  E.g. with image, etc..
+
 // * I've probably broken things related to "doUV". (In general, someone wouldn't select origins etc without 
 //   a brightfield or UV image... but if they want to, might as well allow it.)
 // * When change origins and ROIs, need to reset something so 'autolane' will work correctly.
@@ -8,29 +12,16 @@
 // -- automatically so the images and ROIs are always available.
 // * We should add export buttons (either as file, or just .CVS text that can be copied to clipboard)
 // * Finish moving file upload options etc. into this file
-// * Add a timeout for server requests (not just here), and return a rejected promise if no response... this will avoid hanging
-//   of the front end in case of backend server errors...
-// * What does 'makeUpdate' with the various numbers mean?
 // * Regarding RF values, I think we should always compute these if origins are defined for at least one lane.  
 //   Maybe we can have a client-side option to show or hide those results if needed
 
-
 import React from "react";
-import "../App.css";
 import axios from "axios";
 import { withRouter } from "react-router";
 import { backend_url } from './config.js';
 
 import Button from "@material-ui/core/Button";
 import Slider from "@material-ui/core/Slider";
-import blueGrey from "@material-ui/core/colors/blueGrey";
-import CssBaseline from "@material-ui/core/CssBaseline";
-import Table from "@material-ui/core/Table";
-import TableBody from "@material-ui/core/TableBody";
-import TableCell from "@material-ui/core/TableCell";
-import TableContainer from "@material-ui/core/TableContainer";
-import TableHead from "@material-ui/core/TableHead";
-import TableRow from "@material-ui/core/TableRow";
 import Paper from "@material-ui/core/Paper";
 import Grid from "@material-ui/core/Grid";
 import RadioGroup from "@material-ui/core/RadioGroup";
@@ -41,299 +32,351 @@ import FormLabel from "@material-ui/core/FormLabel";
 import FormGroup from "@material-ui/core/FormGroup";
 import TextField from "@material-ui/core/TextField";
 import Checkbox from "@material-ui/core/Checkbox";
-import CircularProgress from "@material-ui/core/CircularProgress";
-import Backdrop from "@material-ui/core/Backdrop";
+import Busy from '../components/busy';
 import Accordion from '@material-ui/core/Accordion';
 import AccordionSummary from '@material-ui/core/AccordionSummary';
 import AccordionDetails from '@material-ui/core/AccordionDetails';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { withStyles, makeStyles } from '@material-ui/core/styles';
+import AnalysisResults from './analysis_results';
+import AnalysisData from './analysis_data';
+//import {useKeypress} from '../hooks/Keypress';
+import {useEventListener} from '../hooks/useEventListener';
+
+// FUTURE: embed results in ROI info...
+// ROI_list: list of {id, x, y, rx, ry, intensity}
+// .... this way it is independent of lanes and could be used to just calculate ROI intensities for an image
+//
+// lane_list: list of {id, name, roi_list (id values)}
+// QUESTION: how to organize origins and RF values? Look into literature?
+// QUESTION: when we add new ROIs, currently they are not assigned to the right lane...
+//// That's ok in new model... just add the new ROI to the ROI list, and don't allocate in lane list
+////    if needed, can compute unallocated ROIs...
+////    Maybe a different results table if there are unallocated ROIs
+// TODO: need a new function to separate overlapping ROIs?
+
+export const Analysis = (props) => {
 
 
-const UNDEFINED = 1000;  // TODO: possibly convert to "-1", unless backend also uses the '1000' value...
+    // Define step sizes (in pixels) to increment position or radius (via keypresses)
+    const STEP_X = 4;
+    const STEP_Y = 4;
+    const STEP_RX = 4;
+    const STEP_RY = 4;
+    const UNDEFINED = -1;
 
-class Analysis extends React.Component {
-  constructor(props) {
-    super(props);
-    this.origins = [];
-    this.ROIs = [[]];
-    this.filenum = this.props.match.params.filenumber;
-    this.submit = this.submit.bind(this);
-    this.add_data = this.add_data.bind(this);
-    this.clearOrigins = this.clearOrigins.bind(this);
-    this.clearROIs = this.clearROIs.bind(this);
-    this.autoSelect=this.autoSelect.bind(this);
-    this.removeROI = this.removeROI.bind(this);
-    this.removeOrigin = this.removeOrigin.bind(this);
-    this.originsDefined = this.originsDefined.bind(this);
-    this.state = {
-      arr_files: [],
-      string_files: [],
-      n_l: 0,
-      selected: {lane:UNDEFINED,spot:UNDEFINED},
-      //enterC: "",
-      //enterD: "",
-      //enterF: "",
-      //enterUV: "",
-      //enterUVF: "",
-      //enterL: "",
-      autoLane: true,
-      //showData: false,
-      //submitted: false,
-      UVImg: 0,
-      //dataName: "",
-      do_RF: false,
-      CerenkovImg: 0,
-      brightness: 0,  // brightness setting (client side only) for radiation image
-      contrast: 0,    // contrast setting (client side only) for radiation image
-      //start: false,
-      Darkname: "",
-      Flatname: "",
-      Cerenkovname: "",
-      Brightname: "",
-      BrightFlatname: "",
-      UVname: "",
-      UVFlatname: "",
-      dataUploaded: false,
-      resultsReturned: false,
-      results: [[]],
-      makeUpdate: 0,
-      doUV:false,
-      doROIs: true,
-      selectMode: "roi",
-      Dark: null,
-      Flat: null,
-      Cerenkov: null,
-      UV: null,
-      UVFlat: null,
-      Bright: null,
-      BrightFlat: null,
-      //ImgReturned: false,
-      img: 0,
-      background_corrected:'',
-      name:'',
-      image_size_x: 682, // TODO: get these from the Image
-      image_size_y: 682, // TODO: get these from the Image
-      updating: false,
+//    const [analysisID, setAnalysisID] = React.useState(null);
+
+    // State variables
+    // TODO: check if all of these need to be state variables (i.e. affect rendering)
+    const initialDataState = {
+        id: props.match.params.id,
+        owner_id: null,
+        date_created: null,
+        date_modified: null,
+        name: '',
+        description: '',
+        date_experiment: null,
+        equip_id: null,
+        plate_id: null,
+        cover_id: null,
+        image_rad_id: null,
+        image_bright_id: null,
+        image_dark_id: null,
+        image_flat_id: null,
+        corr_dark: false,
+        corr_flat: false,
+        corr_bkgd: false,
+        corr_filter: false,
+        algorithm_bkgd: null,
+        algorithm_filter: null,
+        image_computed_id: null, // Need this in the front end??
     };
-    // axios.defaults.withCredentials = true
-    this.retrieve_analysis()
-  }
+
+    const initialLaneState = {
+        autoLane: false,  // LEGACY? not sure this is needed...
+        num_lanes: 0, // number of lanes
+        origins: [],
+        ROIs: [],
+        selectedROI: { lane: UNDEFINED, band: UNDEFINED},
+        is_dirty: false,
+    };
+
+    const initialLegacyState = {
+        do_RF: false,  // LEGACY: phase this out 
+        do_UV: false, // LEGACY: phase this out
+        results_loaded: false, // TODO: will come from ROIs later
+        results: [],            // TODO: will come from ROIs later
+    };
+
+    const initialUIState = {
+        updating: false,  
+        // TODO: need different flags for each thing that is updating?
+    }   
+
+    const initialImageState = {
+        id: null, // Display image
+        uri: '',  // URI of display image
+        brightness: 0,
+        contrast: 0,
+        size_x: 682, // TODO: get these from the Image of the 'display image' record
+        size_y: 682, // TODO: get these from the Image of the 'display image' record
+    }
+
+    const [selectMode, setSelectMode] = React.useState("roi");
+
+    // TODO: NEED A BETTER STRUCTURE FOR ALL THIS DATA!! AND BETTER NAMES...
+    // AND THEN NEED TO UPDATED THROUGHOUT TO USE THE FULL NAMING
+    // Be careful, it's not that simple:
+    // setDict(prevDict => ({...prevDict, keyToUpdate: [...prevDict.keyToChange, "newValue"]}))
+
+    const [dataState, setDataState] = React.useState(initialDataState);
+    const [laneState, setLaneState] = React.useState(initialLaneState);
+    const [legacyState, setLegacyState] = React.useState(initialLegacyState);
+    const [imageState, setImageState] = React.useState(initialImageState);
+    const [uiState, setUIState] = React.useState(initialUIState);
+
+    // TODO: something not working right on redirect after submit files for /analysis/new
+    // Not triggering this useEffect... does the redirect not refresh the props/params?
+    React.useEffect(() => {
+        console.log("In useEffect [props.match.params.id]");
+        loadAnalysis(dataState.id);
+    }, [dataState.id])
+
+    // TODO: this will call /api/analysis/load (which returns analysis data, params, and results)
+    async function loadAnalysis(id) {
+      if (!id) return;
+      setUIState({updating: true,});
+      return axios
+          .get(backend_url('retrieve_analysis/' + id)) // TODO: change to /api/analysis/load
+          .then((res) => {
+            console.log ('response =>', res);
+            setLegacyState(prev => ({...prev,
+              do_RF: res.data.doRF,
+              do_UV: res.data.doUV,
+            }));
+            setImageState(prev => ({...prev,
+              uri: id,  // TODO: this is just temporary to set a non-empty value (need to get from server)
+            }));
+            setDataState(prev => ({...prev,
+              name: res.data.name,
+              description: res.data.description,
+              owner_id: res.data.owner_id,
+            }));
+            setLaneState(prev => ({...prev,
+              ROIs: res.data.ROIs,
+              origins: res.data.origins,
+              autoLane: res.data.autoLane,
+              num_lanes: res.data.n_l,
+            }));
+            setUIState({updating: false,})
+            
+            return res; // TODO: why return this?
+          });
+    }
+
+    // TODO: merge into main request from Panel 1 (i.e. if corr_bkgd is set, and an algorithm is chosen)
+    // QUESTION: there apeared to be a chance in filename for the <img> tag after calling this?
+    const fixBackground = ()=>{
+      return axios.get(backend_url('fix_background/'+dataState.id))
+      .then((res)=>{
+        setUIState(prev=>({...prev, background_corrected:''}));
+      })
+      .catch('An Error Occurred')
+    };
 
 
-  retrieve_analysis=()=>{
-    this.updating = true;
-    return axios
-        .get(backend_url('retrieve_analysis/' + this.filenum))
-        .then((res) => {
-          console.log ('response =>', res);
-          this.set_data(res.data)
-          this.setState({ makeUpdate: 8 });
-          this.setState({updating: false,})
-          
-          return res;
+
+  // Build an ROI around the specified x,y point
+  // QUESTION: what does 'shift' do? (seems related to whether shift key is pressed??)
+  async function buildROI(x,y,shift) {
+    // Make API call
+    // Note: send ROI list back to server.  QUESTION: is this to ensure no overlap?
+    // TODO: update API call to pass the x, y, shift data as part of formData
+    let formData = new FormData();
+    formData.append('ROIs',JSON.stringify(laneState.ROIs)); 
+    let requestConfig = { headers: {"Content-Type": "multipart/form-data"},};
+    return axios.post(backend_url(`radius/${dataState.id}/${x}/${y}/${shift}`), formData, requestConfig)
+      .then((res) => {
+        // Add the new ROI info (assign initially to lane '0')
+        // QUESTION: is n_l changed by the server?
+        // TODO: maybe the server should regenerate the lane list as much as possible?
+        console.log ("response from /radius", res);
+        return setLaneState(prev => {
+          let newROIs = JSON.parse(JSON.stringify(prev.ROIs)); // hack to make a true DEEP copy, [...prev.ROIs only first level are copied, rest are referenced]
+          newROIs[0].push([ res.data.row, res.data.col, res.data.rowRadius, res.data.colRadius]);
+          return {...prev,
+            ROIs: newROIs,
+            num_lanes: res.data.n_l,
+            selectedROI: {lane: 0, band: prev.ROIs[0].length-1+1},
+          };
         });
-  }
-  set_data=(res)=>{
-    this.ROIs= res.ROIs
-    this.origins=res.origins
-    this.setState({autoLane:res.autoLane,n_l:res.n_l,do_RF:res.doRF,doUV:res.doUV})
-  }
-  makeData = (arr) => {
-    arr = Object.assign({}, arr);
-    return arr;
-  };
-  calculate_vh = (px) => {
-    var vh = window.innerHeight / 100;
-    return px / vh;
-  };
-  calculate_vw = (px) => {
-    var vw = window.innerWidth / 100;
-    return px / vw;
-  };
-  getRadius = (x,y,shift)=>{
-    let data = new FormData()
-    data.append('ROIs',JSON.stringify(this.ROIs))
-    return axios.post(
-      backend_url(
-        'radius/'+this.filenum+
-        `/`+x+`/`
-        +y+`/`+
-        shift
-        )
-        ,data, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-      }},).then((res) => {
-        this.ROIs[0].push([
-          
-          res.data.row,
-          res.data.col,
-          res.data.rowRadius,
-          res.data.colRadius,
-        ]);
-        this.setState({ n_l:res.data.n_l });
-        return res;
       });
   }
-  UVClick = (e) => {
-    var x = e.nativeEvent.offsetX;
-    var y = e.nativeEvent.offsetY;
-    x = this.calculate_vw(x) / 0.19;
-    y = this.calculate_vh(y) / 0.3;
-    x = parseInt(6.82 * x);
-    y = parseInt(6.82 * y);
-    var shift = e.shiftKey ? 1 : 0;
-    console.log(shift);
-    if (!this.state.doROIs) {
-      this.origins.push([y,x]);
-      this.setState({ makeUpdate: 1 });
-    } else {
-      this.getRadius(x,y,shift)
-    }
-  };
-  fixBackground = ()=>{
-    return axios.get(backend_url('fix_background/'+this.filenum))
-    .then((res)=>{this.setState({background_corrected:''})}).catch('An Error Occurred')
-  }
-    componentDidMount() {
-      console.log('mounted')
-    window.addEventListener("keydown", this.changeROIFromPress);
-  }
-  changeROIFromPress = (e) => {
-    console.log(e)
-    if (
-//      !this.state.resultsReturned &&
-      this.ROIs[0].length > 0
-    ) {
-      if (e.key === "w") {
-	
-        this.incVert();
-	      this.backVert()
-        
-      }
-      if (e.key === "W") {
-        this.decVert();
-        this.backVert();
-      }
 
-      if (e.key === "D") {
-        this.moveHorz();
-        this.decHorz();
 
-      }
-      if (e.key === "S") {
-        this.decVert();
-        this.moveVert();
-      }
-      if (e.key === "A") {
-        this.decHorz();
-        this.backHorz();
-      }
-      if (e.key === "s") {
-	
-        this.incVert();
-	this.moveVert()
-       
-      }
-      if (e.key === "d") {
-	
-        this.incHorz();
-	this.moveHorz()
-        
-      }
-      if (e.key === "a") {
-	
-        this.incHorz();
-	this.backHorz()
-       
-      }
-    }
-  };
-  moveVert() {
-    if (this.state.selected.lane === UNDEFINED) {
-      return;
-    }
-    var last = this.state.selected;
-    if (this.ROIs[last.lane][last.spot][0] + 4 + this.ROIs[last.lane][last.spot][2] < 682) {
-      this.ROIs[last.lane][last.spot][0] += 4;
-      this.setState({ makeUpdate: 10 });
-    }
-  }
-  moveHorz() {
-    if (this.state.selected.lane === UNDEFINED) {
-      return;
-    }
-    var last = this.state.selected;
-    if (this.ROIs[last.lane][last.spot][1] + 4 + this.ROIs[last.lane][last.spot][3] < 682) {
-      this.ROIs[last.lane][last.spot][1] += 4;
-      this.setState({ makeUpdate: 8 });
-    }
-  }
-  backHorz() {
-    if (this.state.selected.lane === UNDEFINED) {
-      return;
-    }
-    var last = this.state.selected;
-    if (this.ROIs[last.lane][last.spot][1] - 4 - this.ROIs[last.lane][last.spot][3] > 0) {
+  // Interpret keypresses (currently only for ROI adjustments)
 
-      this.ROIs[last.lane][last.spot][1] -= 4;
-      this.setState({ makeUpdate: 10 });
-    }
-  }
-  backVert() {
-    if (this.state.selected.lane === UNDEFINED) {
-      return;
-    }
-    var last = this.state.selected;
-    if (this.ROIs[last.lane][last.spot][0] - 4 - this.ROIs[last.lane][last.spot][2] > 0) {
-      this.ROIs[last.lane][last.spot][0] -= 4;
-      this.setState({ makeUpdate: 10 });
-    }
-  }
-  select(l,i) {
-    this.setState({ selected: {lane:l,spot:i} });
-    this.setState({ makeUpdate: 1 });
-  }
   
-  removeROI(e,l, i) {
-//    if (this.state.resultsReturned) {
-//      return;
-//    }
+  // Event handler utilizing useCallback ...
+  // ... so that reference never changes.
+  const onKeypress = React.useCallback(
+    ({ key }) => {
 
-    if (this.state.doROIs) {
-      if (l != this.state.selected.lane || i !=this.state.selected.spot) {
-        this.select(l,i);
+    //console.log(e)
+
+    // Ignore keypress if no ROI is selected
+    //console.log('just entered onKeypress, here is value of laneState', laneState);
+    let lane = laneState.selectedROI.lane;
+    let band = laneState.selectedROI.band;
+    if (lane === UNDEFINED || band === UNDEFINED) return;
+
+    console.log ('in onKeyPress, lane=', lane);
+    console.log ('in onKeyPress, band=', band);
+
+    let roi = laneState.ROIs[lane][band]; // selected ROI
+    console.log ('roi before', roi);
+    switch (key) { //e.key) {
+      case "w":
+        roi = incVert(roi);
+        roi = backVert(roi);
+        break;
+      case "W":
+        roi = decVert(roi);
+        roi = backVert(roi);
+        break;
+      case "D":
+        roi = moveHorz(roi);
+        roi = decHorz(roi);
+        break;
+      case "S":
+        roi = decVert(roi);
+        roi = moveVert(roi);
+        break;
+      case "A":
+        roi = decHorz(roi);
+        roi = backHorz(roi);
+        break;
+      case "s":
+        roi = incVert(roi);
+        roi = moveVert(roi);
+        break;
+      case "d":
+        roi = incHorz(roi);
+        roi = moveHorz(roi);
+        break;
+      case "a":
+        roi = incHorz(roi);
+        roi = backHorz(roi);
+        break;
+      default:
+        // do nothing
+    }
+    console.log('roi after', roi);
+    // TODO: is this correct?
+    setLaneState(prev => {
+      let newROIs = JSON.parse(JSON.stringify(prev.ROIs)); 
+      newROIs[lane][band] = roi;
+      return {...prev, ROIs: newROIs};
+    }); 
+  }, [laneState, setLaneState]);
+
+  // This is the way to set up listener that can access state: https://usehooks.com/useEventListener/
+  useEventListener('keydown', onKeypress);
+
+  const moveVert = (roi) => {
+    if (roi[0] + STEP_Y + roi[2] < imageState.size_y)  roi[0] += STEP_Y;
+    return roi;
+  }
+
+  const moveHorz = (roi) => {
+    if (roi[1] + STEP_X + roi[3] < imageState.size_x) roi[1] += STEP_X;
+    return roi;
+  }
+
+  const backHorz = (roi) => {
+    if (roi[1] - STEP_X - roi[3] > 0) roi[1] -= STEP_X;
+    return roi;
+  }
+
+  const backVert = (roi) => {
+    if (roi[0] - STEP_Y - roi[2] > 0) roi[0] -= STEP_Y;
+    return roi;
+  }
+
+  const incVert = (roi) => {
+    if (roi[0] + roi[2] < imageState.size_y-0  && roi[0] - roi[2] > 0) roi[2] += STEP_RY;
+    return roi;
+  };
+
+  const incHorz = (roi) => {
+    if (roi[1] + roi[3] < imageState.size_x-0  && roi[1] - roi[3] > 0) roi[3] += STEP_RX;
+    return roi;
+  };
+
+  const decHorz = (roi) => {
+    if (roi[3] > 14) roi[3] -= STEP_RX; // TODO: what is special about the value 14?
+    return roi;
+  };
+
+  const decVert = (roi) => {
+    if (roi[2] > 14) roi[2] -= STEP_RY; // TODO: what is special about the value 14?
+    return roi;
+  };
+
+
+
+  const onClickROI = (e, l, i) => {  // event, lane, and band
+
+    if (selectMode == "roi") {
+      if (l === laneState.selectedROI.lane && i === laneState.selectedROI.band) {  
+        // Remove the specified ROI, and nullify selectedROI
+        console.log ('onClickROI - a selectedROI is defined... deleting it');
+        setLaneState(prev => {
+          let newROIs = JSON.parse(JSON.stringify(prev.ROIs)); 
+          newROIs[l].splice(i,1);
+          return {...prev, ROIs: newROIs, selectedROI: {lane: UNDEFINED, band: UNDEFINED},};
+        });
       } else {
-        this.ROIs[l].splice(i, 1);
-        this.setState({ makeUpdate: 9 });
-        this.setState({ selected: {lane:UNDEFINED,spot:UNDEFINED} }); // what does this do?
+        // Select the specified ROI
+        console.log ('onClickROI - a selectedROI is not defined... selecting one');
+        setLaneState(prev => ({...prev, selectedROI: { lane: l, band: i},}));
       }
-    } else {
+
+    } else if (selectMode == "origin") {
+      // QUESTION: why so much calculation for origins?  And what is the + 3 near the end?
       var x = e.nativeEvent.offsetX;
       var y = e.nativeEvent.offsetY;
-      var radx = this.ROIs[l][i][3];
-      var rady = this.ROIs[l][i][2];
-      var px = this.ROIs[l][i][1];
-      var py = this.ROIs[l][i][0];
+      var radx = laneState.ROIs[l][i][3];
+      var rady = laneState.ROIs[l][i][2];
+      var px = laneState.ROIs[l][i][1];
+      var py = laneState.ROIs[l][i][0];
       console.log(x, y, radx, rady, px, py);
       console.log(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
-      x = px - radx + x + 3;
-      y = py - rady + y + 3;
-      this.origins.push([parseInt(y),parseInt(x)]);
-      this.setState({ makeUpdate: 10 });  // what is 'makeUpdate'? what do the values mean?
+      x = px - radx + x + 3; 
+      y = py - rady + y + 3; 
+      console.log('prev origins', laneState.origins);
+      setLaneState(prev => {
+        let newOrigins = [...prev.origins];
+        newOrigins.push([parseInt(y),parseInt(x)]);
+        return {...prev, origins: newOrigins};
+      });
     }
-  }
+  }; 
 
-  clearROIs() {
-    this.ROIs=[[]]
-    this.setState({ makeUpdate: 8 });
-  }
-  clearOrigins() {
-    this.origins.splice(0, this.origins.length);
-    this.setState({ makeUpdate: 10 });
-  }
-  autoSelect() {
+  // Clear all ROIs
+  const clearROIs = () => {
+    setLaneState(prev => ({...prev, ROIs: [], selectedROI:{lane:UNDEFINED, band:UNDEFINED},}));
+  };
+
+  // Clear all origins
+  const clearOrigins = () => {
+    setLaneState(prev => ({...prev, origins: [], }));
+  };
+
+  // Re-autoselect the ROIs
+  // TODO: add similar functions (or combine here) for origins and lanes?
+  async function autoSelect() {
     let formData=new FormData()
     
     let config = {
@@ -341,178 +384,136 @@ class Analysis extends React.Component {
           "Content-Type": "multipart/form-data",
       },
     };
-    return axios.post(backend_url('autoselect/'+this.filenum), formData, config)
+    return axios.post(backend_url('autoselect/'+dataState.id), formData, config)
     .then((res) => {
-      this.ROIs = res.data.selected_ROIs;
-      this.setState({makeUpdate:'4'})
-      return res
+      setLaneState(prev => ({...prev,
+        ROIs: res.data.selected_ROIs,
+        selectedROI: {lane: UNDEFINED, band: UNDEFINED},
+      }));
+      return res; // TODO: why return response?
+      // TODO: also add a request for updated results as well...
     })
   }
-  removeOrigin(e, i) {
-//    if (this.state.resultsReturned) {
-//      return;
-//    }
-    if (!this.state.doROIs) {
-      this.origins.splice(i, 1);
-      this.setState({ makeUpdate: 19 });
-    } else {
+
+  const onClickOrigin = (e, i) => {
+    if (selectMode == "origin") {
+      // Remove origin i
+      setLaneState(prev => {
+        let new_origins = [...prev.origins];
+        new_origins.splice(i,1);
+        return {...prev, origins: new_origins, }
+      });
+
+    } else if (selectMode == "roi") {
+      // Define an ROI
+      console.log ('onClickOrigin - defining a new ROI by caling buildROI');
       var x = e.nativeEvent.offsetX;
       var y = e.nativeEvent.offsetY;
       var radx = 5;
       var rady = 5;
-      var px = this.origins[i][1];
-      var py = this.origins[i][0];
+      var px = laneState.origins[i][1];
+      var py = laneState.origins[i][0];
       x = px - radx + x;
       y = py - rady + y;
       x = parseInt(x);
       y = parseInt(y);
       var shift = e.shiftKey ? 1 : 0;
       console.log(shift);
-      this.getRadius(x,y,shift)
-      }
+      buildROI(x,y,shift); // TODO: how does this work, what is return value?
     }
+  }
 
     // TODO: eventually update this to return true if origins are _fully_ defined (i.e. origins and solvent fronts).
     // For now, if we have at least 3 points, assume the origins are properly defined.
-    originsDefined() {
-      return this.origins.length >= 3;
-    }
-
-  add_data() {
-    this.setState({ dataUploaded: true });
-    return axios.post(backend_url('upload_data/'+this.filenum)).then(res=>{alert(res.data.Status)});
+  const originsDefined = () => {
+    return laneState.origins.length >= 3;
   };
 
-  submit() {
-    console.log(this.origins);
-    this.setState({updating: true});
-    // if (this.state.Cerenkovname === "") {
-    //   this.setState({ Cerenkovname: "Sample" });
-    // }
+  // TODO: call this somewhere. Used to be a button "Refresh Results"...  basically to save the data to database...
+  async function add_data() {
+    return axios.post(backend_url('upload_data/'+dataState.id)).then(res=>{alert(res.data.Status)});
+    // TODO: trigger an update of other elements
+    /// it really depends what was uploaded... if just a flat image, then ROIs can stay the same-ish... if it is the main
+    /// data image uploaded, may have to regenerate all ROIs, etc...
+  }
+
+  async function submitParams() {
+    console.log(laneState.origins);
+    setUIState({updating: true});
     let data = new FormData();
-    console.log('ROIs',this.ROIs);
-    data.append("ROIs", JSON.stringify(this.ROIs));
-    data.append('doUV',this.state.doUV);
-    data.append("origins", JSON.stringify(this.origins));
-    data.append("n_l", this.state.n_l);
-    data.append("doRF", this.state.do_RF);
-    data.append("autoLane", !this.originsDefined());
-//    console.log(this.state.autoLane);
-//    if (this.state.autoLane === true) {
-//      data.append("autoLane", "true");
-//    } else {
-//      data.append("autoLane", "false");
-//    }
+    console.log('ROIs', laneState.ROIs);
+    data.append("ROIs", JSON.stringify(laneState.ROIs));
+    data.append('doUV', legacyState.do_UV);
+    data.append("origins", JSON.stringify(laneState.origins));
+    data.append("n_l", laneState.num_lanes); // phase this out later...
+    data.append("doRF", legacyState.do_RF); // phase this out later
+    data.append("autoLane", !originsDefined());
     return axios
-      .post(backend_url('analysis_edit/' + this.filenum), data, {
+      .post(backend_url('analysis_edit/' + dataState.id), data, {
         headers: {
           "Content-Type": "multipart/form-data",
         },
       })
       .then((res) => {
-        this.ROIs = res.data.ROIs
-        //this.setState({})
-        return axios.get(backend_url('results/'+this.filenum),).then(res2=>{
-          this.setState({ results: res2.data.arr, resultsReturned: true, updating: false });
+        setLaneState(prev => ({...prev,
+          ROIs: res.data.ROIs,
+          num_lanes: res.data.ROIs.length, /// TODO: is this correct, I added it...
+        }));
+        
+        return axios.get(backend_url('results/'+dataState.id),)
+        .then(res2=>{
+          setLegacyState(prev => ({ ...prev,
+            results: res2.data.arr,
+            results_loaded: true,
+          }));
+          setUIState(prev => ({ ...prev,
+            updating: false,
+          }));
         })
         
       }).catch('An Error Occurred');
   }
 
-  incVert = () => {
-    if (this.state.selected.lane === UNDEFINED) {
-      return;
-    }
-    var last = this.state.selected;
-    if (
-      this.ROIs[last.lane][last.spot][0] + this.ROIs[last.lane][last.spot][2] < this.state.image_size_y-0  &&
-      this.ROIs[last.lane][last.spot][0] - this.ROIs[last.lane][last.spot][2] > 0
-    ) {
-      this.ROIs[last.lane][last.spot][2] += 4;
-      this.setState({ makeUpdate: 12 });
-    }
-  };
-  incHorz = () => {
-    if (this.state.selected.lane === UNDEFINED) {
-      return;
-    }
-    var last = this.state.selected;
-    if (
-      this.ROIs[last.lane][last.spot][1] + this.ROIs[last.lane][last.spot][3] < this.state.image_size_x-0  &&
-      this.ROIs[last.lane][last.spot][1] - this.ROIs[last.lane][last.spot][3] > 0
-    ) {
-      this.ROIs[last.lane][last.spot][3] += 4;
-      this.setState({ makeUpdate: 12 });
-    }
-  };
+  // Handle clicks on the image canvas (not on origin or ROI)
+  const onClickImage = (e) => {
 
-  decHorz = () => {
-    if (this.state.selected.lane === UNDEFINED) {
-      return;
-    }
-    var last = this.state.selected;
-    if (this.ROIs[last.lane][last.spot][3] > 14) {
-      this.ROIs[last.lane][last.spot][3] -= 4;
-      this.setState({ makeUpdate: 12 });
-    }
-  };
-  decVert = () => {
-    if (this.state.selected.lane === UNDEFINED) {
-      return;
-    }
-    var last = this.state.selected;
-    if (this.ROIs[last.lane][last.spot][2] > 14) {
-      this.ROIs[last.lane][last.spot][2] -= 4;
-      this.setState({ makeUpdate: 12 });
-    }
-  };
+    if (selectMode == "origin") {
+      // Add a new origin point at the click location
+      var new_origin = [parseInt(e.nativeEvent.offsetY), parseInt(e.nativeEvent.offsetX)];
+      setLaneState(prev => {
+        let newOrigins = [...prev.origins];
+        newOrigins.push(new_origin);
+        return {...prev, origins: newOrigins, is_dirty: true,}; // is_dirty maybe to trigger state update
+      });
 
-  _onMouseClick(e) {
-//    if (this.state.resultsReturned) {
-//      return;
-//    }
-    this.setState({ dataUploaded: false });
-    if (!this.state.doROIs) {
-      this.origins.push([
-        parseInt(e.nativeEvent.offsetY),
-        parseInt(e.nativeEvent.offsetX),
-        
-      ]);
-      this.setState({ makeUpdate: 8 });
-    } 
-    else {
+    } else if (selectMode == "roi") {
+      // Build a new ROI at the click location
+      console.log ('onClickImage - creating a new ROI via buildROI');
       var x = parseInt(e.nativeEvent.offsetX);
       var y = parseInt(e.nativeEvent.offsetY);
       var shift = e.shiftKey ? 1 : 0;
       console.log(shift);
-      this.getRadius(x,y,shift)
+      buildROI(x,y,shift);
     }
   }
   
-  render() {
-    
     return (
         
-        <div style={{ position: "relative",}}>
+        <div>
 
-          {/* Loading spinner effect */}
-          <Backdrop className={this.props.classes.backdrop} open={this.state.updating} >
-            <CircularProgress color="inherit" />
-          </Backdrop>
+          {/* Full-screen loading spinner effect */}
+          <Busy busy={uiState.updating}/>
 
           {/* Panel - analysis information and files */}
 
-          <Accordion>
+          <Accordion defaultExpanded>
             <AccordionSummary expandIcon={<ExpandMoreIcon />} >
               <h2>Analysis information and files</h2>
             </AccordionSummary>
             <AccordionDetails>
 
-              <h3>TODO: Will be moving what is in the submission.js file onto this page so all aspects of analysis
-              are together and conveniently allow dynamic adjustments, changing of images and corrections, 
-              changing of ROIs etc, and showing results.</h3>
+              <AnalysisData dataState={dataState} setDataState={setDataState} {...props} />
 
-              <Button variant="contained">Update image</Button>
             </AccordionDetails>
           </Accordion>
 
@@ -524,9 +525,15 @@ class Analysis extends React.Component {
             </AccordionSummary>
             <AccordionDetails>
 
+          {imageState.uri ? (
+
           <Grid container direction='column' spacing={3}>
 
-            <Grid item>
+            <Grid container direction="row" spacing={3}>
+
+              <Grid item>
+              
+                {/* Show main image (after all corrections) and set up listener for mouse click */}
 
                 <img
 		              className = 'noselect'    
@@ -536,60 +543,20 @@ class Analysis extends React.Component {
                     marginTop: "0",
                     marginLeft: "0",
                     filter:
-                      "brightness(" + (100 + this.state.brightness) + "%) " + 
-                      "contrast(" + (100 + this.state.contrast) + "%) ",
+                      "brightness(" + (100 + imageState.brightness) + "%) " + 
+                      "contrast(" + (100 + imageState.contrast) + "%) ",
                   }}
-                  src={backend_url('img/' + this.filenum+this.state.background_corrected)}
-                  onClick={this._onMouseClick.bind(this)}
+                  src={backend_url('img/' + dataState.id)} // + background_corrected)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onClickImage(e);}}
                   alt=''
                 />
 
-{/*
-Below needs some work to make sure images are positioned properly, and ROI drawing works as expected...
-*/}
-
-                {true &&
-                  this.state.doUV && ( 
-                    <div>
-                      
-                      <img
-                        src={backend_url('UV/' + this.filenum)}
-                        style={{
-                          position: "relative",
-                          marginTop: "30vh",
-                          marginLeft: "56vw",
-                          height: "30vh",
-                          width: "19vw",
-                          filter:
-                            "brightness(" + (100 + this.state.brightness) + "%) " + 
-                            "contrast(" + (100 + this.state.contrast) + "%) ",
-
-                        }}
-                        onClick={this.UVClick}
-                        alt=''
-                      />
-                      <img
-                        src={backend_url('Cerenkov/' + this.filenum)}
-                        style={{
-                          position: "absolute",
-                          marginTop: "30vh",
-                          marginLeft: "77vw",
-                          height: "30vh",
-                          width: "19vw",
-                          filter:
-                            "brightness(" + (100 + this.state.brightness) + "%) " + 
-                            "contrast(" + (100 + this.state.contrast) + "%) ",
-
-                        }}
-                        onClick={this.UVClick}
-                        alt=''
-                      />
-                    </div>
-                )}
-
                 {/* Draw ROIs if available */}
 
-                {this.ROIs.map((Lane,l)=>{
+
+                {laneState.ROIs.length > 0 ? laneState.ROIs.map((Lane,l)=>{
 
                   return(
                     
@@ -599,147 +566,145 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
                     return(
                       
                       <canvas
-                      key={i}
-                      className="ROI"
+                      key={`roi-${l}-${i}`}
                       style={{
                         position: "absolute",
                         backgroundColor: "transparent",
-                        zIndex: this.state.doROIs ? 11 : 10,
+                        zIndex: (selectMode == "roi") ? 11 : 10,
                         borderRadius: "50%/50%",
                         border:
-                          (i === this.state.selected.spot && l === this.state.selected.lane)
+                          (i === laneState.selectedROI.band && l === laneState.selectedROI.lane)
                             ? "dashed 2px #0ff"
                             : `dashed 2px #${((l%2)*15).toString(16)}${(15*(l%2)).toString(16)}${(15*(l%2)).toString(16)}`,
                         width: "" + 2 * x[3] - 2 + "px",
                         height: "" + 2 * x[2] - 2 + "px",
-                        marginTop: "" + x[0] - 1 * x[2] + 1 - this.state.image_size_x + "px",
+                        marginTop: "" + x[0] - 1 * x[2] + 1 - imageState.size_x + "px",
                         marginLeft: "" + x[1] - 1 * x[3] + 1 + "px",
                       }}
                       onClick={(e) => {
-                        e.preventDefault();
-                        this.removeROI(e,l, i);
+                        //e.preventDefault();
+                        onClickROI(e,l, i);  
                       }}
                     />
                     );
 
                   })}
                   </div>)
-                })}
+                }) : (<div></div>)}
 
                 {/* Draw origins if available */}
 
-                {this.origins.map((x, i) => {
+                {laneState.origins.length > 0 ? laneState.origins.map((x, i) => {
                   return (
                     <canvas
                       className="ROI"
-                      key={i}
+                      key={`origin-${i}`}
                       style={{
                         borderRadius: "50%/50%",
                         backgroundColor: "white",
                         position: "absolute",
-                        marginTop: "" + 1 * x[0] - 5 -this.state.image_size_y + "px",
+                        marginTop: "" + 1 * x[0] - 5 - imageState.size_y + "px",
                         marginLeft: "" + 1 * x[1] - 5 + "px",
                         width: "10px",
                         height: "10px",
-                        zIndex: this.state.doROIs ? 10 : 11,
+                        zIndex: (selectMode == "roi") ? 10 : 11,
                       }}
                       onClick={(e) => {
                         e.preventDefault();
-                        this.removeOrigin(e, i);
+                        onClickOrigin(e, i);
                       }}
                     />
                   );
-                })}
+                }) : ( <></> )}
 
-
-                <Button color="primary" variant="contained" onClick={this.fixBackground}> Perform background correction </Button>
+                <Button color="primary" variant="contained" onClick={fixBackground}> Perform background correction </Button>
 
             </Grid>
 
-            <div style={{width: this.state.image_size_x}} >
+            <Grid container direction="column" style={{width: '250px'}}>
+
+              <Grid item>
+              <FormControl component="fieldset">
+                <RadioGroup name="select-mode"
+                  value={selectMode}
+                  onChange={(event) => {
+                      setSelectMode(event.target.value );
+                    }}
+                  >
+                  <FormControlLabel value="roi" control={<Radio />} label="Select ROIs" />
+                  <FormControlLabel value="origin" control={<Radio />} label="Select Origins" />
+                </RadioGroup>
+              </FormControl>
+              <div>
+                {selectMode === "roi" ? (
+                  <span>
+                  Click on a band to build a new ROI, or select on an existing ROI to modify it.
+                  While an ROI is select, click on it to delete it, or use the following keys to update it:<br/>
+                  [a], [A] - jog left or right sides to the left<br/>
+                  [w], [W] - jog top or bottom sides upward<br/>
+                  [s], [S] - jog left or right sides to the right<br/>
+                  [d], [D] - jog top or bottom sides downward<br/>
+                  </span>
+                ) : ( <></> )}
+                {selectMode === "origin" ? (
+                  <span>
+                  Click on a desired point to set a new origin. Click on an existing one to delete it.
+                  To fully define the origins, click at the spotting point on each lane, and then use two 
+                  points to define a solvent front line at the top of the TLC plate. These solvent front points
+                  must be the last two points selected.
+                  </span>
+                ) : ( <></>)}
+              </div>
+
+              <Button color="primary" variant="contained" onClick={clearROIs}> Clear all ROIs </Button>
+              <Button color="primary" variant="contained" onClick={autoSelect}> Autoselect ROIs </Button>
+              <Button color="primary" variant="contained" onClick={clearOrigins}> Clear all origins </Button>
+
+            </Grid>
 
             <Grid item>
-              <h2>Image adjustments:</h2>
-
-                <Grid container>
-                  <Grid item xs={2}>
-                    <p>Brightness</p>
-                  </Grid>
-                  <Grid item xs={10}>
-                    <Slider
-                      color='secondary'
-                      id="brightness"
-                      name="brightness"
-                      label="Brigthness"
-                      valueLabelDisplay="auto"
-                      step={1}
-                      marks={true}
-                      defaultValue={this.state.brightness}
-                      min={-100}
-                      max={500}
-                      onChange={(e, value) => {
-                        this.setState({ brightness: value });
-                      }}
-                    />
-                  </Grid>
+                <Grid item>
+                  <p>Brightness</p>
+                  <Slider
+                    color='secondary'
+                    name="brightness"
+                    label="Brightness"
+                    valueLabelDisplay="auto"
+                    step={1}
+                    marks={true}
+                    defaultValue={initialImageState.brightness}
+                    min={-100}
+                    max={500}
+                    onChange={(e, value) => {
+                      setImageState(prev=>({...prev, brightness: value}));
+                    }}
+                  />
                 </Grid>
-
-                <Grid container>
-                  <Grid item xs={2}>
-                    <p>Contrast</p>
-                  </Grid>
-                  <Grid item xs={10}>
-                    <Slider
-                      color="secondary"
-                      id="contrast"
-                      name="contrast"
-                      label="Contrast"
-                      valueLabelDisplay="auto"
-                      step={1}
-                      marks={true}
-                      defaultValue={this.state.contrast}
-                      min={-100}
-                      max={500}
-                      onChange={(e, value) => {
-                        this.setState({ contrast: value });
-                      }}
-                    />  
-                  </Grid>
-                </Grid>
-
 
                 <Grid item>
-
-                  <h2>Selection:</h2>
-
-                  <FormControl component="fieldset">
-                    <RadioGroup name="select-mode"
-                      value={this.state.selectMode}
-                      onChange={(event) => {
-                          this.setState({ selectMode: event.target.value });
-                          if (event.target.value === "roi") {
-                            this.setState({ doROIs: true });
-                          } else {
-                            this.setState({ doROIs: false });
-                          }
-                        }}
-                      >
-                      <FormControlLabel value="roi" control={<Radio />} label="ROIs" />
-                      <FormControlLabel value="origin" control={<Radio />} label="Origin, SF, lanes" />
-                    </RadioGroup>
-                  </FormControl>
-
-                  <Button color="primary" variant="contained" onClick={this.clearROIs}> Clear all ROIs </Button>
-                  <Button color="primary" variant="contained" onClick={this.autoSelect}> Autoselect ROIs </Button>
-                  <Button color="primary" variant="contained" onClick={this.clearOrigins}> Clear all origins </Button>
-
+                  <p>Contrast</p>
+                  <Slider
+                    color="secondary"
+                    name="contrast"
+                    label="Contrast"
+                    valueLabelDisplay="auto"
+                    step={1}
+                    marks={true}
+                    defaultValue={initialImageState.contrast}
+                    min={-100}
+                    max={500}
+                    onChange={(e, value) => {
+                      setImageState(prev=>({...prev, contrast: value}));
+                    }}
+                  />  
                 </Grid>
 
             </Grid>
 
-            <Grid item>
-        
-                <Grid container direction="row">
+          </Grid>
+        </Grid>
+
+            <Grid container direction="row">
                   <Grid item>
                     {/* Compute RF values? Only enable if origins have been defined. 
                         TODO: something not quite working with the checked/unchecked state
@@ -749,12 +714,12 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
                       control={<Checkbox
                         //color="primary"
                         //variant="contained"
-                        disabled={!this.originsDefined()}
-                        checked={this.state.do_RF}
-                        value={this.state.do_RF ? 'on' : 'off'}
+                        disabled={!originsDefined()}
+                        checked={legacyState.do_RF}
+                        value={legacyState.do_RF ? 'on' : 'off'}
                         //checked={this.state.do_RF}
                         onChange={(event) => {
-                          this.state.do_RF = event.target.checked;
+                          setLegacyState(prev=>({...prev, do_RF: event.target.checked,}));
                         }}
                         name="enable_RF"
                       />}
@@ -774,7 +739,7 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
                         //variant="contained"
                         //disabled={this.originsDefined}
                         disabled
-                        checked={!this.originsDefined()}
+                        checked={!originsDefined()}
                         //onChange={(event) => {
                         //  this.state.autoLane = event.target.checked;
                         //}}
@@ -784,18 +749,19 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
                     />
                     </FormGroup>
 
-                    <p>Number of lanes: {this.state.n_l}</p>
+                    <p>Number of lanes: {laneState.num_lanes}</p>
                     <input type = 'range'
-                      disabled={this.originsDefined()}
+                      disabled={originsDefined()}
                       name = {'#Lanes'}
                       step={1} 
                       valueLabelDisplay="on"
                       marks={true}
-                      defaultValue={this.state.n_l}
+                      defaultValue={laneState.num_lanes}
                       min={0}
                       max={12}
                       onInput={(e) => {
-                        this.setState({ n_l: e.target.value });
+                        var num_lanes = e.target.value;
+                        setLaneState(prev => ({ ...prev, num_lanes: num_lanes }));
                       }}
                     />
 
@@ -803,27 +769,32 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
 
                 </Grid>
 
-                <Button color="primary" variant="contained" onClick={this.submit}> Refresh results table </Button>
+                <Button color="primary" variant="contained" onClick={submitParams}> Refresh results table </Button>
 
             </Grid>
-
-            </div>
-
-          </Grid>
+          ) : (
+            <p>No image available</p>
+          )}
 
           </AccordionDetails>
           </Accordion>
 
           {/* Panel - results and export options */}
 
-          <Accordion >
+          <Accordion defaultExpanded>
             <AccordionSummary expandIcon={<ExpandMoreIcon />} >
               <h2>Results and export</h2>
             </AccordionSummary>
             <AccordionDetails>
 
-                <Grid container direction="column">
-                <Grid item>
+              <AnalysisResults
+                results={legacyState.results}
+                results_loaded={legacyState.results_loaded}
+                do_RF={legacyState.do_RF}
+              />
+
+{/*}
+              {legacyState.results_loaded ? ( 
 
                 <TableContainer component={Paper}>
                   <Table>
@@ -832,7 +803,7 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
                         <TableCell id="tc">
                           ROIS
                         </TableCell>
-                        {this.state.results[0].map((spot, i) => {
+                        {legacyState.results[0].map((band, i) => {
                           return (
                             <TableCell id="tc" key={i} align="right">
                               Lane {i + 1}{" "}
@@ -842,22 +813,22 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {this.state.results.map((lane, i) => {
+                      {legacyState.results.map((lane, i) => {
                         return (
                           <TableRow key={i}>
                             <TableCell id="tc" component="th" scope="row">
                               <strong>Band {i + 1}</strong>
                               <br/>Integration
-                              {this.state.do_RF && (
+                              {legacyState.do_RF && (
                                 <><br/>RF value</>
                               )}          
                             </TableCell>
-                            {lane.map((spot, j) => {
+                            {lane.map((band, j) => {
                               return (
                                 <TableCell id="tc" key={j} align="right">
                                   <br/>
-                                  {(spot[0] * 100).toFixed(1)}%<br/>
-                                  {spot.length > 1 ? " " + spot[1].toFixed(2) : ""}
+                                  {(band[0] * 100).toFixed(1)}%<br/>
+                                  {band.length > 1 ? " " + band[1].toFixed(2) : ""}
                                 </TableCell>
                               );
                             })}
@@ -867,37 +838,19 @@ Below needs some work to make sure images are positioned properly, and ROI drawi
                     </TableBody>
                   </Table>
                 </TableContainer>
-                </Grid>
 
-                <Grid item>
-                <Button
-                  disabled={!this.state.resultsReturned}
-                  color="primary"
-                  variant="contained"
-                  onClick={this.add_data}
-                >
-                  Upload to Database
-                </Button>
-                </Grid>
-              </Grid>
+              ) : (
+                <p>Results table not yet available</p>
+              )}
 
+*/}
         </AccordionDetails>
         </Accordion>
 
         </div>
                   
     );
-  }
 }
 
 
-// Inject backdrop style
-const styles = (theme) => ({
-  backdrop: {
-    zIndex: theme.zIndex.drawer + 1,
-    color: '#fff',
-  },
-});
-
-// Wrap the class to provide theme (in addition to router)
-export default withStyles(styles, {withTheme: true})(withRouter(Analysis));
+export default withRouter(Analysis);
