@@ -2,4 +2,3 @@ backend/.env
 !backend/UPLOADS
 backend/UPLOADS/*
 backend/flask_session
-backend/__pycache__
