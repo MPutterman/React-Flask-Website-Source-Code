@@ -153,7 +153,7 @@ const Layout = (props) => {
   return (
 
       <>
-      <AppBar style={{height: '5vh', topMargin: '0'}} position="fixed" className={clsx(classes.appBar, {[classes.appBarShift]: openDrawer, })} >
+      <AppBar style={{height: '8vh', topMargin: '0'}} position="fixed" className={clsx(classes.appBar, {[classes.appBarShift]: openDrawer, })} >
         <Toolbar>
           <IconButton
             edge="start"
@@ -235,10 +235,10 @@ const Layout = (props) => {
                       <ListItemText primary={'New Analysis'} />
             </NavLink>
             </ListItem>
-          <ListItem button key={'Search Database'}>
+          <ListItem button key={'Search Analyses'}>
             <NavLink to={'/analysis/search'} className="nav-link">
                         <ListItemIcon><AddIcon /></ListItemIcon>
-                      <ListItemText primary={'Search Database'} />
+                      <ListItemText primary={'Search Analyses'} />
             </NavLink>
           </ListItem>
           <ListItem button key={'load analysis'}>
