@@ -640,10 +640,10 @@ export const Analysis = (props) => {
                   <span>
                   Click on a band to build a new ROI, or select on an existing ROI to modify it.
                   While an ROI is select, click on it to delete it, or use the following keys to update it:<br/>
-                  [a], [A] - jog left or right sides to the left<br/>
-                  [w], [W] - jog top or bottom sides upward<br/>
-                  [s], [S] - jog left or right sides to the right<br/>
-                  [d], [D] - jog top or bottom sides downward<br/>
+                  [a / A] jog left (left or right side)<br/>
+                  [w / W] jog up (top or bottom side)<br/>
+                  [s / S] jog down (top or bottom side)<br/>
+                  [d / D] jog right (left or right side)<br/>
                   </span>
                 ) : ( <></> )}
                 {selectMode === "origin" ? (
