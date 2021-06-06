@@ -23,8 +23,9 @@ export function backend_url(route) {
     return 'http://' + backend_ip() + ':' + backend_port() + '/' + route;
 }
 
-// UNTESTED... MAY NOT WORK!!!
 // TODO: add a timeout in case of crashed server etc...
+// TODO: add some error handling, and maybe extract out
+//   a few return values, e.g. success, error, data from response?
 export async function callAPI(method, route, data={}) {
     switch(method) {
 
