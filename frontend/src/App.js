@@ -27,6 +27,7 @@ import Contact from './components/contact';
 import Error404 from './components/error404';
 
 import Analysis from './components/analysis';
+import AnalysisSearch from './components/analysis_search';
 import Database from './components/database'
 import Submission from './components/submission'
 //import Start from './components/start'
@@ -71,10 +72,12 @@ const App = (props) => {
         <Router>
         <Layout>
             <Switch>
-                <Route path = '/analysis/search' component={Database}/>
+{/*                <Route path = '/analysis/search' component={Database}/> */}
                 <Route path='/start' component={Start}/>
-                <Route path='/analysis/new' component={Submission}/>
-                <Route path='/analysis/:filenumber' component={Analysis}/>
+                <Route path='/analysis/new' component={Analysis}/>
+                <Route path='/analysis/edit/:id' component={Analysis}/>
+                <Route path='/analysis/search' component={AnalysisSearch}/>
+                <Route path='/analysis/:analysis_id' component={Analysis}/>
                 <Route exact path='/' component={Start} />
                 <Route path='/contact' component={Contact} />
                 <Route path='/about' component={About} />
