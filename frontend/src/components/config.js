@@ -24,7 +24,8 @@ export function backend_url(route) {
 }
 
 // UNTESTED... MAY NOT WORK!!!
-export async function callAPI(route, method, data) {
+// TODO: add a timeout in case of crashed server etc...
+export async function callAPI(method, route, data={}) {
     switch(method) {
 
         case 'GET':
@@ -38,7 +39,9 @@ export async function callAPI(route, method, data) {
 
         case 'POST':
             var formData = new FormData();
-            formData.append(data); // TODO: does this work?
+            for (const [key, value] of Object.entries(data)) {
+                formData.append(key, value); 
+            }
 
             const config = {     
                 headers: { 'content-type': 'multipart/form-data' }

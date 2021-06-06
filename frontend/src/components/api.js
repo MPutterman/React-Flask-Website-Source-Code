@@ -1,0 +1,2 @@
+
+export {callAPI} from './config';
