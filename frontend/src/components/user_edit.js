@@ -1,4 +1,7 @@
 // TODO:
+// * Temporarily added a props.admin to show/edit the password.  Need to make sure user_save behaves properly
+//    without the password field showing.  The 'props.admin' will later be replaced by a
+//    roles/permission system.
 // * Need to do some error checking to avoid duplicate accounts with same email address. Duplicates break
 //   retrieval from database. Add a front-end method just to check of existence of ID
 // * Figure out how to deal with users that use external (googleAuth or other) login
@@ -234,6 +237,7 @@ const UserEdit = (props) => {
             <Busy busy={loading} />
 
             {props.register ? (<p>New user registration</p>) : (<></>)}
+            {props.change_password ? (<p>Change password</p>) : (<></>)}
 
             <AutoForm
               schema={bridge}
@@ -247,10 +251,14 @@ const UserEdit = (props) => {
               <ErrorField name="last_name" />
               <AutoField name="email" />
               <ErrorField name="email" />
+              {props.register || props.change_password ? ( 
+              <>
               <AutoField name="password" />
               <ErrorField name="password" />
               <AutoField name="password_confirm" />
               <ErrorField name="password_confirm" />
+              </>
+              ) : (<></>)}
               <AutoField name="org_list" />
               <ErrorField name="org_list" />
               <SubmitField>Save Changes</SubmitField>

@@ -20,7 +20,7 @@ import { AuthProvider } from './contexts/auth';
 import Layout from './components/layout';
 
 // Import Router and pages
-import {BrowserRouter as Router, Switch, Route } from "react-router-dom";
+import {BrowserRouter as Router, Switch, Route, Redirect } from "react-router-dom";
 import Start from './components/start';
 import About from './components/about';
 import Contact from './components/contact';
@@ -75,6 +75,8 @@ const App = (props) => {
             <Switch>
 {/*                <Route path = '/analysis/search' component={Database}/> */}
                 <Route path='/start' component={Start}/>
+{/* TODO: Need to find a way to force a refresh for /analysis/new... or create a new component? 
+      currently if in /analysis/edit/<id>, then go to /analysis/new, all the data/state is still there */}
                 <Route path='/analysis/new' component={Analysis}/>
                 <Route path='/analysis/edit/:id' component={Analysis}/>
                 <Route path='/analysis/search' component={AnalysisSearch}/>
@@ -84,7 +86,8 @@ const App = (props) => {
                 <Route path='/contact' component={Contact} />
                 <Route path='/about' component={About} />
                 <Route exact path='/user/edit/:id' component={UserEdit} />
-                <Route exact path='/user/register' render={(props)=> (<UserEdit {...props} register='true'/>)} /> 
+                <Route exact path='/user/register' render={(props)=> (<UserEdit {...props} register={true}/>)} /> 
+                <Route exact path='/user/change_password/:id' render={(props)=> (<UserEdit {...props} change_password={true}/>)} /> 
                 <Route exact path='/user/login' component={UserLogin} />
                 <Route path='/user/search' component={UserSearch} />
                 {/*

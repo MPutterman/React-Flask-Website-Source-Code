@@ -120,6 +120,7 @@ const Layout = (props) => {
   // Event handlers
 
   const handleOpenUserMenu = (event) => {
+    console.log('in handleOpenuserMenu, event=>', event);
     setAnchorE1(event.currentTarget);
     setOpenUserMenu(true);
   };
@@ -127,6 +128,11 @@ const Layout = (props) => {
   const handleUserAccount = (event) => {
     handleCloseUserMenu(event);
     history.push('/user/edit/' + session['authUser']['user_id']); 
+  }
+
+  const handleChangePassword = (event) => {
+    handleCloseUserMenu(event);
+    history.push('/user/change_password/' + session['authUser']['user_id']); 
   }
 
   async function handleUserLogout(event) {
@@ -198,6 +204,7 @@ const Layout = (props) => {
                 onClose={handleCloseUserMenu}
               >
                 <MenuItem onClick={handleUserAccount}>My account</MenuItem>
+                <MenuItem onClick={handleChangePassword}>Change password</MenuItem>
                 <MenuItem onClick={handleUserLogout}>Logout</MenuItem>
               </Menu>
             </div>
