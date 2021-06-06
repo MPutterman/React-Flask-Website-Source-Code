@@ -1,7 +1,5 @@
 backend/.env
-!backend/flask_session
-backend/flask_session/*
 !backend/UPLOADS
 backend/UPLOADS/*
-!backend/__pycache__
-backend/__pycache__/*
+backend/flask_session
+backend/__pycache__
