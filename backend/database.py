@@ -314,7 +314,15 @@ class Image(Base):
     description = Column(Text) # Maybe can get rid of this...?
     image_path = Column(String(256), nullable=False) # Full path of file on server (for file system DB)
     owner_id = Column(Integer, ForeignKey('user.user_id')) # User-ID of user that uploaded the file
-    
+
+    def as_dict(self):
+        # Returns full represenation of model.
+        columns = class_mapper(self.__class__).mapped_table.c
+        return {
+            col.name: getattr(self, col.name)
+                for col in columns
+        }
+
 
 class Plate(Base):
     __tablename__ = 'plate'
@@ -470,6 +478,21 @@ def db_analysis_search():
     #db_session.close()
     return dumps(data)
 
+# Return a list of images.
+# In future will accept filters (e.g. match part of name, search type,
+# filter by owner / organization / date... filter by equip_id, exposure time, exposure temp
+def db_image_search():
+    image_list = Image.query.all()
+    db_session.commit()
+    data = []
+    for image in image_list:
+        current_image = image.as_dict()
+        print (current_image)
+        current_image['image_type'] = convert_image_type_to_string(current_image['image_type'])
+        data.append(current_image)
+    return dumps(data)
+
+
 def find_image_type(image_type):
     if image_type == 'dark':
         return ImageType.dark
@@ -483,7 +506,21 @@ def find_image_type(image_type):
         return ImageType.flat
     else:
         return image_type
-    
+
+def convert_image_type_to_string(native_type):
+    if native_type == ImageType.dark:
+        return 'dark'
+    elif native_type == ImageType.uv:
+        return 'uv'
+    elif native_type == ImageType.radio:
+        return 'radio'
+    elif native_type == ImageType.bright:
+        return 'bright'
+    elif native_type == ImageType.flat:
+        return 'flat'
+    else:
+        return 'unknown'
+
 def find_images(data):
     images = []
     for image_type in ['dark','flat','radio','uv','bright']:
@@ -541,7 +578,7 @@ def retrieve_image_path(image_type,analysis_id):
     return image.image_path
 
 def db_analysis_save(data,analysis_id):
-    db_session.begin()
+    #db_session.begin()
     if data['user_id']:
         user_id = data['user_id']
     else:

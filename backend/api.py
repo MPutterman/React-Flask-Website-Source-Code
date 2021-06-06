@@ -933,6 +933,15 @@ def organization_search():
 
 
 
+# Return a list of images (array of dict)
+# TODO: read in parameter strings from request for filtering, pagination, order, etc.
+@app.route('/image/search', methods = ['GET', 'POST']) # QUESTION: need GET and POST?
+@cross_origin(supports_credentials=True)
+def image_search():
+    from database import db_image_search
+    image_list = db_image_search()
+    return image_list
+
 # Return a list of analyses (array of dict)
 # TODO: read in parameter strings from request for filtering, pagination, order, etc.
 @app.route('/analysis/search', methods = ['GET', 'POST']) # QUESTION: need GET and POST?
@@ -1343,6 +1352,7 @@ def findRadius(filename,x,y,shift):
     print('2',ROIs)
     num_lanes = analysis.numLanes_finder(ROIs)
     return{"col":col,"row":row,"colRadius":colRadius,"rowRadius":rowRadius,"n_l":num_lanes}
+    
 @app.route('/UV/<filename>',methods = ['GET'])
 @cross_origin(supports_credentials=True)
 def giveUV(filename):
@@ -1389,7 +1399,7 @@ def upload_data(filename):
     analysis = retrieve_initial_analysis(filename)
     data = request.form.to_dict()
     data['user_id'] = flask_login.current_user.get_id()
-    db_analysis_save(request.form.to_dict(),filename)
+    db_analysis_save(data,filename)
     return 'yes'
 
     
