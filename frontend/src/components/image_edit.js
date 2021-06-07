@@ -22,6 +22,7 @@ import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField, L
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import FileInputField from './filefield';
+import IDInputField from './idfield';
 import Busy from '../components/busy';
 import { AlertList, Alert } from '../components/alerts';
 import jwt_decode from "jwt-decode";
@@ -284,7 +285,8 @@ const ImageEdit = (props) => {
               <ErrorField name="modified" />
               <AutoField name="owner_id" />
               <ErrorField name="owner_id" />
-              <AutoField name="equip_id" />
+      {/* Replace with type='equip' when ready */}
+              <AutoField name="equip_id" component={IDInputField} objectType='image'/>
               <ErrorField name="equip_id" />
               <AutoField name="image_path" />
               <ErrorField name="image_path" />

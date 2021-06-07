@@ -83,6 +83,7 @@ import Grid from '@material-ui/core/Grid';
 // Imports for automatic form generation
 import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField, LongTextField} from 'uniforms-material';
 import FileInputField from './filefield';
+import IDInputField from './idfield';
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 
@@ -125,6 +126,11 @@ class AnalysisData extends React.Component {
       description: {
         label: 'Analysis Description',
         type: String,
+        required: false,
+      },
+      equip_id: {
+        label: 'Equipment ID',
+        type: String, // TODO: change to integer?
         required: false,
       },
       // TODO: how to prevent time from showing up?
@@ -271,12 +277,18 @@ class AnalysisData extends React.Component {
     .then((res) => {
       let id = res.data.res;
       this.props.setDataState(prev => ({...prev, id: id}));
-      console.log('here2');
       this.setState({uploading: false});
-      console.log('here3');
+      return id;
+    })
+    .then((id) => {
+      // TODO: in future this should not be needed (should directly write to database each request)
+      // TODO: ACTUALLY, I don't see any way to save ROIs in the api...
+      return {id: id, response: axios.post(backend_url('upload_data/'+ id))}; // write the data to the database
+    })
+    .then((response,id) => {
+      alert(response.data.Status);
       this.props.history.replace('/analysis/edit/' + id);
-      console.log('here4');
-      return res; // Need this?
+      return response; // Need this?
     })
   };
 
@@ -320,6 +332,11 @@ class AnalysisData extends React.Component {
                 <Grid item>
                 <AutoField name="description" component={LongTextField} />
                 <ErrorField name="description" />
+                </Grid>
+                <Grid item>
+      {/* Replace with type='equip' when ready */}
+                <AutoField name="equip_id" component={IDInputField} objectType='image' />
+                <ErrorField name="equip_id" />
                 </Grid>
                 <Grid Item>
                 <AutoField name="experiment_datetime" type="date" />
