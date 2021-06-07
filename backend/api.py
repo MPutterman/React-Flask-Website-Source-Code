@@ -933,6 +933,15 @@ def organization_search():
 
 
 
+# TODO: add error checking if not found
+@app.route('/image/load/<id>', methods = ['GET'])
+@cross_origin(supports_credentials=True)
+def image_load(id):
+    from database import db_image_load
+    image = db_image_load(id)
+    data = image.as_dict()
+    return data
+
 # Return a list of images (array of dict)
 # TODO: read in parameter strings from request for filtering, pagination, order, etc.
 @app.route('/image/search', methods = ['GET', 'POST']) # QUESTION: need GET and POST?

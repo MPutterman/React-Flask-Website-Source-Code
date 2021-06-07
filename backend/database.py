@@ -478,6 +478,15 @@ def db_analysis_search():
     #db_session.close()
     return dumps(data)
 
+# Return an image
+def db_image_load(id):
+    db_session.begin()
+    image = Image.query.filter_by(image_id=id).scalar() # scalar returns a single record or 'None'; raises exception if >1 found
+    db_session.commit()
+    #db_session.close()
+    image.image_type = convert_image_type_to_string(image.image_type)
+    return image
+
 # Return a list of images.
 # In future will accept filters (e.g. match part of name, search type,
 # filter by owner / organization / date... filter by equip_id, exposure time, exposure temp

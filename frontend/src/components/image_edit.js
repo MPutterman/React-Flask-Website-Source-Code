@@ -34,20 +34,21 @@ const ImageEdit = (props) => {
     let formRef;
 
     const initialImageState = {
-        image_id: null,
-        image_type: [],
+        image_id: '', // NOTE: if set null here, the edit form ID value overlaps the help text
+        image_type: '',
         name: '',
         description: 'Maybe eliminate this field? TODO: capture the filename into the name field, how? Also if image data already exists (path?), then show a message in File data about overwritting the file if choose a new one, e.g. Replace File instead of Choose File. Also need to implement backend methods to retrieve and save individual images.',
         owner_id: null,
         created: null,
         modified: null,
         captured: null,
-        path: '',
+        image_path: '',
         equip_id: null,
         file: null,
     };
 
     const [loading, setLoading] = React.useState('false');
+    const [filename, setFilename] = React.useState('');
     const [currentImage, setCurrentImage] = React.useState(initialImageState);
     const [message, setMessage] = React.useState('');
     const [availableEquipment, setAvailableEquipment] = React.useState([]);
@@ -117,6 +118,15 @@ const ImageEdit = (props) => {
         reset(currentImage);
     }, [currentImage]);
 
+    // This useEffect is triggered if the filename is changed by the
+    // FileInputField component.
+    // Behavior now is to replace the 'name' field, though the use
+    // can edit this after selecting the file.
+    React.useEffect(() => {
+        console.log("In useEffect, change of [filename]");
+        setCurrentImage(prev => ({...prev, name: filename}));
+    }, [filename])
+
     // Form reset
     const onReset = () => {
         //console.log("In onReset");
@@ -166,14 +176,9 @@ const ImageEdit = (props) => {
       },
       image_type: {
         label: 'Type',
-        type: Array,
-        required: true,
-        minCount: 1,
-        maxCount: 1,
-      },
-      "image_type.$": {
         type: String,
-        allowedValues: ["radio", "dark", "flat", "bright", "uv"],
+        required: true,
+        allowedValues: ['radio', 'dark', 'flat', 'bright', 'uv'],
       },
       name: {
         label: 'Name',
@@ -229,7 +234,7 @@ const ImageEdit = (props) => {
         type: Number,
         required: false,
       },
-      path: {
+      image_path: {
         label: 'Path (on server)', // set by server (allow admin override)
         type: String,
         required: false,
@@ -262,7 +267,10 @@ const ImageEdit = (props) => {
               <ErrorField name="image_id" />
               <AutoField name="image_type" />
               <ErrorField name="image_type" />
-              <AutoField name="file" component={FileInputField} />
+              <AutoField name="file" component={FileInputField}
+                buttonLabel={currentImage.image_path ? 'Replace Image' : 'Select Image'}
+                setFilename={setFilename}
+              />
               <ErrorField name="file" />
               <AutoField name="name" />
               <ErrorField name="name" />
@@ -278,10 +286,10 @@ const ImageEdit = (props) => {
               <ErrorField name="owner_id" />
               <AutoField name="equip_id" />
               <ErrorField name="equip_id" />
-              <AutoField name="path" />
-              <ErrorField name="path" />
+              <AutoField name="image_path" />
+              <ErrorField name="image_path" />
 
-              <SubmitField>Save Changes</SubmitField>
+              <SubmitField>Save Changes (backend API not yet functional)</SubmitField>
 
               <Button fullWidth variant='outlined' type="link">Add New Equipment (not yet working)</Button>
               <Button fullWidth variant='outlined' type='reset' onClick={() => formRef.reset()}>Cancel</Button>
