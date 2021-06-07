@@ -9,7 +9,7 @@ import Button from '@material-ui/core/Button';
 
 export type FileInputFieldProps = HTMLFieldProps<string, HTMLDivElement>;
 
-function FileInput({ name, onChange, value, label, ref }: FileInputFieldProps) {
+function FileInput({ name, onChange, value, label, ref, ...props }: FileInputFieldProps) {
 
   const [filename, setFilename] = React.useState('');
 
@@ -18,7 +18,13 @@ function FileInput({ name, onChange, value, label, ref }: FileInputFieldProps) {
       <label htmlFor={name}>
         <div>{label}</div>
         <span>
-            <Button variant='contained' component='span'>Choose file</Button>
+            <Button variant='contained' component='span'>
+              {props.buttonLabel ? (
+                <span>{props.buttonLabel}</span>
+              ) : (
+                <span>Choose file</span>
+              )}
+            </Button>
             <TextField disabled value={filename ? filename : 'No file chosen'} />
         </span>
       </label>
@@ -29,6 +35,9 @@ function FileInput({ name, onChange, value, label, ref }: FileInputFieldProps) {
         onChange={({ target: { files } }) => {
           if (files && files[0]) {
             setFilename(files[0].name);
+            if (props.setFilename) {
+              props.setFilename(files[0].name);
+            }
             onChange(new Blob([files[0]],{type: 'image/png',})); //URL.createObjectURL(files[0]));
           }
         }}
