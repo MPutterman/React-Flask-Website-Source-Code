@@ -14,7 +14,7 @@ function FileInput({ name, onChange, value, label, ref, ...props }: FileInputFie
   const [filename, setFilename] = React.useState('');
 
   return (
-    <div className="FileField">
+    <div className="FileInputField">
       <label htmlFor={name}>
         <div>{label}</div>
         <span>
@@ -48,4 +48,4 @@ function FileInput({ name, onChange, value, label, ref, ...props }: FileInputFie
   );
 }
 
-export default connectField(FileInput); //connectField<FileFieldProps>(FileField);
+export default connectField(FileInput); 
