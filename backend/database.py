@@ -307,7 +307,7 @@ class Image(Base):
     image_id = Column(Integer, primary_key=True)
     equip_id = Column(Integer, ForeignKey('equipment.equip_id'))
     image_type = Column(Enum(ImageType), nullable=False)
-    datetime = Column(DateTime) # Image creation date (support timezone?)
+    captured = Column(DateTime) # Image creation date (support timezone?)
     exp_time = Column(Float) # Exposure time (seconds)
     exp_temp = Column(Float) # Exposure temp (deg C)
     name = Column(String(128), nullable=False)
@@ -527,14 +527,17 @@ def find_images(data):
         if data[f'{image_type}_name']:
             data = data[image_type]
             id=data[f'{image_type}_id']
-            datetime=data[f'{image_type}_datetime']
+            captured=data[f'{image_type}_captured']
+            owner_id=data[f'{image_type}_owner_id']
+            created=data[f'{image_type}_created']
+            modified=data[f'{image_type}_modified']
             exp_time = data[f'{image_type}_exp_time']
             exp_temp=data[f'{image_type}_exp_temp']
             name = data[f'{image_type}_name']
             description=data[f'{image_type}_description']
             path = find_path(image_type,data['analysis_id'])
             image = Image(
-                image_id = id, image_type = find_image_type(image_type),datetime = datetime, exp_time = exp_time, exp_temp=exp_temp, name=name,image_path=path, description=description
+                image_id = id, image_type = find_image_type(image_type),captured = captured, owner_id = owner_id, created = created, modified = modified, exp_time = exp_time, exp_temp=exp_temp, name=name,image_path=path, description=description
                 )                                
             images.append(image)
     return images

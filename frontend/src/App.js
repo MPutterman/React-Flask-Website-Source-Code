@@ -37,6 +37,7 @@ import UserSearch from "./components/user_search";
 import UserLogin from "./components/user_login"; 
 import Organization from './components/organization';
 import ImageSearch from './components/image_search';
+import ImageEdit from './components/image_edit';
 //import Equipment from './components/equipment';
 
 
@@ -82,6 +83,8 @@ const App = (props) => {
                 <Route path='/analysis/search' component={AnalysisSearch}/>
                 <Route path='/analysis/:analysis_id' component={Analysis}/>
                 <Route path='/image/search' component={ImageSearch} />
+                <Route path='/image/edit/:id' render={(props)=> (<ImageEdit {...props} new={true}/>)} /> 
+                <Route path='/image/new' component={ImageEdit} />
                 <Route exact path='/' component={Start} />
                 <Route path='/contact' component={Contact} />
                 <Route path='/about' component={About} />
