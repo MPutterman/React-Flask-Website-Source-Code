@@ -64,15 +64,15 @@ const ImageEdit = (props) => {
     const onSubmit = (data, e) => {
       //console.log("onSubmit: data => ", data);
       // TODO: upload image if appropriate...
-      updateImage(data);
+      saveImage(data);
       // Temporary... after saving, re-retrieve the user to change currentUser and trigger useEffect
       // so cancel will now revert to the last saved value
-      getImage(data.image_id);
+      loadImage(data.image_id);
     };
     
     // Retrieve record with specified id from the database
     // TODO: Error handling if id not found... need to redirect to not found page
-    async function getImage(id) {
+    async function loadImage(id) {
         setLoading(true);
         if (id) {
           callAPI('GET', 'image/load/' + id)
@@ -104,7 +104,7 @@ const ImageEdit = (props) => {
     // Call this upon first value of props.match.params.id (should only run once)
     React.useEffect(() => {
         console.log("In useEffect, change of [props.match.params.id]"); 
-        getImage(props.match.params.id);
+        loadImage(props.match.params.id);
         getEquipment();
     }, [props.match.params.id]);
 
@@ -135,7 +135,7 @@ const ImageEdit = (props) => {
     }
 
     // Save the record back to the database
-    async function updateImage(data) {
+    async function saveImage(data) {
         // TODO: need to filter anything out of 'data'?
         setLoading(true);
         callAPI('POST', 'image/save', data)
@@ -286,7 +286,7 @@ const ImageEdit = (props) => {
               <AutoField name="owner_id" />
               <ErrorField name="owner_id" />
       {/* Replace with type='equip' when ready */}
-              <AutoField name="equip_id" component={IDInputField} objectType='image'/>
+              <AutoField name="equip_id" component={IDInputField} objectType='user'/>
               <ErrorField name="equip_id" />
               <AutoField name="image_path" />
               <ErrorField name="image_path" />
