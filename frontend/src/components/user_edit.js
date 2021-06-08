@@ -109,9 +109,7 @@ const UserEdit = (props) => {
     React.useEffect(() => {
         console.log("In useEffect #1"); // currentUser and availableOrganizations are updated asynchronously
         // if props.new is set, force this to be a fresh user
-        if (!props.new) {
-          loadUser(props.match.params.id);
-        }
+        loadUser(props.new ? null : props.match.params.id);
         getOrganizations();
     }, [props.match.params.id]);
 
