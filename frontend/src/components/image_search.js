@@ -67,9 +67,18 @@ const ImageSearch = (props) => {
     }
 
     const onRowClick = (param, event) => {
-        // Redirect to the image edit page
-        const url = '/image/edit/' + param['id']; // row id is the image_id
-        history.push(url);
+        // If props.onSelect callback is set, call it with the model value
+        // ... set 'id' and 'name' properties
+        if (props.onSelect) {
+            props.onSelect({...param.row,
+                id: param['id'],
+                name: param.row['name'],
+            });
+        } else {
+            // Redirect to the image edit page
+            const url = '/image/edit/' + param['id']; // row id is the image_id
+            history.push(url);
+        }
     }
 
     // Returns the search options form and then the search results list
