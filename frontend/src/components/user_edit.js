@@ -1,4 +1,8 @@
 // TODO:
+// * I want to hide password (if not on registration), 
+//    But then there is a validation error... even if the fields are omitted from being displayed
+// * Rename as 'model, setModel' so all forms more alike?
+// * Divide into toplevel form (exported with withRouter), and a modal form
 // * Temporarily added a props.admin to show/edit the password.  Need to make sure user_save behaves properly
 //    without the password field showing.  The 'props.admin' will later be replaced by a
 //    roles/permission system.
@@ -37,6 +41,9 @@ import jwt_decode from "jwt-decode";
 // Special props:
 // - register - any value if desire to create a new user registration form
 // - id       - user id (if empty, create a new user)
+// - new      - force to create a new user (ignore any props.match.params.id) // temporary fix with multiple components loaded
+// - onSave   - callback function called with model as argument after ID becomes valid
+//                (sends back 'id' and 'name' keys)
 const UserEdit = (props) => {
 
     let formRef;
@@ -46,7 +53,8 @@ const UserEdit = (props) => {
         first_name: '',
         last_name: '',
         email: '',
-        //password: '',
+        password: '',
+        password_confirm: '',
         org_list: [],
     };
 
@@ -62,17 +70,13 @@ const UserEdit = (props) => {
 
     // Actions when form is submitted
     // TODO: need to handle other types of submit, e.g. delete?
-    const onSubmit = (data, e) => {
-      //console.log("UserEdit form submit: data => ", data);
-      updateUser(data)
-      // Temporary... after saving, re-retrieve the user to change currentUser and trigger useEffect
-      // so cancel will now revert to the last saved value
-      getUser(data.user_id)
+    async function onSubmit(data, e)  {
+      saveUser(data);
     };
     
     // Retrieve user with specified id from the database
     // TODO: Error handling if user is not found... need to redirect to not found page
-    async function getUser(id) {
+    async function loadUser(id) {
         setLoading(true);
         if (id) {
           callAPI('GET', 'user/load/' + id)
@@ -104,19 +108,34 @@ const UserEdit = (props) => {
     // Call this upon first value of props.match.params.id (should only run once)
     React.useEffect(() => {
         console.log("In useEffect #1"); // currentUser and availableOrganizations are updated asynchronously
-        getUser(props.match.params.id);
+        // if props.new is set, force this to be a fresh user
+        if (!props.new) {
+          loadUser(props.match.params.id);
+        }
         getOrganizations();
     }, [props.match.params.id]);
 
     // This second useEffect is triggered whenever 'currentUser' changes (i.e. after loading from database).
     // When triggered, it sets the defaultValues of the form to currentUser, then triggers the form to reset.
     // This causes the form fields to fill in with the newly retrieved data in currentUser.
-    // TODO: for some reason if I try to put reset(currentUser) in the getUser function it doesn't
+    // TODO: for some reason if I try to put reset(currentUser) in the loadUser function it doesn't
     // properly reset the form...
     React.useEffect(() => {
         console.log("In useEffect #2 => ", currentUser); //initUser);
         reset(currentUser);
     }, [currentUser]);
+
+
+    // Hack to implement an 'onSave'
+    React.useEffect(() => {
+        if (props.onSave) {
+          props.onSave({...currentUser,
+            id: currentUser.user_id,
+            name: currentUser.first_name + ' ' + currentUser.last_name,
+          });
+        }
+    }, [currentUser.user_id])
+
 
 
     const onReset = () => {
@@ -126,15 +145,15 @@ const UserEdit = (props) => {
     }
 
     // Save the user information back to the database
-    async function updateUser(data) {
+    async function saveUser(data) {
         // TODO: need to filter anything out of 'data'?
         setLoading(true);
-        callAPI('POST', 'user/save', data)
+        return callAPI('POST', 'user/save', data)
         .then((response) => {
             console.log(response.data);
             setMessage("success");
             setCurrentUser(response.data);
-            reset(currentUser);
+            reset(currentUser); // set form with current value so reset won't revert
             setLoading(false);
         })
         .catch((e) => {
@@ -236,6 +255,7 @@ const UserEdit = (props) => {
 
             <Busy busy={loading} />
 
+
             {props.register ? (<p>New user registration</p>) : (<></>)}
             {props.change_password ? (<p>Change password</p>) : (<></>)}
 
@@ -251,14 +271,19 @@ const UserEdit = (props) => {
               <ErrorField name="last_name" />
               <AutoField name="email" />
               <ErrorField name="email" />
+{/*
+
               {props.register || props.change_password ? ( 
               <>
+*/}
               <AutoField name="password" />
               <ErrorField name="password" />
               <AutoField name="password_confirm" />
               <ErrorField name="password_confirm" />
+{/*
               </>
               ) : (<></>)}
+*/}
               <AutoField name="org_list" />
               <ErrorField name="org_list" />
               <SubmitField>Save Changes</SubmitField>
