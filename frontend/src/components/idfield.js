@@ -6,6 +6,10 @@
 
 // TODO:
 // * Update to support multiple selection
+// * After choosing/creating an object, the ID and name are populated, 
+//   but they seem to be uneditable (probably the way they are updated).
+//   However, the desired behavior would be to allow the user to type in
+//   new value if they wanted to.
 
 import React from 'react';
 import { HTMLFieldProps, connectField } from 'uniforms';
