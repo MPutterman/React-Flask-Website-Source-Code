@@ -1,3 +1,6 @@
+// Busy indicator (full screen)
+// Usage: <Busy busy=<Boolean> message=<String> />
+
 import React from 'react';
 import CircularProgress from "@material-ui/core/CircularProgress";
 import Backdrop from "@material-ui/core/Backdrop";
@@ -7,6 +10,7 @@ export const Busy = (props) => {
 
   return (
     <Backdrop className={props.classes.backdrop} open={props.busy} >
+      <div>{props.message}</div>
       <CircularProgress color="inherit" />
     </Backdrop>
   );
