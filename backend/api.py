@@ -49,6 +49,7 @@ from PIL import Image
 from sklearn.cluster import MeanShift,estimate_bandwidth,AffinityPropagation,KMeans
 from skimage.color import rgba2rgb
 import os
+import shutil
 from skimage import measure
 from flask_cors import CORS,cross_origin
 import flask_login
@@ -826,6 +827,8 @@ login_manager.login_message = 'You need to be logged in to perform this request.
 app.config['session_timeout'] = 10 # minutes
 app.permanent_session_lifetime = timedelta(minutes=app.config['session_timeout'])
 app.config['anonymous_user_name'] = 'Anonymous'
+app.config['IMAGE_UPLOAD_PATH'] = './UPLOADS' 
+app.config['IMAGE_CACHE_PATH'] = './CACHE'
 
 @login_manager.user_loader
 def session_load_user(user_id):
@@ -836,10 +839,16 @@ def session_load_user(user_id):
 # Global handlers
 # ---------------
 
+# TODO: this is only for testing purposes.  We won't clear the file storage
+# and database when the app is more mature
 @app.before_first_request
 def initialize():
-    db_create_tables() # won't always do this
-    db_add_test_data() # won't always do this
+    # Prepare and clear folders for images
+    create_image_storage()
+    # Prepare and clear database tables
+    db_create_tables() 
+    # Add initial testing data
+    db_add_test_data() 
 
 #@app.before_request
 #def initialize_request():
@@ -847,6 +856,38 @@ def initialize():
 @app.teardown_request
 def teardown(exception):
     db_cleanup()
+
+
+# --------------------
+# Image storage system
+# --------------------
+
+# Create image storage (delete existing folders and create new empty folders)
+def create_image_storage():
+    print ("Initializing image storage...")
+    try:
+        print ("Removing IMAGE_UPLOAD_PATH: %s" % app.config['IMAGE_UPLOAD_PATH'])
+        shutil.rmtree(app.config['IMAGE_UPLOAD_PATH'])
+        print ("Create new IMAGE_UPLOAD_PATH")
+        os.mkdir(app.config['IMAGE_UPLOAD_PATH'])
+        print ("Removing IMAGE_CACHE_PATH: %s" % app.config['IMAGE_CACHE_PATH'])
+        shutil.rmtree(app.config['IMAGE_CACHE_PATH'])
+        print ("Creating new IMAGE_CACHE_PATH")
+        os.mkdir(app.config['IMAGE_CACHE_PATH'])
+    except OSError as e:
+        print ("Error in create_image_storage: %s - %s" % (e.filename, e.strerror))
+
+# Get pathname to uploaded file
+# "id" should be the image_id stored in the database backend
+# TODO: add a way to choose correct file extension
+def get_image_upload_pathname(image_id):
+    return os.path.join(app.config['IMAGE_UPLOAD_PATH'], image_id)
+
+# Get pathname to cached file
+# "id" should be the analysis_id stored in the database backend
+def get_image_cache_pathname(analysis_id):
+    return os.path.join(app.config['IMAGE_CACHE_PATH'], analysis_id)
+
 
 # -------------------
 # USER-related routes
@@ -1202,6 +1243,8 @@ def analysis_edit(filename):
 @app.route('/retrieve_analysis/<filename>',methods=['GET'])
 @cross_origin(supports_credentials=True)
 def retrieve_analysis(filename):
+    # TODO: if store data in session, should also store the analysis ID
+    # to make sure
     session['cerenkovcalc'] = np.load(retrieve_image_path('cerenkovcalc',filename))
     session['cerenkovradii']=np.load(retrieve_image_path('cerenkovradii',filename))
     analysis_retrieved = retrieve_initial_analysis(filename)
