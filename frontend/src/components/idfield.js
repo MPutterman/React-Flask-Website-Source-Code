@@ -1,9 +1,11 @@
-// TODO: Create an AutoForm component that allows either:
-// - typing in the ID
-// - selecting an existing record (open search/filter select box)
-// - creating a new record
-// NOTE: this is designed for image_id, equip_id, org_id, plate_id, cover_id...
-//  Need to add some special props to render well as a modal, and return the desired value...
+// This is a Uniforms component for an ID field. It allows several
+// options, e.g. typing the ID, or clicking a button to open a box
+// to search/select a previously existing record, or clicking a button
+// to create a new record. The latter two return the ID value to the
+// form.
+
+// TODO:
+// * Update to support multiple selection
 
 import React from 'react';
 import { HTMLFieldProps, connectField } from 'uniforms';
