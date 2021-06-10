@@ -712,11 +712,12 @@ def isStorage(item):
     return("FileStorage" in str(type(item)))
 
 def is_unique_key(num):
-    directory = os.listdir('./UPLOADS/')
+    directory = os.listdir(os.path.join(app.config['IMAGE_UPLOAD_PATH'], ''))
     for i in directory:
         if str(num) in i:
             return False
     return True
+
 def generate_key():
     num=1
     while True:
@@ -746,6 +747,8 @@ def makeFileArray(fileN,fileN1):
             pass
     ####print(time.time()-tim)
     return fileN
+
+'''
 def add_dir(email):
     #print('here')
     # TODO: change file structure to
@@ -762,7 +765,9 @@ def add_dir(email):
     os.mkdir(f"./users/{email}/files/UVFlat")
     os.mkdir(f"./users/{email}/files/Brightfield")
     os.mkdir(f"./users/{email}/files/BrightfieldFlat")
+'''
 
+'''
 def findName(name,start,end):
     return name[name.index(start)+len(start):name.index(end)]
 def findCerenkov(name):
@@ -793,6 +798,7 @@ def findFiles(lanes,cerenkName,darkName,flatName,UVName,UVFlatName):
             arr.append(findL(i))
             names.append(arr)
     return names
+'''
 
 # Import server configuration info
 from dotenv import load_dotenv
@@ -868,10 +874,19 @@ def create_image_storage():
     try:
         print ("Removing IMAGE_UPLOAD_PATH: %s" % app.config['IMAGE_UPLOAD_PATH'])
         shutil.rmtree(app.config['IMAGE_UPLOAD_PATH'])
+    except OSError as e:
+        print ("Error in create_image_storage: %s - %s" % (e.filename, e.strerror))
+    try:
         print ("Create new IMAGE_UPLOAD_PATH")
         os.mkdir(app.config['IMAGE_UPLOAD_PATH'])
+    except OSError as e:
+        print ("Error in create_image_storage: %s - %s" % (e.filename, e.strerror))
+    try:
         print ("Removing IMAGE_CACHE_PATH: %s" % app.config['IMAGE_CACHE_PATH'])
         shutil.rmtree(app.config['IMAGE_CACHE_PATH'])
+    except OSError as e:
+        print ("Error in create_image_storage: %s - %s" % (e.filename, e.strerror))
+    try:
         print ("Creating new IMAGE_CACHE_PATH")
         os.mkdir(app.config['IMAGE_CACHE_PATH'])
     except OSError as e:
@@ -881,12 +896,12 @@ def create_image_storage():
 # "id" should be the image_id stored in the database backend
 # TODO: add a way to choose correct file extension
 def get_image_upload_pathname(image_id):
-    return os.path.join(app.config['IMAGE_UPLOAD_PATH'], image_id)
+    return os.path.join(app.config['IMAGE_UPLOAD_PATH'], str(image_id))
 
 # Get pathname to cached file
 # "id" should be the analysis_id stored in the database backend
 def get_image_cache_pathname(analysis_id):
-    return os.path.join(app.config['IMAGE_CACHE_PATH'], analysis_id)
+    return os.path.join(app.config['IMAGE_CACHE_PATH'], analysis_id) # already a string
 
 
 # -------------------
@@ -1010,10 +1025,13 @@ def findData():
     np_load_old = np.load
     #print(request.form["files"])
 
+'''
 @app.route("/database_retrieve",methods=["POST"])
 @cross_origin(supports_credentials=True)
 def ret_data():
     return({"files":findFiles(request.form["Lanes"],request.form["Cerenkov"],request.form["Darkfield"],request.form["Flatfield"],request.form["UV"],request.form["UVFlat"])})
+'''
+
 @app.route('/fix_background/<num>')
 @cross_origin(supports_credentials=True)
 def fix_background(num):
@@ -1052,6 +1070,8 @@ def fix_background(num):
     img-=np.min(img)
     img/=np.max(img)   
     #print(time.time()-tim)
+    ## TODO: these images should be 16-bit... this might be truncating
+    ## them...
     img = Image.fromarray((np.uint8(plt.get_cmap('viridis')(img)*255)))
     filepath = retrieve_image_path('cerenkovdisplay',num)
     os.remove(filepath)
@@ -1295,8 +1315,9 @@ def createFile():
         tim = generate_key()
         img_cerenk = finalize(Dark,Dark2,Flat,Flat2,Cerenkov,Cerenkov2,UV,UV2,UVFlat,UVFlat2,Bright,Bright2,BrightFlat,BrightFlat)
         Cerenkov = img_cerenk[1]
-        os.mkdir(f'./UPLOADS/{tim}')
-        np.save("./UPLOADS/"+tim+'/cerenkovradii.npy',Cerenkov)
+        os.mkdir(os.path.join(app.config['IMAGE_UPLOAD_PATH'], tim))
+        np.save(os.path.join(app.config['IMAGE_UPLOAD_PATH'], tim, 'cerenkovradii.npy'), Cerenkov)
+        ### np.save("./UPLOADS/"+tim+'/cerenkovradii.npy',Cerenkov)
         img = img_cerenk[0]
         doUV = img_cerenk[2]
         current_analysis = analysis([],0,[],tim,doUV,doUV,doUV,names)
@@ -1305,20 +1326,21 @@ def createFile():
         else:
             calc = img_cerenk[-2]
 
-        np.save('./UPLOADS/'+tim+'/cerenkovcalc.npy',calc)
+        np.save(os.path.join(app.config['IMAGE_UPLOAD_PATH'], tim, 'cerenkovcalc.npy'), calc) ### "./UPLOADS/"+tim+'/cerenkovradii.npy',Cerenkov)
+        ### np.save('./UPLOADS/'+tim+'/cerenkovcalc.npy',calc)
         
         img = img-np.min(img)
         img = img *1/np.max(img)
         img = Image.fromarray((np.uint8(plt.get_cmap('viridis')(img)*255)))
-        filepath = './UPLOADS/'+tim+'/cerenkovdisplay.png'
+        filepath = os.path.join(app.config['IMAGE_UPLOAD_PATH'], tim, 'cerenkovdisplay.png')
         img.save(filepath)
         if doUV:
             Cerenkov_show = img_cerenk[3]
             UV_show = img_cerenk[4]
-            Cerenkov_show.save('./UPLOADS/'+tim+'Cerenkov.png')
-            UV_show.save('./UPLOADS/'+tim+'UV.png')
+            Cerenkov_show.save(os.path.join(app.config['IMAGE_UPLOAD_PATH'], tim, 'Cerenkov.png'))
+            UV_show.save(os.path.join(app.config['IMAGE_UPLOAD_PATH'], tim, 'UV.png'))
             calc = img_cerenk[-2]
-            np.save('./UPLOADS/'+tim+'cerenkovcalc.npy',calc)
+            np.save(os.path.join(app.config['IMAGE_UPLOAD_PATH'], tim, 'cerenkovcalc.npy'),calc)
         current_analysis.predict_ROIs(calc,Cerenkov)
         data = {}
         data['radio_name'] = CerenkovName
@@ -1408,7 +1430,7 @@ def findRadius(filename,x,y,shift):
 @app.route('/UV/<filename>',methods = ['GET'])
 @cross_origin(supports_credentials=True)
 def giveUV(filename):
-    filen = './UPLOADS/'+filename+'/UV.png' 
+    filen = os.path.join(app.config['IMAGE_UPLOAD_PATH'], filename, 'UV.png') 
     return send_file(filen)
 
 @app.route('/Cerenkov/<filename>',methods = ['GET'])
