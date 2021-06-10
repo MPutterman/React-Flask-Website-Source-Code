@@ -51,7 +51,7 @@ const ImageEdit = (props) => {
     const [loading, setLoading] = React.useState('false');
     const [filename, setFilename] = React.useState('');
     const [currentImage, setCurrentImage] = React.useState(initialImageState);
-    const [message, setMessage] = React.useState('');
+    const [message, setMessage] = React.useState({});
     const [availableEquipment, setAvailableEquipment] = React.useState([]);
 
     // Form hooks
@@ -141,7 +141,7 @@ const ImageEdit = (props) => {
         callAPI('POST', 'image/save', data)
         .then((response) => {
             console.log(response.data);
-            setMessage("success");
+            setMessage({severity: 'success', text: "yay, success"});
             setCurrentImage(response.data);
             reset(currentImage); // does this work?
             setLoading(false);
@@ -252,7 +252,7 @@ const ImageEdit = (props) => {
 
     return (
 
-          <div className="ImageEditForm" style={{ maxWidth: '350px',}}>
+          <div className="ImageEditForm" style={{ maxWidth: '400px',}}>
 
             <Busy busy={loading} />
 
@@ -283,7 +283,7 @@ const ImageEdit = (props) => {
               <ErrorField name="created" />
               <AutoField name="modified" />
               <ErrorField name="modified" />
-              <AutoField name="owner_id" />
+              <AutoField name="owner_id" component={IDInputField} objectType='user'/>
               <ErrorField name="owner_id" />
       {/* Replace with type='equip' when ready */}
               <AutoField name="equip_id" component={IDInputField} objectType='user'/>
@@ -293,13 +293,15 @@ const ImageEdit = (props) => {
 
               <SubmitField>Save Changes (backend API not yet functional)</SubmitField>
 
-              <Button fullWidth variant='outlined' type="link">Add New Equipment (not yet working)</Button>
               <Button fullWidth variant='outlined' type='reset' onClick={() => formRef.reset()}>Cancel</Button>
               <Button fullWidth variant='outlined' type="delete" >Delete (not yet working)</Button>
 
             </AutoForm>
 
-            {message ? ( 
+            <AlertList alert={message} />
+
+{/*
+}            {message ? ( 
 
               <>
               <p>{message}</p>
@@ -312,6 +314,7 @@ const ImageEdit = (props) => {
               )}
               </>
             ) : ( <></> )}
+*/}
 
           </div>
         );

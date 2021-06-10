@@ -60,7 +60,7 @@ const UserEdit = (props) => {
 
     const [loading, setLoading] = React.useState('false');
     const [currentUser, setCurrentUser] = React.useState(initialUserState);
-    const [message, setMessage] = React.useState('');
+    const [message, setMessage] = React.useState({});
     const [availableOrganizations, setAvailableOrganizations] = React.useState([]);
 
     // Form hooks
@@ -74,18 +74,26 @@ const UserEdit = (props) => {
       saveUser(data);
     };
     
+    // Check whether email exists
+    // TODO: test
+    async function emailExists(email) {
+      // TODO: implement
+    }
+
     // Retrieve user with specified id from the database
     // TODO: Error handling if user is not found... need to redirect to not found page
     async function loadUser(id) {
         setLoading(true);
         if (id) {
-          callAPI('GET', 'user/load/' + id)
-          .then((response) => {
+            callAPI('GET', 'user/load/' + id)
+            .then((response) => {
                 setCurrentUser(response.data);
                 setLoading(false);
             })
             .catch((e) => {
                 console.error("GET /user/edit/" + id + ": " + e);
+                // TODO: replace this with an error 404 message
+                setMessage({severity: 'error', text: "Could not load user with id: " + id});
                 setLoading(false);
             });
         } else {
@@ -149,7 +157,7 @@ const UserEdit = (props) => {
         return callAPI('POST', 'user/save', data)
         .then((response) => {
             console.log(response.data);
-            setMessage("success");
+            setMessage({severity: 'success', text: 'User saved successfully'});
             setCurrentUser(response.data);
             reset(currentUser); // set form with current value so reset won't revert
             setLoading(false);
@@ -286,12 +294,14 @@ const UserEdit = (props) => {
               <ErrorField name="org_list" />
               <SubmitField>Save Changes</SubmitField>
 
-              <Button fullWidth variant='outlined' type="link">Add New Organization (not yet working)</Button>
               <Button fullWidth variant='outlined' type='reset' onClick={() => formRef.reset()}>Cancel</Button>
               <Button fullWidth variant='outlined' type="delete" >Delete (not yet working)</Button>
 
             </AutoForm>
 
+            <AlertList alert={message} />
+
+{/*
             {message ? ( 
 
               <>
@@ -299,13 +309,14 @@ const UserEdit = (props) => {
 
               <AlertList />
               {message === 'success' ? (
-                <Alert severity="success">User successfully updated</Alert>
+                <Alert severity="success" >User successfully updated</Alert>
               ) : (
                 <Alert severity="error">Something went wrong</Alert>
               )}
               </>
             ) : ( <></> )}
 
+*/}
           </div>
         );
     
