@@ -84,54 +84,8 @@ const UserLogin = (props) => {
     })
     var bridge = new SimpleSchema2Bridge(schema);
 
-
-    // JSON Form schema
-    /*
-    const schema = {
-      title: 'Login details',
-      type: 'object',
-      properties: {
-        email: {
-          type: 'string',
-          //required: true,
-          format: 'email',
-          message: {
-            'required': 'Email address is required',
-            'format': 'Invalid email address',
-          }
-        },
-        password: {
-          type: 'string',
-          //required: true,
-          message: {
-            'required': 'Password is required',
-          }
-        },
-        remember: { type: 'boolean' },
-      },
-      required: ['email', 'password',],
-    };
-
-    const ajv = new Ajv({ allErrors: true, useDefaults: true });
-
-    function createValidator(schema: object) {
-      const validator = ajv.compile(schema);
-
-      return (model: object) => {
-        validator(model);
-        console.log('output =>', validator.errors?.length ? { details: validator.errors } : null);
-        return validator.errors?.length ? { details: validator.errors } : null;
-      };
-    }
-
-    const schemaValidator = createValidator(schema);
-
-    const bridge = new JSONSchemaBridge(schema, schemaValidator); //UserLoginValidator); //schemaValidator); //UserLoginValidator);
-
-*/
-
     // Handlers
-    async function onGoogleLogin(e){
+    async function onGoogleLogin(e) {
       console.log(e)
       setLoginPending(true);
       let data={}
@@ -190,7 +144,7 @@ const UserLogin = (props) => {
             <Button type="submit" variant="outlined" onClick={onLogout}>{logoutPending ? (<CircularProgress/>) : null}Logout</Button>
           </form>
 
-        ) : (
+        ) : (  // If not logged in:
         <div>
         <div className="UserLoginForm" style = {{ maxWidth: '250px', margin: 'auto', }}>
         <AutoForm schema={bridge} onSubmit={onLogin} ref={ref => (formRef = ref)}>
@@ -225,27 +179,5 @@ const UserLogin = (props) => {
     );
     
 }
-
-export const UserLoginValidator = (model) => {
-  const details = [];
-
-  if (!model.email) {
-    //errors.email = 'Email address is required';
-    details.push({dataPath: '.email', propertyName: 'email', message: 'Email address is required'});
-  } else {
-    // REF: https://www.w3resource.com/javascript/form/email-validation.php
-    let pattern = /^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
-    if (!model.email.match(pattern)) {
-      details.push({dataPath: '.email', propertyName: 'email', message: 'Invalid email address'});
-    }
-  }
-
-  if (!model.password) {
-    //errors.password = 'Password is required';
-    details.push({dataPath: '.password', propertyName: 'password', message: 'Password is required'});
-  }
-
-  return details.length ? { 'details': details } : null;
-};
 
 export default withRouter(UserLogin);
