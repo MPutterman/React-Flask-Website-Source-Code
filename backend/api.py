@@ -607,6 +607,7 @@ def np64toint(arr):
         for j in range(len(arr[i])):
             arr[i][j]=int(arr[i][j])
     return arr
+
 def finalize(Dark,Dark2,Flat,Flat2,Cerenkov,Cerenkov2,UV,UV2,UVFlat,UVFlat2,Bright,Bright2,BrightFlat,BrightFlat2):
     ####print('dark')
     Dark = makeFileArray(Dark,Dark2)
@@ -732,7 +733,8 @@ def generate_key():
     
     
     
-    
+# TODO: update to recognize different types of images files
+# (also maybe extract EXIF information if exists for certain types of image files)    
 def makeFileArray(fileN,fileN1):
     tim = time.time()
     try:
@@ -900,8 +902,8 @@ def get_image_upload_pathname(image_id):
 
 # Get pathname to cached file
 # "id" should be the analysis_id stored in the database backend
-def get_image_cache_pathname(analysis_id):
-    return os.path.join(app.config['IMAGE_CACHE_PATH'], analysis_id) # already a string
+def get_image_cache_pathname(analysis_id, filename):
+    return os.path.join(app.config['IMAGE_CACHE_PATH'], analysis_id, filename) # already a string
 
 
 # -------------------

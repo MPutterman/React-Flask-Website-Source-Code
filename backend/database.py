@@ -186,16 +186,26 @@ class Equipment(Base):
     bpp = Column(Integer, nullable=False) # QUESTION: is it same to assume all images will be monochrome?
     image_format = Column(String(128), nullable=False) # This will help identify how to read the file before loading it (maybe should be enum type)
 
+# TODO: since each analysis requires always the same set of cached
+# images, should we combine them into a single table?
 class CachedImage(Base):
     __tablename__='cachedimage'
     analysis = relationship('Analysis',back_populates='cachedimages')
     analysis_id = Column(String(12),ForeignKey('analysis.analysis_id'))
-    
+    # Track when the record was last modified. If any changes to the Image record
+    # (using Image.modified field) after the modified date here (for the one or multiple
+    # files on which it depends, then regenerate the cached image. This will use methods of api.py.
+    modified = Column(DateTime)
     image_id = Column(Integer, primary_key=True)
     image_type = Column(String(64), nullable=False)
     image_path=Column(String(128))
    
-
+    #def isCached (analysis_id) // classMethod
+    #def load (image?_id) // classMethod
+    #  --- -check modified dates. If cache newer, return cached image. If image_recrod newer
+    #  ------ then regenerate cached image (and updated modified field). Then load
+    #  ------ the new image
+    # def save (image data/object)
     
 
 class ROI(Base):
@@ -615,7 +625,9 @@ def db_analysis_edit(data,analysis_id):
     db_session.add(analysis)
     db_session.commit()
 #    db_session.close()
-    
+
+# TODO: this handling should be used at time of file generation
+# ... and should be split for uploads and cached...
 def find_path(image_type,analysis_id):
     if image_type =='cerenkovdisplay':
         ending = '.png'

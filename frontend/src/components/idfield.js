@@ -11,6 +11,7 @@
 //   However, the desired behavior would be to allow the user to type in
 //   new value if they wanted to.
 
+// Main imports
 import React from 'react';
 import { HTMLFieldProps, connectField } from 'uniforms';
 import Dialog from '@material-ui/core/Dialog';
@@ -21,6 +22,7 @@ import DialogTitle from '@material-ui/core/DialogTitle';
 import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
 
+// Object-specific imports
 import ImageSelect from '../components/image_search'; // renaming default component
 import UserSelect from '../components/user_search'; // renaming default component
 import ImageCreate from '../components/image_edit'; // renaming default component
