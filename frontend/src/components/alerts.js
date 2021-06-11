@@ -1,4 +1,4 @@
-// Usage: <AlertList alert={severity: <severity>, text: <message>} />
+// Usage: <AlertList alert={severity: <severity>, message: <message>} />
 // Allowed values for severity: 'error', 'warning', 'info', 'success'
 
 import React from 'react';
@@ -30,7 +30,7 @@ export function AlertList(props) {
     const [open, setOpen] = React.useState(false);
 
     React.useEffect(() => {
-        if (props.alert.text) { // if alert message is non-empty
+        if (props.alert.message) { // if alert message is non-empty
             setOpen(true);
         } else {
             setOpen(false);
@@ -48,12 +48,12 @@ export function AlertList(props) {
         <Snackbar
             anchorOrigin={{ vertical: 'top', horizontal: 'center'}}
             open={open}
-            autoHideDuration={6000}
+            autoHideDuration={10000}
             onClose={handleClose}
         >
             {props.alert ? (
             <Alert onClose={handleClose} severity={props.alert.severity}>
-                {props.alert.text}
+                {props.alert.message}
             </Alert>
             ) : ( <></>)}
         </Snackbar>

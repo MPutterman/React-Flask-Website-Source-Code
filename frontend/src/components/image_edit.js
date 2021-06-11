@@ -51,7 +51,7 @@ const ImageEdit = (props) => {
     const [loading, setLoading] = React.useState('false');
     const [filename, setFilename] = React.useState('');
     const [currentImage, setCurrentImage] = React.useState(initialImageState);
-    const [message, setMessage] = React.useState({});
+    const [alert, setAlert] = React.useState({});
     const [availableEquipment, setAvailableEquipment] = React.useState([]);
 
     // Form hooks
@@ -141,7 +141,7 @@ const ImageEdit = (props) => {
         callAPI('POST', 'image/save', data)
         .then((response) => {
             console.log(response.data);
-            setMessage({severity: 'success', text: "yay, success"});
+            setAlert({severity: 'success', message: "yay, success"});
             setCurrentImage(response.data);
             reset(currentImage); // does this work?
             setLoading(false);
@@ -298,23 +298,7 @@ const ImageEdit = (props) => {
 
             </AutoForm>
 
-            <AlertList alert={message} />
-
-{/*
-}            {message ? ( 
-
-              <>
-              <p>{message}</p>
-
-              <AlertList />
-              {message === 'success' ? (
-                <Alert severity="success">Image successfully updated</Alert>
-              ) : (
-                <Alert severity="error">Something went wrong</Alert>
-              )}
-              </>
-            ) : ( <></> )}
-*/}
+            <AlertList alert={alert} />
 
           </div>
         );

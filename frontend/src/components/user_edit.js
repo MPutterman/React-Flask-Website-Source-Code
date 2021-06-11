@@ -36,6 +36,7 @@ import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import Busy from '../components/busy';
 import { AlertList, Alert } from '../components/alerts';
 import jwt_decode from "jwt-decode";
+import NoMatch from '../components/nomatch';
 
 // User Edit form
 // Special props:
@@ -60,7 +61,7 @@ const UserEdit = (props) => {
 
     const [loading, setLoading] = React.useState('false');
     const [currentUser, setCurrentUser] = React.useState(initialUserState);
-    const [message, setMessage] = React.useState({});
+    const [alert, setAlert] = React.useState({});
     const [availableOrganizations, setAvailableOrganizations] = React.useState([]);
 
     // Form hooks
@@ -93,8 +94,12 @@ const UserEdit = (props) => {
             .catch((e) => {
                 console.error("GET /user/edit/" + id + ": " + e);
                 // TODO: replace this with an error 404 message
-                setMessage({severity: 'error', text: "Could not load user with id: " + id});
+                setAlert({severity: 'error', message: "Could not load user with id: " + id});
                 setLoading(false);
+                return(<NoMatch/>); // TODO: this doesn't work... how to return it
+                // See here for others asking about this
+                // https://stackoverflow.com/questions/41773406/react-router-not-found-404-for-dynamic-content
+                // Rename it to 'NotFound'??
             });
         } else {
             setLoading(false);
@@ -157,7 +162,7 @@ const UserEdit = (props) => {
         return callAPI('POST', 'user/save', data)
         .then((response) => {
             console.log(response.data);
-            setMessage({severity: 'success', text: 'User saved successfully'});
+            setAlert({severity: 'success', message: 'User saved successfully'});
             setCurrentUser(response.data);
             reset(currentUser); // set form with current value so reset won't revert
             setLoading(false);
@@ -171,6 +176,7 @@ const UserEdit = (props) => {
     // Delete the user matching the user-id
     // NOT YET FUNCTIONAL AND BACKEND NOT IMPLEMENTED (add a status message when implement this)
     const deleteUser= () => {
+        setAlert({severity: 'error', message: 'Delete function not yet implemented'});
         callAPI('POST', 'user/delete/' + currentUser.id)
         .then((response) => {
             console.log(response.data);
@@ -299,24 +305,8 @@ const UserEdit = (props) => {
 
             </AutoForm>
 
-            <AlertList alert={message} />
+            <AlertList alert={alert} />
 
-{/*
-            {message ? ( 
-
-              <>
-              <p>{message}</p>
-
-              <AlertList />
-              {message === 'success' ? (
-                <Alert severity="success" >User successfully updated</Alert>
-              ) : (
-                <Alert severity="error">Something went wrong</Alert>
-              )}
-              </>
-            ) : ( <></> )}
-
-*/}
           </div>
         );
     
