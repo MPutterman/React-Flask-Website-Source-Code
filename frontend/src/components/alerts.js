@@ -30,7 +30,7 @@ export function AlertList(props) {
     const [open, setOpen] = React.useState(false);
 
     React.useEffect(() => {
-        if (props.alert) {
+        if (props.alert.text) { // if alert message is non-empty
             setOpen(true);
         } else {
             setOpen(false);
