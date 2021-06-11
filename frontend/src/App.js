@@ -24,7 +24,7 @@ import {BrowserRouter as Router, Switch, Route, Redirect } from "react-router-do
 import Start from './components/start';
 import About from './components/about';
 import Contact from './components/contact';
-import Error404 from './components/error404';
+import NotFound from './components/notfound';
 
 import Analysis from './components/analysis';
 import AnalysisSearch from './components/analysis_search';
@@ -99,7 +99,7 @@ const App = (props) => {
                 <Route exact path='/organization/:action' component={Organization} />
                 <Route exact path='/organization/:action/:id' component={Organization} />
                 */}
-                <Route component={Error404} /> {/* No match */}
+                <Route component={NotFound} status={404} /> 
             </Switch>
         </Layout>
         </Router>

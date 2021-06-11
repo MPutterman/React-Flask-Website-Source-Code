@@ -36,7 +36,7 @@ import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import Busy from '../components/busy';
 import { AlertList, Alert } from '../components/alerts';
 import jwt_decode from "jwt-decode";
-import NoMatch from '../components/nomatch';
+import NotFound from '../components/notfound';
 
 // User Edit form
 // Special props:
@@ -96,10 +96,10 @@ const UserEdit = (props) => {
                 // TODO: replace this with an error 404 message
                 setAlert({severity: 'error', message: "Could not load user with id: " + id});
                 setLoading(false);
-                return(<NoMatch/>); // TODO: this doesn't work... how to return it
-                // See here for others asking about this
+                return(<NotFound/>); // TODO: this doesn't work... how to return it
+                // Doesn't work. How to show this component (and not change URL in address bar)?
                 // https://stackoverflow.com/questions/41773406/react-router-not-found-404-for-dynamic-content
-                // Rename it to 'NotFound'??
+
             });
         } else {
             setLoading(false);
