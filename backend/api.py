@@ -992,6 +992,24 @@ def organization_search():
     return org_list
 
 
+# TODO: add error checking if not found
+@app.route('/equip/load/<id>', methods = ['GET'])
+@cross_origin(supports_credentials=True)
+def equip_load(id):
+    from database import db_equip_load
+    equip = db_equip_load(id)
+    data = equip.as_dict()
+    return data
+
+# Return a list of images (array of dict)
+# TODO: read in parameter strings from request for filtering, pagination, order, etc.
+@app.route('/equip/search', methods = ['GET', 'POST']) # QUESTION: need GET and POST?
+@cross_origin(supports_credentials=True)
+def equip_search():
+    from database import db_equip_search
+    equip_list = db_equip_search() # TODO: switch so DB method returns objects... here we convert via dumps
+    return equip_list
+
 
 # TODO: add error checking if not found
 @app.route('/image/load/<id>', methods = ['GET'])

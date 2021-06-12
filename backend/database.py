@@ -168,6 +168,7 @@ class Organization(Base):
     plate_list = relationship("Plate", secondary=org_plate_map)
     cover_list = relationship("Cover", secondary=org_cover_map)
 
+    ## TODO: can this be defined as a mixin??
     def as_dict(self):
         # Returns full represenation of model.
         columns = class_mapper(self.__class__).mapped_table.c
@@ -186,8 +187,18 @@ class Equipment(Base):
     pixels_x = Column(Integer, nullable=False)
     pixels_y = Column(Integer, nullable=False)
     fov_x = Column(Float) # size in mm
+    fov_y = Column(Float) # size in mm
     bpp = Column(Integer, nullable=False) # QUESTION: is it same to assume all images will be monochrome?
     image_format = Column(String(128), nullable=False) # This will help identify how to read the file before loading it (maybe should be enum type)
+
+    def as_dict(self):
+        # Returns full represenation of model.
+        columns = class_mapper(self.__class__).mapped_table.c
+        return {
+            col.name: getattr(self, col.name)
+                for col in columns
+        }
+
 
 # TODO: since each analysis requires always the same set of cached
 # images, should we combine them into a single table?
@@ -502,6 +513,14 @@ def db_equip_load(id):
     db_session.commit()
     #db_session.close()
     return record
+
+def db_equip_search():
+    equip_list = Equipment.query.all()
+    db_session.commit()
+    data = []
+    for equip in equip_list:
+        data.append(equip.as_dict())
+    return dumps(data)
 
 # TODO: also add the following: options(selectinload(Image.equip_id))
 # Return an image
