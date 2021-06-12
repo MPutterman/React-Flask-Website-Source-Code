@@ -20,6 +20,7 @@ import MenuItem from "@material-ui/core/MenuItem";
 import InputLabel from "@material-ui/core/InputLabel";
 import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField, LongTextField} from 'uniforms-material';
 import SimpleSchema from 'simpl-schema';
+//import { useForm } from 'uniforms';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import FileInputField from './filefield';
 import IDInputField from './idfield';
@@ -38,21 +39,20 @@ const ImageEdit = (props) => {
         image_id: '', // NOTE: if set null here, the edit form ID value overlaps the help text
         image_type: '',
         name: '',
-        description: 'Maybe eliminate this field? TODO: capture the filename into the name field, how? Also if image data already exists (path?), then show a message in File data about overwritting the file if choose a new one, e.g. Replace File instead of Choose File. Also need to implement backend methods to retrieve and save individual images.',
-        owner_id: null,
-        created: null,
-        modified: null,
-        captured: null,
-        image_path: '',
-        equip_id: null,
-        file: null,
+        description: 'Maybe eliminate this field?',
+        owner_id: undefined,
+        created: undefined, //new Date(null),
+        modified: undefined, //new Date(null),
+        captured: undefined, // new Date(null),
+        image_path: '', // do anything different if path exists, e.g. different label on 'choose' button?
+        equip_id: undefined,
+        file: undefined,
     };
 
     const [loading, setLoading] = React.useState('false');
     const [filename, setFilename] = React.useState('');
     const [currentImage, setCurrentImage] = React.useState(initialImageState);
     const [alert, setAlert] = React.useState({});
-    const [availableEquipment, setAvailableEquipment] = React.useState([]);
 
     // Form hooks
     // mode is the render mode (both onChange and onBlur)
@@ -62,8 +62,9 @@ const ImageEdit = (props) => {
     // Actions when form is submitted
     // TODO: need to handle other types of submit, e.g. delete?
     const onSubmit = (data, e) => {
-      //console.log("onSubmit: data => ", data);
+      console.log("onSubmit: data => ", data);
       // TODO: upload image if appropriate...
+
       saveImage(data);
       // Temporary... after saving, re-retrieve the user to change currentUser and trigger useEffect
       // so cancel will now revert to the last saved value
@@ -77,6 +78,13 @@ const ImageEdit = (props) => {
         if (id) {
           callAPI('GET', 'image/load/' + id)
           .then((response) => {
+
+                // Sanitize datetime fields
+                if (response.data.created) response.data.created = new Date(response.data.created);
+                if (response.data.modified) response.data.modified = new Date(response.data.modified);
+                if (response.data.captured) response.data.captured = new Date(response.data.captured);
+                console.log('loadImage, got response =>', response.data);
+
                 setCurrentImage(response.data);
                 setLoading(false);
             })
@@ -89,23 +97,10 @@ const ImageEdit = (props) => {
         }
     }
 
-    // Retrieve list of available equipment (for now, complete list)
-    async function getEquipment() {
-        callAPI('GET', 'equipment/search')
-        .then((response) => {
-            setAvailableEquipment(response.data);
-            console.log("in getEquipment: response data => ", response.data);
-        })
-        .catch((e) => {
-            console.error("GET /equipment/search: " + e);
-        });
-    }
-
     // Call this upon first value of props.match.params.id (should only run once)
     React.useEffect(() => {
         console.log("In useEffect, change of [props.match.params.id]"); 
         loadImage(props.match.params.id);
-        getEquipment();
     }, [props.match.params.id]);
 
     // This second useEffect is triggered whenever 'currentImage' changes
@@ -119,15 +114,6 @@ const ImageEdit = (props) => {
         reset(currentImage);
     }, [currentImage]);
 
-    // This useEffect is triggered if the filename is changed by the
-    // FileInputField component.
-    // Behavior now is to replace the 'name' field, though the use
-    // can edit this after selecting the file.
-    React.useEffect(() => {
-        console.log("In useEffect, change of [filename]");
-        setCurrentImage(prev => ({...prev, name: filename}));
-    }, [filename])
-
     // Form reset
     const onReset = () => {
         //console.log("In onReset");
@@ -140,8 +126,11 @@ const ImageEdit = (props) => {
         setLoading(true);
         callAPI('POST', 'image/save', data)
         .then((response) => {
-            console.log(response.data);
             setAlert({severity: 'success', message: "yay, success"});
+            if (!response.data.created) response.data.created = new Date(null);
+            if (!response.data.modified) response.data.modified = new Date(null);
+            if (!response.data.captured) response.data.captured = new Date(null);
+
             setCurrentImage(response.data);
             reset(currentImage); // does this work?
             setLoading(false);
@@ -270,7 +259,7 @@ const ImageEdit = (props) => {
               <ErrorField name="image_type" />
               <AutoField name="file" component={FileInputField}
                 buttonLabel={currentImage.image_path ? 'Replace Image' : 'Select Image'}
-                setFilename={setFilename}
+                filenameField='name'
               />
               <ErrorField name="file" />
               <AutoField name="name" />

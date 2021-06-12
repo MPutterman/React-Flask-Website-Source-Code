@@ -57,6 +57,7 @@ from flask_login import LoginManager
 
 import ast
 from datetime import timedelta
+import datetime
 
 
 # Include database layer
@@ -709,6 +710,7 @@ def startUp(Dark,Flat,Cerenkov,UV,UVFlat,Bright,BrightFlat):
         return display_img,Cerenkov,doUV,C2,ROIs
     else:
         return display_img,display_img_calc,doUV,Cerenkov_show,UV_show,C2,Cerenkov,ROIs
+
 def isStorage(item):
     return("FileStorage" in str(type(item)))
 
@@ -999,6 +1001,39 @@ def image_load(id):
     image = db_image_load(id)
     data = image.as_dict()
     return data
+
+
+@app.route('/image/save', methods = ['POST'])
+@cross_origin(supports_credentials=True)
+def image_save():
+    print(request.form)
+    print(request.files)
+    data = {
+        'image_id': request.form.get('image_id') or None,
+        'name': request.form.get('name'),
+        'description': request.form.get('description'),
+        'image_type': request.form.get('image_type'),
+        'equip_id': request.form.get('equip_id'),
+        #'owner_id': request.form.get('owner_id'),          # auto-generated field
+        # 'created': request.form.get('created'),           # auto-generated field
+        # 'modified': request.form.get('modified'),         # auto-generated field
+        'captured': request.form.get('captured'),           # TODO: get from image if new file uploaded
+        'exp_time': request.form.get('exp_time'),
+        'exp_temp': request.form.get('exp_temp'),
+        #'image_path': request.form.get('path'),            # auto-generated field
+        'file': request.files['file'],
+    }
+    # TODO: somehow missing value is coming in as text 'null' if missing... maybe from front-end
+    # TODO: other cleanup needed?
+    # TODO: maybe have frontend API call omit field keys that are undefined?
+    if (data['image_id'] == 'undefined'): 
+        data['image_id'] = None
+    
+    from database import db_image_save
+    return db_image_save(data)
+    ##id = db_image_save(data)
+    ##return {'id' : id }
+
 
 # Return a list of images (array of dict)
 # TODO: read in parameter strings from request for filtering, pagination, order, etc.

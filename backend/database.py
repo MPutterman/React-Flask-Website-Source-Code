@@ -13,7 +13,7 @@
 #   https://stackoverflow.com/questions/9575409/calling-parent-class-init-with-multiple-inheritance-whats-the-right-way
 
 
-
+from flask import current_app as app 
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy import Table, Column, ForeignKey
 from sqlalchemy import Integer, String, Float, Text, DateTime, LargeBinary, Enum, Boolean, PickleType, BigInteger
@@ -33,6 +33,9 @@ import PIL
 import time
 import numpy as np
 from io import BytesIO
+import flask_login
+import datetime
+
 # TODO: how to do this setup and instantiation once and register with FLASK globals?
 
 # Main database setup
@@ -211,7 +214,7 @@ class CachedImage(Base):
 class ROI(Base):
     __tablename__='ROI'
     ROI_id = Column(Integer,primary_key=True) 
-    ROI_number = Column(Integer)
+    ROI_number = Column(Integer)  # TODO: I think we can delete this
     x=Column(Integer)
     y=Column(Integer)
     rx=Column(Integer)#radius in x direction (in pixels)
@@ -275,6 +278,8 @@ class Lane(Base):
     analysis = relationship("Analysis", back_populates="lane_list")
     lane_number=Column(Integer)
     lane_label=Column(String(128)) # Future feature
+    origin_x=Column(Integer) # x-coordinate of origin (pixels)
+    origin_y=Column(Integer) # y-coordinate of origin (pixels)
     ROI_list = relationship('ROI',back_populates='lane')
 
     @staticmethod
@@ -322,8 +327,10 @@ class Image(Base):
     exp_temp = Column(Float) # Exposure temp (deg C)
     name = Column(String(128), nullable=False)
     description = Column(Text) # Maybe can get rid of this...?
-    image_path = Column(String(256), nullable=False) # Full path of file on server (for file system DB)
+    image_path = Column(String(256)) #, nullable=False) # Full path of file on server (for file system DB)
     owner_id = Column(Integer, ForeignKey('user.user_id')) # User-ID of user that uploaded the file
+    created = Column(DateTime) 
+    modified = Column(DateTime)
 
     def as_dict(self):
         # Returns full represenation of model.
@@ -488,14 +495,106 @@ def db_analysis_search():
     #db_session.close()
     return dumps(data)
 
+# Return an equipment
+def db_equip_load(id):
+    db_session.begin()
+    record = Equipment.query.filter_by(equip_id=id).scalar() # scalar returns a single record or 'None'; raises exception if >1 found
+    db_session.commit()
+    #db_session.close()
+    return record
+
+# TODO: also add the following: options(selectinload(Image.equip_id))
 # Return an image
 def db_image_load(id):
     db_session.begin()
     image = Image.query.filter_by(image_id=id).scalar() # scalar returns a single record or 'None'; raises exception if >1 found
     db_session.commit()
     #db_session.close()
-    image.image_type = convert_image_type_to_string(image.image_type)
+    if (image):
+        image.image_type = convert_image_type_to_string(image.image_type)
     return image
+
+# TODO: also add the following: options(selectinload(Image.equip_id))
+# Save an image
+def db_image_save(data):
+    print("incoming data:")
+    print(data)
+    # Find equipment id record
+    equip = None
+    if (data['equip_id'] != 'undefined' and data['equip_id'] is not None):
+        equip = db_equip_load(data['equip_id'])
+    # If id exists, load record, replace data, then update
+    # If id is empty, add a new record
+    db_session.begin()
+    if (data['image_id'] is not None):
+        # Currently can't update owner_id, modified, created
+        image = Image.query.filter_by(user_id=data['user_id']).one()
+        image.name = data['name']
+        image.description = data['description']
+        image.equip_id = equip
+        image.modified = datetime.datetime.now()
+        image.image_type = find_image_type(data['image_type'])
+        image.captured = data['captured'] # need to convert from string
+        image.exp_time = data['exp_time'] # need to convert from string
+        image.exp_temp = data['exp_temp'] # need to convert from string
+    else:
+        image = Image(
+            name = data['name'],
+            description = data['description'],
+            equip_id = equip,
+            owner_id = flask_login.current_user.get_id(),
+            created = datetime.datetime.now(),
+            modified = datetime.datetime.now(),
+            image_type = find_image_type(data['image_type']),
+            captured = None, # TODO: try to get this from the image
+            exp_time = data['exp_time'],
+            exp_temp = data['exp_temp']
+        )
+    db_session.add(image)
+    db_session.commit()  # or flush?
+    # If received a new file:
+    if (data['file']):
+        # Delete old file
+        if (image.image_path):
+            os.remove(image.image_path) 
+        image.image_path = os.path.join(app.config['IMAGE_UPLOAD_PATH'], str(image.image_id))
+        # Create new file
+        newfile = data['file']
+        makeFileArray(newfile, data['file'])  # TODO: fix so we don't need to pass twice
+        newfile.save(image.image_path)
+        db_session.commit()
+    # TODO: in future just return image_id?
+    # For now, reconvert image_type to string
+    image.image_type = convert_image_type_to_string(image.image_type)
+    # Also convert all datetime to string
+    if (image.modified):
+        image.modified = image.modified.isoformat()
+    if (image.created):
+        image.created = image.created.isoformat()
+    if (image.captured):
+        image.captured = image.captured.isoformat()
+    return image.as_dict()
+
+
+# TODO: later remove duplicate code. COPIED FROM api.py
+def makeFileArray(fileN,fileN1):
+    import time
+    import numpy as np
+    from PIL import Image
+    tim = time.time()
+    try:
+        fileN1 = np.loadtxt(fileN1)
+        fileN = fileN1
+        
+    except:
+        try:
+            fileN = Image.open(fileN.stream)
+            fileN = np.asarray(fileN)
+        except:
+            pass
+    ####print(time.time()-tim)
+    return fileN
+
 
 # Return a list of images.
 # In future will accept filters (e.g. match part of name, search type,
@@ -508,6 +607,13 @@ def db_image_search():
         current_image = image.as_dict()
         print (current_image)
         current_image['image_type'] = convert_image_type_to_string(current_image['image_type'])
+        if (current_image['created']):
+            current_image['created'] = current_image['created'].isoformat()
+        if (current_image['modified']):
+            current_image['modified'] = current_image['modified'].isoformat()
+        if (current_image['captured']):
+            current_image['captured'] = current_image['captured'].isoformat()
+        print(current_image)
         data.append(current_image)
     return dumps(data)
 
