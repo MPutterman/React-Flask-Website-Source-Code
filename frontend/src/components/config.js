@@ -6,6 +6,9 @@
 // * For axios defaults, not sure which are critical to the sessions now working properly,
 //   need to figure this out.
 
+// RESOURCES:
+// * https://zetcode.com/javascript/axios/ (good description of commands and request/response content)
+
 import axios from "axios";
 
 // Configure communication with backend server
@@ -39,11 +42,16 @@ export async function callAPI(method, route, data={}) {
             });
 
         case 'POST':
+            console.log('callAPI/POST data: ', data);
             var formData = new FormData();
+
+            // TODO: add some sanitizing of certain field types?
+            // e.g. omit fields that are null / undefined?
             for (const [key, value] of Object.entries(data)) {
                 formData.append(key, value); 
             }
 
+            // TODO: apparently can get this from FormData...
             const config = {     
                 headers: { 'content-type': 'multipart/form-data' }
             }
