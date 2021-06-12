@@ -253,7 +253,7 @@ const ImageEdit = (props) => {
               ref={ref => (formRef = ref)}
               model={currentImage}
             >
-              <AutoField name="image_id" disabled={true} />
+              <AutoField name="image_id" readOnly={true} />
               <ErrorField name="image_id" />
               <AutoField name="image_type" />
               <ErrorField name="image_type" />
@@ -266,18 +266,18 @@ const ImageEdit = (props) => {
               <ErrorField name="name" />
               <AutoField name="description" component={LongTextField} />
               <ErrorField name="description" />
-              <AutoField name="captured" />
-              <ErrorField name="captured" />
-              <AutoField name="created" />
-              <ErrorField name="created" />
-              <AutoField name="modified" />
-              <ErrorField name="modified" />
-              <AutoField name="owner_id" component={IDInputField} objectType='user'/>
-              <ErrorField name="owner_id" />
       {/* Replace with type='equip' when ready */}
               <AutoField name="equip_id" component={IDInputField} objectType='user'/>
               <ErrorField name="equip_id" />
-              <AutoField name="image_path" />
+              <AutoField name="captured" />
+              <ErrorField name="captured" />
+              <AutoField name="created" readOnly={true}/>
+              <ErrorField name="created" />
+              <AutoField name="modified" readOnly={true}/>
+              <ErrorField name="modified" />
+              <AutoField name="owner_id" component={IDInputField} objectType='user'/>
+              <ErrorField name="owner_id" />
+              <AutoField name="image_path" readOnly={true}/>
               <ErrorField name="image_path" />
 
               <SubmitField>Save Changes (backend API not yet functional)</SubmitField>
