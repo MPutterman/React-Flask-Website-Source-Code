@@ -266,8 +266,7 @@ const ImageEdit = (props) => {
               <ErrorField name="name" />
               <AutoField name="description" component={LongTextField} />
               <ErrorField name="description" />
-      {/* Replace with type='equip' when ready */}
-              <AutoField name="equip_id" component={IDInputField} objectType='user'/>
+              <AutoField name="equip_id" component={IDInputField} objectType='equip'/>
               <ErrorField name="equip_id" />
               <AutoField name="captured" />
               <ErrorField name="captured" />
