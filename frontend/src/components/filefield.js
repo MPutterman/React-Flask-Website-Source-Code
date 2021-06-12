@@ -2,15 +2,23 @@
 // or get it directly from files[0]. I'm just leaving as
 // image/png since that was previously in the submission.js file...
 
+// Usage:
+// <FileInputField buttonLabel=<String> filenameField=<String> />
+// - buttonLabel defaults to 'Choose File' but can be overridden
+// - filenameField is the name of another form field in which the
+//   filename will be inserted
+
 import React from 'react';
 import { HTMLFieldProps, connectField } from 'uniforms';
 import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
+import { useForm } from 'uniforms';
 
 export type FileInputFieldProps = HTMLFieldProps<string, HTMLDivElement>;
 
-function FileInput({ name, onChange, value, label, ref, ...props }: FileInputFieldProps) {
+function FileInput({ name, value, label, ref, ...props }: FileInputFieldProps) {
 
+  const { onChange } = useForm();
   const [filename, setFilename] = React.useState('');
 
   return (
@@ -35,10 +43,10 @@ function FileInput({ name, onChange, value, label, ref, ...props }: FileInputFie
         onChange={({ target: { files } }) => {
           if (files && files[0]) {
             setFilename(files[0].name);
-            if (props.setFilename) {
-              props.setFilename(files[0].name);
+            if (props.filenameField) {
+              onChange(props.filenameField, files[0].name);
             }
-            onChange(new Blob([files[0]],{type: 'image/png',})); //URL.createObjectURL(files[0]));
+            onChange(name, new Blob([files[0]],{type: 'image/png',})); //URL.createObjectURL(files[0]));
           }
         }}
         style={{ display: 'none' }}

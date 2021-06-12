@@ -10,6 +10,7 @@
 //   but they seem to be uneditable (probably the way they are updated).
 //   However, the desired behavior would be to allow the user to type in
 //   new value if they wanted to.
+// * When type an ID, what to do with the 'name' field?
 
 // Main imports
 import React from 'react';
