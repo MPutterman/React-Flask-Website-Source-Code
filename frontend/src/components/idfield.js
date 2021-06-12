@@ -11,6 +11,7 @@
 //   However, the desired behavior would be to allow the user to type in
 //   new value if they wanted to.
 // * When type an ID, what to do with the 'name' field?
+// * Add some intelligent behavior if the objectType doesn't exist, e.g. remove the button altogether?
 
 // Main imports
 import React from 'react';
@@ -28,7 +29,8 @@ import ImageSelect from '../components/image_search'; // renaming default compon
 import UserSelect from '../components/user_search'; // renaming default component
 import ImageCreate from '../components/image_edit'; // renaming default component
 import UserCreate from '../components/user_edit'; // renaming default component
-
+import EquipSelect from '../components/equip_search'; // renaming default component
+// import EquipCreate from '../components/equip_edit'; // renaming default component
 
 export type IDInputFieldProps = HTMLFieldProps<string, HTMLDivElement>;
 
@@ -118,9 +120,11 @@ function IDInput({ name, onChange, value, label, ref, ...props }: IDInputFieldPr
         <DialogContent>
           <DialogContentText>
             {{
-                'user': <UserSelect new={true} onSelect={setTemporaryModel}/>,
-                'image': <ImageSelect new={true} onSelect={setTemporaryModel}/>,
-            } [props.objectType] }     {/* Use || <Component /> if need 'default' */}
+                'user': <UserSelect onSelect={setTemporaryModel}/>,
+                'image': <ImageSelect onSelect={setTemporaryModel}/>,
+                'equip': <EquipSelect onSelect={setTemporaryModel}/>,
+                'default': <></>,
+            } [props.objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
@@ -141,7 +145,9 @@ function IDInput({ name, onChange, value, label, ref, ...props }: IDInputFieldPr
             {{
                 'user': <UserCreate new={true} onSave={setTemporaryModel}/>,
                 'image': <ImageCreate new={true} onSave={setTemporaryModel}/>,
-            } [props.objectType] }     {/* Use || <Component /> if need 'default' */}
+                //'equip': <EquipCreate new={true} onSave={setTemporaryModel}/>,
+                'default': <></>,
+            } [props.objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
           </DialogContentText>
         </DialogContent>
         <DialogActions>
