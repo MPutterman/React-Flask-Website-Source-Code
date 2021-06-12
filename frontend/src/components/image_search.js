@@ -29,7 +29,9 @@ const ImageSearch = (props) => {
       { field: 'name', headerName: 'Name', flex: 0.3},
       { field: 'equip_id', headerName: 'Equipment ID', flex: 0.1},
       { field: 'owner_id', headerName: 'Owner ID', flex: 0.1},
-      { field: 'datetime', headerName: 'Captured', flex: 0.1},
+      { field: 'captured', headerName: 'Captured', flex: 0.1},
+      { field: 'created', headerName: 'created', flex: 0.1},
+      { field: 'modified', headerName: 'modified', flex: 0.1},
       { field: 'exp_time', headerName: 'Exposure time', flex: 0.1},
       { field: 'exp_temp', headerName: 'Exposure temp', flex: 0.1},
       { field: 'image_path', headerName: 'Image path', flex: 0.2},
@@ -38,7 +40,6 @@ const ImageSearch = (props) => {
     // State
     const [loading, setLoading] = useState(true); // Support for loading indicator
     const [imageList, setImageList] = useState([]);
-    const [equipmentList, setEquipmentList] = useState([]);
 
     // Retrieve list of images
     const getImageList = (filters) => {
