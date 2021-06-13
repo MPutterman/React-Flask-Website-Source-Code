@@ -286,7 +286,7 @@ class AnalysisData extends React.Component {
       return {id: id, response: axios.post(backend_url('upload_data/'+ id))}; // write the data to the database
     })
     .then((response,id) => {
-      alert(response.data.Status);
+      console.log(response.data.Status);
       this.props.history.replace('/analysis/edit/' + id);
       return response; // Need this?
     })
