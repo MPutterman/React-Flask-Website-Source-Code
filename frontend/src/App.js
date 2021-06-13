@@ -35,6 +35,7 @@ import Submission from './components/submission'
 import UserEdit from './components/user_edit';
 import UserSearch from "./components/user_search";
 import UserLogin from "./components/user_login"; 
+import UserPrefs from "./components/user_prefs";
 import Organization from './components/organization';
 import ImageSearch from './components/image_search';
 import ImageEdit from './components/image_edit';
@@ -99,6 +100,8 @@ const App = (props) => {
                 <Route exact path='/user/change_password/:id' render={(props)=> (<UserEdit {...props} change_password={true}/>)} /> 
                 <Route exact path='/user/login' component={UserLogin} />
                 <Route path='/user/search' component={UserSearch} />
+                <Route exact path='/user/prefs' component={UserPrefs} />
+
                 {/*
                 <Route exact path='/user/:action' component={User} /> 
                 <Route exact path='/user/:action/:id' component={User} /> 
