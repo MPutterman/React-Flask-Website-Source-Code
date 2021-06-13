@@ -25,7 +25,7 @@ import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import FileInputField from './filefield';
 import IDInputField from './idfield';
 import Busy from '../components/busy';
-import { AlertList, Alert } from '../components/alerts';
+import AlertList from '../components/alerts';
 import jwt_decode from "jwt-decode";
 
 // Image edit form

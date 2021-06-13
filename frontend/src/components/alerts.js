@@ -6,8 +6,10 @@ import Snackbar from '@material-ui/core/Snackbar';
 import MuiAlert from '@material-ui/lab/Alert';
 //import { makeStyles } from '@material-ui/core/styles';
 
-export function Alert(props) {
-    return <MuiAlert elevation={6} variant="filled" {...props} />;
+const Alert = (props) => {
+    return (
+        <MuiAlert elevation={6} variant="filled" {...props} />
+    );
 }
 
 /*
@@ -24,7 +26,7 @@ const useStyles = makeStyles((theme) => ({
 // TODO: see this page: https://material-ui.com/components/snackbars/ (search SnackPack for how to 
 // allow generation of multiple alerts...)
 
-export function AlertList(props) {
+const AlertList = (props) => {
 
     //const classes = useStyles(); // What is this for?
     const [open, setOpen] = React.useState(false);
@@ -55,8 +57,10 @@ export function AlertList(props) {
             <Alert onClose={handleClose} severity={props.alert.severity}>
                 {props.alert.message}
             </Alert>
-            ) : ( <></>)}
+            ) : ( <></> )}
         </Snackbar>
 
     );
 }
+
+export default AlertList;

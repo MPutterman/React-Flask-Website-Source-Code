@@ -35,7 +35,7 @@ import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 
 import Visibility from '@material-ui/icons/Visibility';
 import VisibilityOff from '@material-ui/icons/VisibilityOff';
-import { AlertList, Alert } from '../components/alerts';
+import AlertList from '../components/alerts';
 
 
 // User Login form
@@ -51,6 +51,8 @@ const UserLogin = (props) => {
     // Support for 'loading' spinner while login/logout in progress
     const [loginPending, setLoginPending] = React.useState(false);
     const [logoutPending, setLogoutPending] = React.useState(false);
+
+    const [alert, setAlert] = React.useState({});
 
     // Connect to Auth context
     const authDispatch = useAuthDispatch();
@@ -129,6 +131,10 @@ const UserLogin = (props) => {
         });
     }
 
+    const onLoginError = () => {
+        setAlert({severity: 'error', message: 'An error occurred during the login'});
+    }
+
     const onRegister = () => {
         // TODO: any way to pass the email address automatically?
         history.push('/user/register');      
@@ -166,7 +172,7 @@ const UserLogin = (props) => {
               clientId={process.env.REACT_APP_GOOGLE_OAUTH_CLIENT}
               buttonText="Login"
               onSuccess={onGoogleLogin}
-              onFailure={Alert('An Error Has Occurred in the Login')}
+              onFailure={onLoginError}
               cookiePolicy={'single_host_origin'}
             />} 
           <p>TODO: we need to add a suitable registration option for this</p>
@@ -175,6 +181,8 @@ const UserLogin = (props) => {
         </div>
 
         )}
+
+        <AlertList alert={alert} />
         </>
     );
     

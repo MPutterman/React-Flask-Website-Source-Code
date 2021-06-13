@@ -34,7 +34,7 @@ import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField,} 
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import Busy from '../components/busy';
-import { AlertList, Alert } from '../components/alerts';
+import AlertList from '../components/alerts';
 import jwt_decode from "jwt-decode";
 import NotFound from '../components/notfound';
 
