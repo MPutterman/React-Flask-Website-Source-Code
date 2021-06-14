@@ -14,6 +14,7 @@
 // * Prevent showing preferences when no user is logged in
 // * Maybe null/undefined values should not be sent to the database...? There may be an option in simplschema
 //    to clean-up the values before validate/submit
+// * useEffect seems to get called twice after Submit. Why?
 
 import React from "react";
 import { withRouter } from "react-router";
@@ -23,7 +24,7 @@ import Accordion from "@material-ui/core/Accordion";
 import AccordionSummary from "@material-ui/core/AccordionSummary";
 import AccordionDetails from "@material-ui/core/AccordionDetails";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
-import { useAuthState, useAuthDispatch, defaultUserPrefs } from '../contexts/auth';
+import { useAuthState, useAuthDispatch, defaultUserPrefs, authRefreshSession } from '../contexts/auth';
 import Busy from '../components/busy';
 import AlertList from '../components/alerts';
 import { callAPI } from '../components/api';
@@ -131,6 +132,7 @@ const UserPrefs = (props) => {
     async function loadUserPrefs() {
         setLoading(true);
         setCurrentUserPrefs(session.prefs);
+        console.log('found prefs =>', currentUserPrefs);
         setLoading(false);
     }
 
@@ -146,15 +148,21 @@ const UserPrefs = (props) => {
     // Save the formdata back to the database (note it is already in nested dict format)
     // TODO: currently doesn't pass a user_id... maybe something we want in the future for admins?
     async function saveUserPrefs(data) {
+        console.log ('saveUserPrefs, incoming data', data);
         setLoading(true);
         // Hack -- better option might be to set content-type to application/json
         // Backend needs to un-stringify this
         let newdata = {prefs: JSON.stringify(data)};
+        console.log ('saveUserPrefs, sanitized data', newdata);
+
         return callAPI('POST', 'api/prefs/save', newdata)
         .then((response) => {
             setAlert({severity: 'success', message: 'Preferences successfully saved'});
             setLoading(false);
             return true;
+        })
+        .then(() => {
+            authRefreshSession(dispatch);
         })
         .catch((e) => {
             setAlert({severity: 'error', message: 'Error while saving preferences'});
