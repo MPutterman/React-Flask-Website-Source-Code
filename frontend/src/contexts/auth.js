@@ -12,12 +12,13 @@
 //   performance impact (only when logging in or out)
 // * Initialization of initial state via unconstrained useEffect is very inefficient. Need to
 //   fix so it only loads at startup, possibly re-read after login/logout...
-
+// * Separate profile out of the user_id? 
+// * Implement a way to 'dirty' the prefs (or the whole session) when prefs are saved. Trigger reload of
+//     these values from backend.
 
 import React, { useReducer, useEffect } from "react";
-import axios from "axios";
-import FormData from "form-data";
-import { backend_url } from "../components/config"; // TODO: move this file
+import { callAPI } from '../components/api';
+import _ from 'lodash';
 
 // Create contexts and hooks
 
@@ -47,7 +48,6 @@ export const AuthProvider = ({ children }) => {
     const [session, dispatch] = useReducer(AuthReducer, initialState);
 
     // Initialize the auth state from the server
-    // (Note functional components don't have componentDiDmount, etc...)
     useEffect(() => {
         loadSessionFromServer(dispatch); 
     }, []); 
@@ -63,37 +63,42 @@ export const AuthProvider = ({ children }) => {
 
 // Reducer component
 
-export const defaultPrefs = {
+export const defaultUserPrefs = {
     general: {
         redirect_after_login: '/',                 // relative url
+        timezone: '',
     },
     analysis: {
-        default_equipment_id: null,               // equip_id
-        default_exposure_time: null,              // seconds
-        default_exposure_temp: null,              // degrees C
-        default_flat_image_id: null,              // image_id
-        default_dark_image_id: null,              // image_id
-        default_plate_id: null,                   // plate_id
-        default_cover_id: null,                   // cover_id
-        default_background_correction: 'linear',  // enum: (linear | quadratic | ...)
-        default_filter: '3x3 median',             // enum: (3x3 median | ...)
+        default_equip: null,                       // equip_id
+        default_plate: null,                       // plate_id
+        default_cover: null,                       // cover_id
+        default_exposure_time: null,               // seconds
+        default_exposure_temp: null,               // degrees C
+        default_use_flat_correction: false,
+        default_flat_image: null,                  // image_id
+        default_use_dark_correction: false,
+        default_dark_image: null,                  // image_id
+        default_use_bkgrd_correction: false,
+        default_bkgrd_algorithm: 'linear',         // enum: (linear | quadratic | ...)
+        default_use_filter_correction: false,
+        default_filter: '3x3 median',              // enum: (3x3 median | ...)
     },
 }
 
-export const initialState = { // This is the session info provided to child components
+const initialState = { // This is the session info provided to child components
   auth: false,
   authUser: null,  
   loaded: false,
   error: false,
   errorMessage: '',
-  prefs: defaultPrefs,
+  prefs: defaultUserPrefs,
 };
 
 export const AuthReducer = (initialState, action) => {
 
-  let user = null;
-  let userPrefs = {};
-  let prefs = {};
+  let user = null;    
+  let userPrefs = {};   // prefs from backend
+  let prefs = {};       // prefs with defaults merged in
 
   switch (action.type) {
 
@@ -116,7 +121,10 @@ export const AuthReducer = (initialState, action) => {
     case "SESSION_LOADED":
       user = action.payload.user;
       userPrefs = action.payload.prefs;
-      prefs = defaultPrefs;
+      prefs = defaultUserPrefs;
+      // TODO: change to
+      // prefs = {};
+      // _.merge(prefs, [defaultUserPrefs, userPrefs]);
       for (const category in userPrefs) {
         for (const key in userPrefs[category]) {
           prefs[category][key] = userPrefs[category][key];
@@ -141,7 +149,10 @@ export const AuthReducer = (initialState, action) => {
     case "LOGIN_SUCCESS":
       user = action.payload.user;
       userPrefs = action.payload.prefs;
-      prefs = defaultPrefs;
+      prefs = defaultUserPrefs;
+      // TODO: change to
+      // prefs = {}
+      // _.merge(prefs, [defaultUserPrefs, userPrefs]);
       for (const category in userPrefs) {
         for (const key in userPrefs[category]) {
           prefs[category][key] = userPrefs[category][key];
@@ -160,7 +171,7 @@ export const AuthReducer = (initialState, action) => {
         ...initialState,
         auth: false,
         authUser: null,
-        prefs: defaultPrefs,
+        prefs: defaultUserPrefs, // Prefs for anonymous user are the defaults
       };
  
     case "LOGOUT_ERROR":
@@ -189,14 +200,10 @@ export const AuthReducer = (initialState, action) => {
 async function loadSessionFromServer(dispatch) { // This one is not exported and only called internally by AuthProvider
 
     dispatch({ type: 'REQUEST_SESSION' });
-    return axios.get(backend_url('api/session/load'))
+    return callAPI('GET', 'api/session/load')
     .then((response) => {
         let user = response.data.current_user;
-        let prefs = {};
-        if (user) {
-            prefs = user.prefs;
-            delete user.prefs;
-        }
+        let prefs = response.data.prefs;
         dispatch({ type: 'SESSION_LOADED', payload: { user: user, prefs: prefs }})
     })
     .catch((e) => {
@@ -205,23 +212,17 @@ async function loadSessionFromServer(dispatch) { // This one is not exported and
 
     });
 }
+
 export async function authGoogleLogin(dispatch,data){
-  var formData=new FormData();
-  formData.append('tokenId',data.tokenId)
-  formData.append('remember',false)
-  const requestOptions = {     
-    headers: { 'content-type': 'multipart/form-data' }
-  }
   dispatch({ type: 'REQUEST_LOGIN' });
-  return axios.post(backend_url('user/login/google'), formData, requestOptions)
+  // TODO: filter 'data' to contain only tokenId and remember
+  data.remember = false;  
+  return callAPI('POST', 'user/login/google', data)
   .then((response) => {
     console.log ('POST /user/login/google, response =>', response.data);
     let user = response.data.current_user;
-    let prefs = {};
-    
+    let prefs = response.data.prefs;
     if (user) {
-        prefs = user.prefs;
-        delete user.prefs;
         dispatch({ type: 'LOGIN_SUCCESS', payload: {user: user, prefs: prefs}});
         return true;
     } else {
@@ -236,27 +237,19 @@ export async function authGoogleLogin(dispatch,data){
 });
 
 }
+
 export async function authLogin(dispatch, data) {
-
-    var formData = new FormData();
-    formData.append('email', data.email);
-    formData.append('password', data.password);
-    formData.append('remember', data.remember);
-
-    const requestOptions = {     
-        headers: { 'content-type': 'multipart/form-data' }
-    }
 
     dispatch({ type: 'REQUEST_LOGIN' });
 
-    return axios.post(backend_url('user/login/basic'), formData, requestOptions)
+    // TODO: filter 'data' to just contain the keys: email, password, remember
+
+    return callAPI('POST', 'user/login/basic', data)
     .then((response) => {
         console.log ('POST /user/login/basic, response =>', response.data);
         let user = response.data.current_user;
-        let prefs = {};
+        let prefs = response.data.prefs;
         if (user) {
-            prefs = user.prefs;
-            delete user.prefs;
             dispatch({ type: 'LOGIN_SUCCESS', payload: {user: user, prefs: prefs}});
             return true;
         } else {
@@ -275,13 +268,7 @@ export async function authLogin(dispatch, data) {
 
 export async function authLogout(dispatch) {
 
-    var formData = new FormData();
-
-    const requestOptions = {     
-        headers: { 'content-type': 'multipart/form-data' }
-    }
-
-    return axios.post(backend_url('user/logout'), formData, requestOptions)
+    return callAPI('POST', 'user/logout', [])
     .then((response) => {
         //console.log ('POST /user/logout, response =>', response.data);
         let user = response.data.current_user;
