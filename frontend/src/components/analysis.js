@@ -144,6 +144,7 @@ export const Analysis = (props) => {
     }, [dataState.id])
 
     // TODO: this will call /api/analysis/load (which returns analysis data, params, and results)
+    // TODO: add error checking if record not found
     async function loadAnalysis(id) {
       if (!id) return;
       setUIState({updating: true,});
@@ -218,8 +219,8 @@ export const Analysis = (props) => {
   // Interpret keypresses (currently only for ROI adjustments)
 
   
-  // Event handler utilizing useCallback ...
-  // ... so that reference never changes.
+  // Event handler utilizing useCallback to allow us to define state dependencies
+  // that the callback can access. (Normally state is not visible to an event handler.)
   const onKeypress = React.useCallback(
     ({ key }) => {
 
