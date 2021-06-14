@@ -1,17 +1,18 @@
 // This is a Uniforms component for an ID field. It allows several
-// options, e.g. typing the ID, or clicking a button to open a box
+// options, e.g. clicking a button to open a popup
 // to search/select a previously existing record, or clicking a button
-// to create a new record. The latter two return the ID value to the
-// form.
+// to open a popup to create a new record. The resulting ID value is returned t othe form.
 
 // TODO:
 // * Update to support multiple selection
-// * After choosing/creating an object, the ID and name are populated, 
-//   but they seem to be uneditable (probably the way they are updated).
-//   However, the desired behavior would be to allow the user to type in
-//   new value if they wanted to.
+// * Allow editing ID field directly (typing)? This has some complications:
+//    - We would probably want to load the name of the corresponding record,
+//      which would require async request. Would we do it onChange or onBlur?
+//    - Right now, if id field is NOT marked readOnly, typing in it
+//      doesn't show up in the form submission. Would need to fix what is going on.
+//      (Also, right now after choosing/creating new object, and setting ID automatically,
+//       the id field becomes uneditable.)
 // * Add a 'View Details' button (popup or hover) to show details of currently selected item
-// * When type an ID, what to do with the 'name' field?
 // * Add some intelligent behavior if the objectType doesn't exist, e.g. remove the button altogether?
 
 // Main imports
@@ -93,7 +94,7 @@ function IDInput({ name, onChange, value, label, ref, ...props }: IDInputFieldPr
 
   return (
     <div className="IDInputField">
-      <TextField id={name} value={value}/>
+      <TextField id={name} value={value} readOnly={true} disabled={true}/>
       <label htmlFor={name}>
         <TextField id={name + '-name'} disabled value={nameField}/>
         <div>{label}</div>
