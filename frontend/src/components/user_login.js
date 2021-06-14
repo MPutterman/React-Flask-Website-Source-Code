@@ -1,42 +1,23 @@
 // TODO:
-// * There are a few places where we need user or system preference rather than hard-coded value
-// * Not yet implemented display or handling of login-errors, e.g. wrong password, etc...
+// * Add show/hide password
+// * <GoogleLogin> is triggering onLoginerror at first render. Why?
+// * Need to properly do error handling and messages, and properly use 'then' construct
 
 import React from "react";
 import { authLogin, authLogout,authGoogleLogin, useAuthState, useAuthDispatch } from '../contexts/auth';
 import { useConfigState } from '../contexts/config';
-import { backend_url } from './config.js';
 import { withRouter } from "react-router";
 import { useHistory } from 'react-router-dom';
-import { useForm, Controller } from "react-hook-form";
-import Input from "@material-ui/core/Input";
-import TextField from "@material-ui/core/TextField";
 import Button from "@material-ui/core/Button";
-import CircularProgress from "@material-ui/core/CircularProgress";
-//import LoadingButton from "@material-ui/lab/LoadingButton";
-import Select from "@material-ui/core/Select";
-import MenuItem from "@material-ui/core/MenuItem";
-import InputLabel from "@material-ui/core/InputLabel";
-import FormGroup from "@material-ui/core/FormGroup";
-import FormControlLabel from "@material-ui/core/FormControlLabel";
-import Checkbox from "@material-ui/core/Checkbox";
 import GoogleLogin from 'react-google-login'
 
-import {
-  AutoForm,
-  AutoField, AutoFields,
-  ErrorField, ErrorsField,
-  SubmitField,
-} from 'uniforms-material';
-//import { JSONSchemaBridge } from 'uniforms-bridge-json-schema';
+import { AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField,} from 'uniforms-material';
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
-//import Ajv from 'ajv';
-
 import Visibility from '@material-ui/icons/Visibility';
 import VisibilityOff from '@material-ui/icons/VisibilityOff';
 import AlertList from '../components/alerts';
-
+import Busy from '../components/busy';
 
 // User Login form
 
@@ -131,8 +112,8 @@ const UserLogin = (props) => {
         });
     }
 
-    const onLoginError = () => {
-        setAlert({severity: 'error', message: 'An error occurred during the login'});
+    const onLoginError = (e) => {
+        setAlert({severity: 'error', message: 'An error occurred during the login: ' + e});
     }
 
     const onRegister = () => {
@@ -142,42 +123,41 @@ const UserLogin = (props) => {
 
     return (
         <>
-        
-
         {session['auth'] ? (  // If logged in:
           <form onSubmit={onLogout}>
             <p>Welcome, {session['authUser']['first_name']}. </p>
-            <Button type="submit" variant="outlined" onClick={onLogout}>{logoutPending ? (<CircularProgress/>) : null}Logout</Button>
+            <Button type="submit" variant="outlined" onClick={onLogout}>Logout</Button>
+            <Busy busy={logoutPending} />
           </form>
 
         ) : (  // If not logged in:
-        <div>
-        <div className="UserLoginForm" style = {{ maxWidth: '250px', margin: 'auto', }}>
-        <AutoForm schema={bridge} onSubmit={onLogin} ref={ref => (formRef = ref)}>
-          <AutoField name="email" />
-          <ErrorField name="email" />
-          <AutoField name="password" />
-          <ErrorField name="password" />
-          <AutoField name="remember" />
-          <ErrorField name="remember" />
-          <SubmitField>Login</SubmitField>
 
-          <Button fullWidth variant="outlined" onClick={onRegister}>Register for Account</Button>
+          <div className="UserLoginForm" style = {{ maxWidth: '250px', margin: 'auto', }}>
+            <Busy busy={loginPending} />
+            <AutoForm schema={bridge} onSubmit={onLogin} ref={ref => (formRef = ref)}>
+              <AutoField name="email" />
+              <ErrorField name="email" />
+              <AutoField name="password" />
+              <ErrorField name="password" />
+              <AutoField name="remember" />
+              <ErrorField name="remember" />
+              <SubmitField>Login</SubmitField>
 
-        </AutoForm>
+              <Button fullWidth variant="outlined" onClick={onRegister}>Register for Account</Button>
+
+            </AutoForm>
 
           <div>
           <p>Alternatively, you can login via an external authenticator:</p>
-            {true &&<GoogleLogin
-              clientId={process.env.REACT_APP_GOOGLE_OAUTH_CLIENT}
-              buttonText="Login"
-              onSuccess={onGoogleLogin}
-              onFailure={onLoginError}
-              cookiePolicy={'single_host_origin'}
-            />} 
+          {true &&<GoogleLogin
+            clientId={process.env.REACT_APP_GOOGLE_OAUTH_CLIENT}
+            buttonText="Login"
+            onSuccess={onGoogleLogin}
+            onFailure={onLoginError}
+            cookiePolicy={'single_host_origin'}
+          />} 
           <p>TODO: we need to add a suitable registration option for this</p>
           </div>
-        </div>
         </div>
 
         )}
