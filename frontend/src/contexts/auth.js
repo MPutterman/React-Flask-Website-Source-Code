@@ -213,6 +213,12 @@ async function loadSessionFromServer(dispatch) { // This one is not exported and
     });
 }
 
+// TODO: think if this is the best approach. Called after changing prefs or profile on 
+//  the server
+export async function authRefreshSession(dispatch,data){
+    return loadSessionFromServer(dispatch);
+}
+
 export async function authGoogleLogin(dispatch,data){
   dispatch({ type: 'REQUEST_LOGIN' });
   // TODO: filter 'data' to contain only tokenId and remember
@@ -229,13 +235,12 @@ export async function authGoogleLogin(dispatch,data){
         dispatch({ type: 'LOGIN_ERROR', error: response.data['error'] });
         return false;
     }
-})
-.catch((e) => {
-    console.log("POST /user/login/google, error =>" + e);
-    dispatch({ type: 'LOGIN_ERROR', error: e });
-    return false;
-});
-
+  })
+  .catch((e) => {
+      console.log("POST /user/login/google, error =>" + e);
+      dispatch({ type: 'LOGIN_ERROR', error: e });
+      return false;
+  });
 }
 
 export async function authLogin(dispatch, data) {
