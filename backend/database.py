@@ -437,6 +437,18 @@ def db_user_load_by_email(email):
     #db_session.close()
     return user
 
+def db_prefs_save(user_id, data):
+    #db_session.begin()
+    user = User.query.filter_by(user_id=user_id).one()
+    user.prefs = data
+    db_session.commit()
+    return ''
+
+def db_prefs_load(user_id):
+    user = User.query.filter_by(user_id=user_id).one()
+    db_session.commit()
+    return user.prefs
+
 # Save a user to the database.  Expects a dict, ant the org_list to be a list of org_ids.
 # Blank user_id means it hasn't yet been inserted to database
 # TODO: when save preferences, should we merge with existing ones, or overwrite?

@@ -29,6 +29,7 @@
 # * Need to test whether session timeout is working properly, and remember-me feature
 
 import time
+from json import dumps, loads
 from scipy.cluster.vq import vq, kmeans,whiten
 from flask import Flask, request,Response,send_file,send_from_directory,make_response,Response,session
 from skimage import io, morphology, filters,transform, segmentation,exposure
@@ -920,10 +921,14 @@ def session_load():
         #print("GET /api/session/load, retrieved user_id = " + str(user.user_id) + "\n")
         user_dict = user.as_dict()
         user_dict.pop('password_hash') # Remove password_hash before returning to frontend
-        return ({ 'current_user': user_dict })
+        user_dict.pop('prefs') # Remove prefs in case they are dirty (e.g. if user updated prefs)
+        # Retrieve prefs from database
+        from database import db_prefs_load
+        prefs = db_prefs_load(user.get_id())
+        return ({ 'current_user': user_dict, 'prefs': prefs, })
     else:
         #print("GET /api/session/load, not logged in\n")
-        return ({ 'current_user': None })
+        return ({ 'current_user': None, 'prefs': {} })
 
 @app.route('/autoselect/<filename>',methods=['POST','GET'])
 @cross_origin(supports_credentials=True)
@@ -953,6 +958,18 @@ def user_search():
     from database import db_user_search
     user_list = db_user_search()
     return user_list
+
+# TODO: Need to trigger update prefs in the session!!!
+# Save the submitted user preferences
+@app.route('/api/prefs/save', methods = ['POST'])
+@cross_origin(supports_credentials=True)
+def prefs_save():
+    prefs = loads(request.form.get('prefs'))
+    user_id = flask_login.current_user.get_id()
+    from database import db_prefs_save
+    db_prefs_save(user_id, prefs)
+    return ''
+
 
 # Save the submitted user information
 @app.route('/user/save', methods = ['POST'])
@@ -1140,6 +1157,7 @@ def user_login(login_method):
     if login_method=='basic':
         # Set up hashing
         import bcrypt
+
         email = request.form['email']
         print(request.form['remember'])
         remember = request.form['remember']=='true'
@@ -1158,10 +1176,12 @@ def user_login(login_method):
             flask_login.login_user(user, remember) # Part of flask_login
             user_dict = user.as_dict()
             user_dict.pop('password_hash') # Remove password_hash before sending to front_end
+            prefs = user_dict.pop('prefs') # Remove prefs as well
             return {
                 'error': False,
                 'message': "Successful login",
                 'current_user': user_dict,
+                'prefs': prefs,
             }
 
         else:
@@ -1169,6 +1189,7 @@ def user_login(login_method):
                 'error': True,
                 'message': "Password mismatch",
                 'current_user': None,
+                'prefs': {},
             }
     elif login_method=='google':
         from google.oauth2 import id_token
@@ -1183,27 +1204,31 @@ def user_login(login_method):
             return{
                 'error':True,
                 'message':'Invalid Token',
-                'current_user':None
+                'current_user':None,
+                'prefs': {},
             }
 
         if id_info['iss'] != 'https://accounts.google.com' and id_info['iss']!='accounts.google.com':
             return {
                 'error':True,
                 'message':'Wrong Auth Provider',
-                'current_user':None
+                'current_user':None,
+                'prefs': {},
             }
         
         if id_info['aud'] not in [client_id]:
             return{
                 'error':True,
                 'message':'Faulty or Faked Token',
-                'current_user':None
+                'current_user':None,
+                'prefs': {},
             }
         if id_info['exp']<time.time():
             return{
                 'error':True,
                 'message':'Past Expiry Time',
-                'current_user':None
+                'current_user':None,
+                'prefs': {},
             }
         email = id_info['email']
         
@@ -1213,14 +1238,18 @@ def user_login(login_method):
                 'error': True,
                 'message': "User email not found",
                 'current_user': None,
+                'prefs': {},
             }
         session.permanent = True
         flask_login.login_user(user, remember) # Part of flask_login
         user_dict = user.as_dict()
+        user_dict.pop('password_hash') # remove before returning to front end
+        prefs = user_dict.pop('prefs') # remove before returning to front end
         return {
             'error': False,
             'message': "Successful login",
             'current_user': user_dict,
+            'prefs': prefs,
         }
         
         
@@ -1231,7 +1260,8 @@ def user_login(login_method):
         return {
             'error':True,
             'message':'Invalid Login Type',
-            'current_user': None
+            'current_user': None,
+            'prefs': {},
         }
 
 @app.route('/user/logout', methods=['POST'])
@@ -1244,12 +1274,14 @@ def user_logout():
             'error': False,
             'message': "Successful logout",
             'current_user': None,
+            'prefs': {},
         }
     else:
         return {
             'error': True,
             'message': "Not logged in",
             'current_user': None,
+            'prefs': {},
         }
     
 # Google-signin
