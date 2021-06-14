@@ -135,6 +135,11 @@ const Layout = (props) => {
     history.push('/user/change_password/' + session['authUser']['user_id']); 
   }
 
+  const handleChangePrefs = (event) => {
+    handleCloseUserMenu(event);
+    history.push('/user/prefs' /* + session['authUser']['user_id'] */ ); 
+  }
+
   async function handleUserLogout(event) {
     handleCloseUserMenu(event);
     let response = await authLogout(dispatch); 
@@ -205,6 +210,7 @@ const Layout = (props) => {
               >
                 <MenuItem onClick={handleUserAccount}>My account</MenuItem>
                 <MenuItem onClick={handleChangePassword}>Change password</MenuItem>
+                <MenuItem onClick={handleChangePrefs}>Preferences</MenuItem>
                 <MenuItem onClick={handleUserLogout}>Logout</MenuItem>
               </Menu>
             </div>
