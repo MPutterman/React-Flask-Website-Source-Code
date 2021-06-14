@@ -10,6 +10,7 @@
 //   but they seem to be uneditable (probably the way they are updated).
 //   However, the desired behavior would be to allow the user to type in
 //   new value if they wanted to.
+// * Add a 'View Details' button (popup or hover) to show details of currently selected item
 // * When type an ID, what to do with the 'name' field?
 // * Add some intelligent behavior if the objectType doesn't exist, e.g. remove the button altogether?
 
