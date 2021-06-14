@@ -420,7 +420,7 @@ def db_add_test_data():
 # NOTE: 'scalar' method returns 'None' if no entry is found, or one object. Raises exception of more than 1 result found.
 # TODO: Figure out handling of ID-not found
 def db_user_load(id):
-    db_session.begin()
+    #db_session.begin()
     user = User.query.options(selectinload(User.org_list)).filter_by(user_id=id).scalar() # scalar returns a single record or 'None'; raises exception if >1 found
     db_session.commit()
     #db_session.close()
@@ -546,6 +546,7 @@ def db_image_load(id):
     return image
 
 # TODO: also add the following: options(selectinload(Image.equip_id))
+# TODO: add owner_id handling
 # Save an image
 def db_image_save(data):
     print("incoming data:")
