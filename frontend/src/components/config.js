@@ -5,6 +5,14 @@
 //   and probably help to mediate permissions, also handling of errors, etc...
 // * For axios defaults, not sure which are critical to the sessions now working properly,
 //   need to figure this out.
+// * Improve use of 'then' to make use of .then(funcOnSuccess, funcOnFailure)...
+//     but need to check if promise is resolved/rejected based on HTTP-response,
+//     or presence/absence of response...
+// * Add a 'sanitize' routine to filer out desired keys of 'data' on POST
+// * When passing complex data types, need to JSON.stringify in frontend, and loads in backend, which
+//     is likely to cause bugs. Can callAPI be smarter and detect if there are complex objects
+//     and do this automatically... or better yet, switch content-type to application/json
+//     and stringify the whole data payload?  What happens to files in that case?
 
 // RESOURCES:
 // * https://zetcode.com/javascript/axios/ (good description of commands and request/response content)
@@ -38,7 +46,7 @@ export async function callAPI(method, route, data={}) {
                 return response;
             })
             .catch((e) => {
-                throw new Error ("Error returned in API call (" + method + " " + route + "): " + e);
+                throw new Error ("Exception in API call (" + method + " " + route + "): " + e);
             });
 
         case 'POST':
