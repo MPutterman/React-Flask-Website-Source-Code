@@ -34,7 +34,7 @@ import time
 import numpy as np
 from io import BytesIO
 import flask_login
-import datetime
+from datetime import datetime, timezone # TODO: probably should move time handling to API
 
 # TODO: how to do this setup and instantiation once and register with FLASK globals?
 
@@ -209,7 +209,7 @@ class CachedImage(Base):
     # Track when the record was last modified. If any changes to the Image record
     # (using Image.modified field) after the modified date here (for the one or multiple
     # files on which it depends, then regenerate the cached image. This will use methods of api.py.
-    modified = Column(DateTime)
+    modified = Column(DateTime(timezone=True))
     image_id = Column(Integer, primary_key=True)
     image_type = Column(String(64), nullable=False)
     image_path=Column(String(128))
@@ -238,8 +238,8 @@ class Analysis(Base):
     analysis_id = Column(String(12), primary_key=True)
     name = Column(String(128), nullable=False)
     description = Column(Text)
-    experiment_datetime = Column(DateTime) # Date of experiment
-    analysis_datetime = Column(DateTime) # Date of analysis (last change)
+    experiment_datetime = Column(DateTime(timezone=True)) # Date of experiment
+    analysis_datetime = Column(DateTime(timezone=True)) # Date of analysis (last change)
     owner_id = Column(Integer, ForeignKey('user.user_id')) # User who performed the analysis
     plate_id = Column(Integer, ForeignKey('plate.plate_id'))
     cover_id = Column(Integer, ForeignKey('cover.cover_id'))
@@ -333,15 +333,15 @@ class Image(Base):
     image_id = Column(Integer, primary_key=True)
     equip_id = Column(Integer, ForeignKey('equipment.equip_id'))
     image_type = Column(Enum(ImageType), nullable=False)
-    captured = Column(DateTime) # Image creation date (support timezone?)
+    captured = Column(DateTime(timezone=True)) # Image creation date (support timezone?)
     exp_time = Column(Float) # Exposure time (seconds)
     exp_temp = Column(Float) # Exposure temp (deg C)
     name = Column(String(128), nullable=False)
     description = Column(Text) # Maybe can get rid of this...?
     image_path = Column(String(256)) #, nullable=False) # Full path of file on server (for file system DB)
     owner_id = Column(Integer, ForeignKey('user.user_id')) # User-ID of user that uploaded the file
-    created = Column(DateTime) 
-    modified = Column(DateTime)
+    created = Column(DateTime(timezone=True)) 
+    modified = Column(DateTime(timezone=True))
 
     def as_dict(self):
         # Returns full represenation of model.
@@ -564,7 +564,7 @@ def db_image_save(data):
         image.name = data['name']
         image.description = data['description']
         image.equip_id = equip
-        image.modified = datetime.datetime.now()
+        image.modified = datetime.now(timezone.utc)
         image.image_type = find_image_type(data['image_type'])
         image.captured = data['captured'] # need to convert from string
         image.exp_time = data['exp_time'] # need to convert from string
@@ -575,8 +575,8 @@ def db_image_save(data):
             description = data['description'],
             equip_id = equip,
             owner_id = flask_login.current_user.get_id(),
-            created = datetime.datetime.now(),
-            modified = datetime.datetime.now(),
+            created = datetime.now(timezone.utc),
+            modified = datetime.now(timezone.utc),
             image_type = find_image_type(data['image_type']),
             captured = None, # TODO: try to get this from the image
             exp_time = data['exp_time'],
