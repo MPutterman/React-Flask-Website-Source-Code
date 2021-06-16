@@ -3,3 +3,5 @@ backend/.env
 backend/UPLOADS/*
 backend/flask_session
 backend/__pycache__
+.vscode
+.vscode/*
