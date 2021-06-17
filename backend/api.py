@@ -965,6 +965,7 @@ def user_search():
 @cross_origin(supports_credentials=True)
 def prefs_save():
     prefs = loads(request.form.get('prefs'))
+    print(prefs)
     user_id = flask_login.current_user.get_id()
     from database import db_prefs_save
     db_prefs_save(user_id, prefs)
@@ -1069,7 +1070,15 @@ def image_save():
     ##id = db_image_save(data)
     ##return {'id' : id }
 
+# Check if user email already exists
+@app.route('/api/user/email_exists', methods = ['POST'])
+@cross_origin(supports_credentials=True)
+def user_email_exists():
+    from database import db_user_load_by_email
+    user = db_user_load_by_email(request.form.get('email'))
+    return { 'email_exists': (user is not None) }
 
+# TODO: move the list formatting out of database.py and into here instead.
 # Return a list of images (array of dict)
 # TODO: read in parameter strings from request for filtering, pagination, order, etc.
 @app.route('/image/search', methods = ['GET', 'POST']) # QUESTION: need GET and POST?

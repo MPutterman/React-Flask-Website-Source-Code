@@ -6,10 +6,10 @@
 // * Temporarily added a props.admin to show/edit the password.  Need to make sure user_save behaves properly
 //    without the password field showing.  The 'props.admin' will later be replaced by a
 //    roles/permission system.
-// * Need to do some error checking to avoid duplicate accounts with same email address. Duplicates break
-//   retrieval from database. Add a front-end method just to check of existence of ID
 // * Figure out how to deal with users that use external (googleAuth or other) login
 //    - Do we allow multiple authentication methods?
+//    - We need to register them, but do we take them to normal registration page (that asks for password)
+//        or a special one that just grabs email (and maybe asks for name)?
 // * Currently using this page for new user registration. In practice probably want a multi-step verification
 // * Add show/hide toggle to password field?
 // * Need to improve changing of password, maybe as a separate form with more authentication checks (fresh login),
@@ -17,30 +17,24 @@
 // * PERHAPS, if user_id is not valid (i.e. registering), then show passwords,
 //   otherwise omit these fields... and have a special change password form....
 // * TODO: figure out if still need all the reset-related form hooks, etc...
+// * There is a bug... after successful save, it shows validation error (email already exists)... as soon as
+//    edit another field, it's fine... somehow need to trigger validate to clear it?
 
 import React from "react";
 import { callAPI } from './api.js';
 import { withRouter } from "react-router";
-import { useParams } from 'react-router-dom';
 import { useForm, Controller } from "react-hook-form";
-import Input from "@material-ui/core/Input";
-import TextField from "@material-ui/core/TextField";
 import Button from "@material-ui/core/Button";
-import Select from "@material-ui/core/Select";
-import MenuItem from "@material-ui/core/MenuItem";
-import InputLabel from "@material-ui/core/InputLabel";
-import { spacing } from '@material-ui/system';
 import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField,} from 'uniforms-material';
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import Busy from '../components/busy';
 import AlertList from '../components/alerts';
-import jwt_decode from "jwt-decode";
 import NotFound from '../components/notfound';
 
 // User Edit form
 // Special props:
-// - register - any value if desire to create a new user registration form
+// - register - any value if desire to render as a new user registration form
 // - id       - user id (if empty, create a new user)
 // - new      - force to create a new user (ignore any props.match.params.id) // temporary fix with multiple components loaded
 // - onSave   - callback function called with model as argument after ID becomes valid
@@ -73,14 +67,8 @@ const UserEdit = (props) => {
     // TODO: need to handle other types of submit, e.g. delete?
     async function onSubmit(data, e)  {
       saveUser(data);
-    };
-    
-    // Check whether email exists
-    // TODO: test
-    async function emailExists(email) {
-      // TODO: implement
     }
-
+    
     // Retrieve user with specified id from the database
     // TODO: Error handling if user is not found... need to redirect to not found page
     async function loadUser(id) {
@@ -131,12 +119,15 @@ const UserEdit = (props) => {
     // This causes the form fields to fill in with the newly retrieved data in currentUser.
     // TODO: for some reason if I try to put reset(currentUser) in the loadUser function it doesn't
     // properly reset the form...
+    ////// TODO: make sure to convert to the reset by Uniforms not react-hook-forms...
     React.useEffect(() => {
         console.log("In useEffect #2 => ", currentUser); //initUser);
         reset(currentUser);
     }, [currentUser]);
 
 
+    // TODO: improve this... this is used in IDInputField to feedback 'name' in addition to the ID
+    //   for newly created items.  Need a uniform way of doing this across all objects, both for 'edit' and 'select' forms...
     // Hack to implement an 'onSave'
     React.useEffect(() => {
         if (props.onSave) {
@@ -192,6 +183,11 @@ const UserEdit = (props) => {
     // that describe special validation (e.g. passwordMistmatch) and customized error messages
 
     const schema = new SimpleSchema ({
+      user_id: {
+        label: 'ID',
+        type: Number, // TODO: change to integer type
+        required: false,
+      },
       email: {
         label: 'Email',
         type: String,
@@ -260,6 +256,48 @@ const UserEdit = (props) => {
 
     var bridge = new SimpleSchema2Bridge(schema);
 
+    // Asynchronous validation check (to see if email is unique)
+    // TODO: is the return set up properly and return a promise as expected?
+    async function onValidate(model, error) {
+
+        // Helper function to check if email error exists. If so, don't do extra validation yet
+        const email_error_exists = () => {
+            let found = false;
+            if (error) {
+                for (let i=0; i<error.details.length; i++) {
+                    if (error.details[i].name == 'email') found = true;
+                }
+            }
+            return found;
+        }
+
+        // Do backend validation, but only if user_id is not defined (i.e. new user), and
+        // email address is provided, and there is no other error on email field.
+        console.log ('model =>', model);
+        if (error) console.log ('error.details =>', error.details);
+        if (!model.user_id && model.email && !email_error_exists()) { 
+            return callAPI('POST', 'api/user/email_exists', model)
+            .then((response) => {
+                if (response.data.email_exists) {
+                    if (!error) error = {errorType: 'ClientError', name: 'ClientError', error: 'validation-error', details: [], };
+                    error.details.push({name: 'email', value: model.email, type: 'custom', message: 'An account with this email address already exists'});
+                    return error;
+                } else {
+                    return error;
+                }
+            })
+            .catch((e) => {
+                if (!error) error = {errorType: 'ClientError', name: 'ClientError', error: 'validation-error', details: [], };
+                error.details.push({name: 'email', value: model.email, type: 'custom', message: 'Server error. Could not check for duplicate email'});
+                return error;
+            });
+            // TODO: Handle the reject case? doesn't seem handled by Uniforms...
+
+        } else {
+            return error;
+        }
+    }
+
 
     return (
 
@@ -276,7 +314,10 @@ const UserEdit = (props) => {
               onSubmit={onSubmit}
               ref={ref => (formRef = ref)}
               model={currentUser}
+              onValidate={onValidate}
             >
+              <AutoField name="user_id" disabled={true} />
+              <ErrorField name="user_id" />
               <AutoField name="first_name" />
               <ErrorField name="first_name" />
               <AutoField name="last_name" />
