@@ -95,6 +95,8 @@ const UserLogin = (props) => {
             if (response) {
                 const url = session.prefs['general']['redirect_after_login'];    
                 history.push(url); 
+            } else {
+                setAlert({severity:'error', message:'Incorrect username and/or password'});
             }
             setLoginPending(false);
         });
