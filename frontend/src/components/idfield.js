@@ -1,7 +1,12 @@
-// This is a Uniforms component for an ID field. It allows several
-// options, e.g. clicking a button to open a popup
-// to search/select a previously existing record, or clicking a button
-// to open a popup to create a new record. The resulting ID value is returned t othe form.
+// This is a Uniforms component for an ID field. It allows several options for choosing an
+// object by ID, including a popup to search for an item, or a popup to create a new item. 
+// The resulting ID value (selected or created) is returned to the form.
+//
+// Usage: <IDInputField objectType=<String> selectLabel=<String> createLabel=<String> clearLabel=<string> />
+// - objectType = user, image, equip, org, plate, cover
+// - selectLabel = text to write on the 'Select' button (select an existing item)
+// - chooseLabel = text to write on the 'Choose' button (create a new item)
+// - clearLabel = text to write o nthe 'Clear' button (clear the selection)
 
 // TODO:
 // * Update to support multiple selection
@@ -48,11 +53,9 @@ function IDInput({ name, onChange, value, label, ref, ...props }: IDInputFieldPr
   }, [temporaryModel])
 
   const onCloseSelect = (value) => {
-    console.log('closed select dialog, value=', value);
   }
 
   const onCloseCreate = (value) => {
-    console.log('closed create dialog, value=', value);
   }
 
   const handleOpenSelect = () => {
@@ -92,6 +95,12 @@ function IDInput({ name, onChange, value, label, ref, ...props }: IDInputFieldPr
     setOpenCreate(false);
   };
 
+  const handleClear = () => {
+      setNameField('');
+      onChange('');
+  }
+
+
   return (
     <div className="IDInputField">
       <TextField id={name} value={value} readOnly={true} disabled={true}/>
@@ -111,6 +120,13 @@ function IDInput({ name, onChange, value, label, ref, ...props }: IDInputFieldPr
                 <span>{props.createLabel}</span>
               ) : (
                 <span>Create</span>
+              )}
+            </Button>
+            <Button variant='contained' /*component='span'*/ onClick={handleClear}>
+              {props.clearLabel ? (
+                <span>{props.clearLabel}</span>
+              ) : (
+                <span>Clear</span>
               )}
             </Button>
         </span>
