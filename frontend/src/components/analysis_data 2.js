@@ -235,10 +235,10 @@ const AnalysisData = (props) => {
           </AccordionDetails>
         </Accordion>
 
-        <Accordion>
+        <Accordion defaultExpanded>
           <AccordionSummary expandIcon={<ExpandMoreIcon />} >
             Images and corrections
-          </AccordionSummary>
+          </AccordionSummary> 
           <AccordionDetails>              
 
               <Grid container direction="column">
