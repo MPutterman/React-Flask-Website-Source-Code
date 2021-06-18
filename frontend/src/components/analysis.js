@@ -39,7 +39,7 @@ import AccordionDetails from '@material-ui/core/AccordionDetails';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { withStyles, makeStyles } from '@material-ui/core/styles';
 import AnalysisResults from './analysis_results';
-import AnalysisData from './analysis_data';
+import AnalysisData from './analysis_data 2';
 //import {useKeypress} from '../hooks/Keypress';
 import {useEventListener} from '../hooks/useEventListener';
 
