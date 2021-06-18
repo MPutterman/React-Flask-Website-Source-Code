@@ -1057,8 +1057,10 @@ def image_save():
         'exp_time': request.form.get('exp_time'),
         'exp_temp': request.form.get('exp_temp'),
         #'image_path': request.form.get('path'),            # auto-generated field
-        'file': request.files['file'],
     }
+    if (request.files):
+        data['file'] = request.files['file']
+        
     # TODO: somehow missing value is coming in as text 'null' if missing... maybe from front-end
     # TODO: other cleanup needed?
     # TODO: maybe have frontend API call omit field keys that are undefined?

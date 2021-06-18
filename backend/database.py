@@ -35,6 +35,7 @@ import numpy as np
 from io import BytesIO
 import flask_login
 from datetime import datetime, timezone # TODO: probably should move time handling to API
+from dateutil.parser import parse
 
 # TODO: how to do this setup and instantiation once and register with FLASK globals?
 
@@ -521,7 +522,7 @@ def db_analysis_search():
 
 # Return an equipment
 def db_equip_load(id):
-    db_session.begin()
+    #db_session.begin()
     record = Equipment.query.filter_by(equip_id=id).scalar() # scalar returns a single record or 'None'; raises exception if >1 found
     db_session.commit()
     #db_session.close()
@@ -553,36 +554,43 @@ def db_image_save(data):
     print("incoming data:")
     print(data)
     # Find equipment id record
-    equip = None
-    if (data['equip_id'] != 'undefined' and data['equip_id'] is not None):
-        equip = db_equip_load(data['equip_id'])
+    ####equip = None
+    ####if (data['equip_id'] != 'undefined' and data['equip_id'] is not None):
+    ####    equip = db_equip_load(data['equip_id'])
     # If id exists, load record, replace data, then update
     # If id is empty, add a new record
-    db_session.begin()
     if (data['image_id'] is not None):
         # Currently can't update owner_id, modified, created
         image = Image.query.filter_by(user_id=data['user_id']).one()
         image.name = data['name']
         image.description = data['description']
-        image.equip_id = equip
+        ####image.equip_id = equip
+        image.equip_id = data['equip_id']
         image.modified = datetime.now(timezone.utc)
         image.image_type = find_image_type(data['image_type'])
-        image.captured = data['captured'] # need to convert from string
-        image.exp_time = data['exp_time'] # need to convert from string
-        image.exp_temp = data['exp_temp'] # need to convert from string
+        print ('image_captured before convert')
+        print (data['captured'])
+        image.captured = parse(data['captured']) # convert from string to datetime
+        image.exp_time = parse(data['exp_time']) # convert from string to datetime
+        image.exp_temp = parse(data['exp_temp']) # convert from string to datetime
+        print (image.captured)
     else:
+        print ('image_captured before convert')
+        print (data['captured'])
         image = Image(
             name = data['name'],
             description = data['description'],
-            equip_id = equip,
             owner_id = flask_login.current_user.get_id(),
+            equip_id = data['equip_id'],
             created = datetime.now(timezone.utc),
             modified = datetime.now(timezone.utc),
             image_type = find_image_type(data['image_type']),
-            captured = None, # TODO: try to get this from the image
+            captured = parse(data['captured']) if data['captured'] else None, # TODO: try to get this from the image
             exp_time = data['exp_time'],
             exp_temp = data['exp_temp']
         )
+        ####image.equip = equip
+        print (image.captured)
     db_session.add(image)
     db_session.commit()  # or flush?
     # If received a new file:
@@ -600,12 +608,14 @@ def db_image_save(data):
     # For now, reconvert image_type to string
     image.image_type = convert_image_type_to_string(image.image_type)
     # Also convert all datetime to string
+    # TODO: this is a hack... TZ info is being lost by SQLAlchemy, so we add it back.
+    #    (With current settings it is saving the UTC time.)
     if (image.modified):
-        image.modified = image.modified.isoformat()
+        image.modified = image.modified.isoformat() + '+00:00'
     if (image.created):
-        image.created = image.created.isoformat()
+        image.created = image.created.isoformat() + '+00:00'
     if (image.captured):
-        image.captured = image.captured.isoformat()
+        image.captured = image.captured.isoformat() + '+00:00'
     return image.as_dict()
 
 
@@ -640,12 +650,15 @@ def db_image_search():
         current_image = image.as_dict()
         print (current_image)
         current_image['image_type'] = convert_image_type_to_string(current_image['image_type'])
+
+        # TODO: the folowing is a hack... TZ info is being lost by SQLAlchemy, so we add it back.
+        #    (With current settings it is saving the UTC time.)
         if (current_image['created']):
-            current_image['created'] = current_image['created'].isoformat()
+            current_image['created'] = current_image['created'].isoformat() + '+00:00'
         if (current_image['modified']):
-            current_image['modified'] = current_image['modified'].isoformat()
+            current_image['modified'] = current_image['modified'].isoformat() + '+00:00'
         if (current_image['captured']):
-            current_image['captured'] = current_image['captured'].isoformat()
+            current_image['captured'] = current_image['captured'].isoformat() + '+00:00'
         print(current_image)
         data.append(current_image)
     return dumps(data)

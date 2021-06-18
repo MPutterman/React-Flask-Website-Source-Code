@@ -49,7 +49,7 @@ const ImageEdit = (props) => {
         owner_id: undefined,
         created: undefined, //new Date(null),
         modified: undefined, //new Date(null),
-        captured: undefined, // new Date(null),
+        captured: null, // new Date(null),
         image_path: '', // do anything different if path exists, e.g. different label on 'choose' button?
         equip_id: undefined,
         file: undefined,
