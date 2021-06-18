@@ -68,6 +68,7 @@ function IDInput({ name, onChange, value, label, ref, ...props }: IDInputFieldPr
 
 
   const onOKSelect = () => {
+    // TODO: if multi-select, set value to new selection(s)
     setOpenSelect(false);
     setNameField(temporaryModel.name); // Set the text for the 'name' display
     onChange(temporaryModel.id); // Set the value of the ID field
@@ -86,6 +87,8 @@ function IDInput({ name, onChange, value, label, ref, ...props }: IDInputFieldPr
   };
 
   const onOKCreate = () => {
+    // TODO: if multi-select, APPEND new item to currently selected item(s)
+    //  Or just replace?
     setOpenCreate(false);
     setNameField(temporaryModel.name); // Set the text for the 'name' display
     onChange(temporaryModel.id);  // Set the value of the ID field
