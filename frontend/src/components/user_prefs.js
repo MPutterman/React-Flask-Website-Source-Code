@@ -32,6 +32,7 @@ import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField,} 
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import IDInputField from '../components/idfield';
+import TimezoneSelect, { i18nTimezones } from 'react-timezone-select';
 
 const UserPrefs = (props) => {
 
@@ -138,6 +139,7 @@ const UserPrefs = (props) => {
 
     React.useEffect(() => {
         console.log("In useEffect - loading prefs"); 
+        console.log('preferences are now: ', session.prefs);
         loadUserPrefs();
     }, [session]);
 
@@ -192,7 +194,7 @@ const UserPrefs = (props) => {
                         <Grid container direction="column">
                             <AutoField name="general.redirect_after_login" />
                             <ErrorField name="general.redirect_after_login" />
-                            <AutoField name="general.timezone" />
+                            <AutoField name="general.timezone" /* component={TimezoneSelect} timezone={i18nTimezones} */ />
                             <ErrorField name="general.timezone" />
                         </Grid>
                     </AccordionDetails>
