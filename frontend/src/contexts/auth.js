@@ -127,7 +127,8 @@ export const AuthReducer = (initialState, action) => {
       // _.merge(prefs, [defaultUserPrefs, userPrefs]);
       for (const category in userPrefs) {
         for (const key in userPrefs[category]) {
-          prefs[category][key] = userPrefs[category][key];
+          // Copy if not null/undefined
+          if (userPrefs[category][key]) prefs[category][key] = userPrefs[category][key];
         }
       }
       return {
@@ -155,7 +156,7 @@ export const AuthReducer = (initialState, action) => {
       // _.merge(prefs, [defaultUserPrefs, userPrefs]);
       for (const category in userPrefs) {
         for (const key in userPrefs[category]) {
-          prefs[category][key] = userPrefs[category][key];
+          if (userPrefs[category][key]) prefs[category][key] = userPrefs[category][key];
         }
       }
       return {
