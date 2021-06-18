@@ -43,10 +43,10 @@ export async function callAPI(method, route, data={}) {
         case 'GET':
             return axios.get(backend_url(route))
             .then((response) => {
-                return response;
+                return response; // client handles normal data response and errors
             })
-            .catch((e) => {
-                throw new Error ("Exception in API call (" + method + " " + route + "): " + e);
+            .catch((err) => {
+                throw new Error (`Exception in ${method} ${route}: ${err.message}`);
             });
 
         case 'POST':
