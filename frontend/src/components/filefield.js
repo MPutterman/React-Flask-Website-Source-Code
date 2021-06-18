@@ -1,6 +1,7 @@
-// TODO: provide a way to specify the upload type,
-// or get it directly from files[0]. I'm just leaving as
-// image/png since that was previously in the submission.js file...
+// TODO:
+// * Provide a way to specify the upload type, or get it directly from files[0]. I'm just leaving as
+//     image/png since that was previously in the submission.js file...
+// * Show a prorgress bar when uploading large files
 
 // Usage:
 // <FileInputField buttonLabel=<String> filenameField=<String> />
@@ -13,6 +14,8 @@ import { HTMLFieldProps, connectField } from 'uniforms';
 import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
 import { useForm } from 'uniforms';
+//import LinearProgress from "@material-ui/core/LinearProgress";
+
 
 export type FileInputFieldProps = HTMLFieldProps<string, HTMLDivElement>;
 
