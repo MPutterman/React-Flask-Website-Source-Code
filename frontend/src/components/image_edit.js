@@ -6,11 +6,17 @@
 // * Want to use this as a popup as well, with return val of image-id
 //    i.e. existing or newly uploaded image...
 // * Figure out if still need all the reset-related form hooks, etc...
+// * Time fields not fully working. Browser seems to send back timezone on 'captured' field
+//   (does this work for all browsers?).  But server defined fields (modified/created) are not
+//   being created with timezone (e.g. trailing Z or +00:00) even though methods indicate they should.
+//   TODO: I have updated database to specify Timezone=true. Check what actually gets saved in database.
+//   TODO: There is an issue at frontend with income datetime fields (toISOString is not a function).
+//     something to do with the way the state is set up and the initial values?
+// * Seems to cause a backend error if submit WITHOUT a new image...
 
 import React from "react";
 import { callAPI } from './api.js';
 import { withRouter } from "react-router";
-import { useParams } from 'react-router-dom';
 import { useForm, Controller } from "react-hook-form";
 import Input from "@material-ui/core/Input";
 import TextField from "@material-ui/core/TextField";
@@ -57,7 +63,7 @@ const ImageEdit = (props) => {
     // Form hooks
     // mode is the render mode (both onChange and onBlur)
     // defaultValues defines how the form will be 'reset'. Fill back in with retrieved user info
-    const {handleSubmit, reset, control} = useForm({mode: 'all', defaultValues: currentImage}); 
+    const {reset} = useForm({mode: 'all', defaultValues: currentImage}); 
 
     // Actions when form is submitted
     // TODO: need to handle other types of submit, e.g. delete?
@@ -124,12 +130,19 @@ const ImageEdit = (props) => {
     async function saveImage(data) {
         // TODO: need to filter anything out of 'data'?
         setLoading(true);
-        callAPI('POST', 'image/save', data)
+
+        // Sanitize datetime fields (if null or undefined, remove them)
+        if (data['captured'] == null || data['captured'] == undefined) delete data['captured'];
+        if (data['created'] == null || data['created'] == undefined) delete data['created'];
+        if (data['modified'] == null || data['modified'] == undefined) delete data['modified'];
+
+        return callAPI('POST', 'image/save', data)
         .then((response) => {
             setAlert({severity: 'success', message: "yay, success"});
-            if (!response.data.created) response.data.created = new Date(null);
-            if (!response.data.modified) response.data.modified = new Date(null);
-            if (!response.data.captured) response.data.captured = new Date(null);
+            console.log('data received after image/save:', response.data);
+            if (!response.data.created) response.data.created = null;
+            if (!response.data.modified) response.data.modified = null;
+            if (!response.data.captured) response.data.captured = null;
 
             setCurrentImage(response.data);
             reset(currentImage); // does this work?
@@ -268,6 +281,13 @@ const ImageEdit = (props) => {
               <ErrorField name="description" />
               <AutoField name="equip_id" component={IDInputField} objectType='equip'/>
               <ErrorField name="equip_id" />
+
+              <SubmitField>Save / Upload</SubmitField>
+
+              <Button fullWidth variant='outlined' type='reset' onClick={() => formRef.reset()}>Cancel</Button>
+              <Button fullWidth variant='outlined' type="delete" >Delete (not yet working)</Button>
+
+              <p>Additional fields:</p>
               <AutoField name="captured" />
               <ErrorField name="captured" />
               <AutoField name="created" readOnly={true}/>
@@ -279,10 +299,6 @@ const ImageEdit = (props) => {
               <AutoField name="image_path" readOnly={true}/>
               <ErrorField name="image_path" />
 
-              <SubmitField>Save Changes (backend API not yet functional)</SubmitField>
-
-              <Button fullWidth variant='outlined' type='reset' onClick={() => formRef.reset()}>Cancel</Button>
-              <Button fullWidth variant='outlined' type="delete" >Delete (not yet working)</Button>
 
             </AutoForm>
 
