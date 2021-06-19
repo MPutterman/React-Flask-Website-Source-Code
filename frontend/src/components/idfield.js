@@ -19,6 +19,7 @@
 //       the id field becomes uneditable.)
 // * Add a 'View Details' button (popup or hover) to show details of currently selected item
 // * Add some intelligent behavior if the objectType doesn't exist, e.g. remove the button altogether?
+// * Figure out how to add a * next to label when field is required
 
 // Main imports
 import React from 'react';
