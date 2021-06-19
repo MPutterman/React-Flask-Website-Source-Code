@@ -3,36 +3,29 @@
 //   the schema and which API calls to make.  Maybe merge into a generic handler?
 // * Currently using this page for creating (uploading and create record)
 //   as well as editing previously added image.
-// * Want to use this as a popup as well, with return val of image-id
-//    i.e. existing or newly uploaded image...
-// * Figure out if still need all the reset-related form hooks, etc...
-// * Time fields not fully working. Browser seems to send back timezone on 'captured' field
-//   (does this work for all browsers?).  But server defined fields (modified/created) are not
-//   being created with timezone (e.g. trailing Z or +00:00) even though methods indicate they should.
-//   TODO: I have updated database to specify Timezone=true. Check what actually gets saved in database.
-//   TODO: There is an issue at frontend with income datetime fields (toISOString is not a function).
-//     something to do with the way the state is set up and the initial values?
-// * Seems to cause a backend error if submit WITHOUT a new image...
+// * KNOWN BUG: the client side (react) creates Date objects with local time but sets TZ = UTC.
+//     Similarly when displaying backend-generated times (which are correct) it convers them to UTC
+//     for display in the window.
+// * EQUIPMENT-ID is required
+// * Can the date sanitizing (and fix to above problem) be built into axios interceptors?
+// * Default exposure time and temp doesn't make sense for all image types (e.g. flat)....
+// * KNOWN BUG: It doesn't pick up prefs when navigate to /image/new... but it works if reach page
+//     via other means, e.g. analysis/new, then create a new image
 
 import React from "react";
 import { callAPI } from './api.js';
 import { withRouter } from "react-router";
-import { useForm, Controller } from "react-hook-form";
-import Input from "@material-ui/core/Input";
-import TextField from "@material-ui/core/TextField";
+import { useAuthState, useAuthDispatch, defaultUserPrefs, authRefreshSession } from '../contexts/auth';
+
 import Button from "@material-ui/core/Button";
-import Select from "@material-ui/core/Select";
-import MenuItem from "@material-ui/core/MenuItem";
-import InputLabel from "@material-ui/core/InputLabel";
 import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField, LongTextField} from 'uniforms-material';
 import SimpleSchema from 'simpl-schema';
-//import { useForm } from 'uniforms';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import FileInputField from './filefield';
 import IDInputField from './idfield';
 import Busy from '../components/busy';
 import AlertList from '../components/alerts';
-import jwt_decode from "jwt-decode";
+
 
 // Image edit form
 // Special props:
@@ -41,18 +34,23 @@ const ImageEdit = (props) => {
 
     let formRef;
 
+    const session = useAuthState();
+    const dispatch = useAuthDispatch();
+
     const initialImageState = {
         image_id: '', // NOTE: if set null here, the edit form ID value overlaps the help text
         image_type: '',
         name: '',
         description: 'Maybe eliminate this field?',
-        owner_id: undefined,
-        created: undefined, //new Date(null),
-        modified: undefined, //new Date(null),
-        captured: null, // new Date(null),
-        image_path: '', // do anything different if path exists, e.g. different label on 'choose' button?
-        equip_id: undefined,
-        file: undefined,
+        owner_id: null,
+        created: null, 
+        modified: null, 
+        captured: null, 
+        image_path: '', // do anything different if path exists (i.e. file on server), e.g. different label on 'choose' button?
+        equip_id: session.prefs['analysis']['default_equip'],
+        exp_temp: session.prefs['analysis']['default_exposure_temp'],
+        exp_time: session.prefs['analysis']['default_exposure_time'],
+        file: null,
     };
 
     const [loading, setLoading] = React.useState('false');
@@ -60,21 +58,10 @@ const ImageEdit = (props) => {
     const [currentImage, setCurrentImage] = React.useState(initialImageState);
     const [alert, setAlert] = React.useState({});
 
-    // Form hooks
-    // mode is the render mode (both onChange and onBlur)
-    // defaultValues defines how the form will be 'reset'. Fill back in with retrieved user info
-    const {reset} = useForm({mode: 'all', defaultValues: currentImage}); 
 
-    // Actions when form is submitted
-    // TODO: need to handle other types of submit, e.g. delete?
     const onSubmit = (data, e) => {
-      console.log("onSubmit: data => ", data);
-      // TODO: upload image if appropriate...
-
+//      console.log("onSubmit: data => ", data);
       saveImage(data);
-      // Temporary... after saving, re-retrieve the user to change currentUser and trigger useEffect
-      // so cancel will now revert to the last saved value
-      loadImage(data.image_id);
     };
     
     // Retrieve record with specified id from the database
@@ -85,12 +72,13 @@ const ImageEdit = (props) => {
           callAPI('GET', 'image/load/' + id)
           .then((response) => {
 
+//                console.log('loadImage, got response =>', response.data);
                 // Sanitize datetime fields
-                if (response.data.created) response.data.created = new Date(response.data.created);
-                if (response.data.modified) response.data.modified = new Date(response.data.modified);
-                if (response.data.captured) response.data.captured = new Date(response.data.captured);
-                console.log('loadImage, got response =>', response.data);
-
+                if (response.data.created != null) response.data.created = new Date(response.data.created);
+                if (response.data.modified != null) response.data.modified = new Date(response.data.modified);
+                if (response.data.captured != null) response.data.captured = new Date(response.data.captured);
+//                console.log('loadImage, after change date format =>', response.data);
+ 
                 setCurrentImage(response.data);
                 setLoading(false);
             })
@@ -109,43 +97,44 @@ const ImageEdit = (props) => {
         loadImage(props.match.params.id);
     }, [props.match.params.id]);
 
-    // This second useEffect is triggered whenever 'currentImage' changes
-    // e.g. after loading from the database. When triggered it sets the
-    // defaultValues of the form to the newly loaded data, so that the form
-    // reset (cancel) works correctly. 
-    // TODO: OLD COMMENT: for some reason if I try to put reset(currentUser) in the getUser function it doesn'td
-    // properly reset the form...
-    React.useEffect(() => {
-        console.log("In useEffect, change of [currentImage]");
-        reset(currentImage);
-    }, [currentImage]);
-
-    // Form reset
-    const onReset = () => {
-        //console.log("In onReset");
-        reset(currentImage);
-    }
 
     // Save the record back to the database
     async function saveImage(data) {
         // TODO: need to filter anything out of 'data'?
         setLoading(true);
 
-        // Sanitize datetime fields (if null or undefined, remove them)
-        if (data['captured'] == null || data['captured'] == undefined) delete data['captured'];
-        if (data['created'] == null || data['created'] == undefined) delete data['created'];
-        if (data['modified'] == null || data['modified'] == undefined) delete data['modified'];
+        // Sanitize datetime fields.  Note it seems necessary to make a copy
+        // of and add the date-related fields as strings, rather than overwrite the
+        // Date objects. Overwriting led to a 'toISOString' is not a function error...
+        // maybe the type information was retained even when set to a string value?
 
-        return callAPI('POST', 'image/save', data)
+        let dataCopy = {captured: null, modified: null, created: null, ...data};
+        if (data['captured']) {
+            let dateString = data['captured'].toISOString();
+            dataCopy['captured'] = dateString;
+        }
+        if (data['modified']) {
+            let dateString = data['modified'].toISOString();
+            dataCopy['modified'] = dateString;
+        }
+        if (data['created']) {
+            let dateString = data['created'].toISOString();
+            dataCopy['created'] = dateString;
+        }
+
+        return callAPI('POST', 'image/save', dataCopy)
         .then((response) => {
             setAlert({severity: 'success', message: "yay, success"});
-            console.log('data received after image/save:', response.data);
-            if (!response.data.created) response.data.created = null;
-            if (!response.data.modified) response.data.modified = null;
-            if (!response.data.captured) response.data.captured = null;
+//            console.log('data received after image/save:', response.data);
+
+            // Convert from date strings to objects
+            if (response.data.created != null) response.data.created = new Date(response.data.created);
+            if (response.data.modified != null) response.data.modified = new Date(response.data.modified);
+            if (response.data.captured != null) response.data.captured = new Date(response.data.captured);
+//            console.log('data converted after image/save:', response.data);
 
             setCurrentImage(response.data);
-            reset(currentImage); // does this work?
+//            reset(currentImage); // does this work?
             setLoading(false);
         })
         .catch((e) => {
@@ -154,7 +143,6 @@ const ImageEdit = (props) => {
         });
     }
 
-    // Delete the user matching the user-id
     // NOT YET FUNCTIONAL AND BACKEND NOT IMPLEMENTED (add a status message when implement this)
     const deleteImage = () => {
         callAPI('POST', 'image/delete/' + currentImage.id)
@@ -168,8 +156,6 @@ const ImageEdit = (props) => {
     }    
 
     // Schema for form
-    // NOTE: Good docs here: https://github.com/longshotlabs/simpl-schema 
-    // that describe special validation (e.g. passwordMistmatch) and customized error messages
 
     const schema = new SimpleSchema ({
       image_id: {
@@ -198,11 +184,11 @@ const ImageEdit = (props) => {
         type: Date,
         required: false,
         uniforms: {
-          type: 'date',
+          type: 'datetime',
         }
       },
       created: {
-        label: 'Record created',
+        label: 'Record created', // set by server (allow admin override?), show readonly
         type: Date,
         required: false,
         uniforms: {
@@ -210,7 +196,7 @@ const ImageEdit = (props) => {
         }
       },
       modified: {     
-        label: 'Record modified',  // set by server (allow admin override)
+        label: 'Record modified',  // set by server (allow admin override), show readonly
         type: Date,
         required: false,
         uniforms: {
@@ -218,21 +204,21 @@ const ImageEdit = (props) => {
         }
       },
       owner_id: {
-        label: 'Owner user_id',   // set by server (allow admin override)
+        label: 'Owner user_id',   // set by server (allow admin override), show readonly
         type: String, // should be integer?  Should use selector  if empty?
         required: false,
       },
       equip_id: {
         label: 'Equipment ID',
         type: String, // should be integer? should use selector if empty
-        required: false, 
+        required: true, 
       },
       exp_time: {
         label: 'Exposure time (s)',
         type: Number,
         required: false,
       },
-      expt_temp: {
+      exp_temp: {
         label: 'Exposure temp (C)',
         type: Number,
         required: false,
@@ -250,7 +236,6 @@ const ImageEdit = (props) => {
    });
 
     var bridge = new SimpleSchema2Bridge(schema);
-
 
     return (
 
@@ -281,6 +266,10 @@ const ImageEdit = (props) => {
               <ErrorField name="description" />
               <AutoField name="equip_id" component={IDInputField} objectType='equip'/>
               <ErrorField name="equip_id" />
+              <AutoField name="exp_time" />
+              <ErrorField name="exp_time" />
+              <AutoField name="exp_temp" />
+              <ErrorField name="exp_temp" />
 
               <SubmitField>Save / Upload</SubmitField>
 
