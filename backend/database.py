@@ -561,19 +561,16 @@ def db_image_save(data):
     # If id is empty, add a new record
     if (data['image_id'] is not None):
         # Currently can't update owner_id, modified, created
-        image = Image.query.filter_by(user_id=data['user_id']).one()
+        image = Image.query.filter_by(image_id=data['image_id']).one()
         image.name = data['name']
         image.description = data['description']
         ####image.equip_id = equip
         image.equip_id = data['equip_id']
         image.modified = datetime.now(timezone.utc)
         image.image_type = find_image_type(data['image_type'])
-        print ('image_captured before convert')
-        print (data['captured'])
-        image.captured = parse(data['captured']) # convert from string to datetime
-        image.exp_time = parse(data['exp_time']) # convert from string to datetime
-        image.exp_temp = parse(data['exp_temp']) # convert from string to datetime
-        print (image.captured)
+        image.captured = data['captured'] # Provided in ISO format by frontend
+        image.exp_time = data['exp_time'] # Provided in ISO format by frontend
+        image.exp_temp = data['exp_temp'] # Provided in ISO format by frontend
     else:
         print ('image_captured before convert')
         print (data['captured'])
@@ -585,16 +582,16 @@ def db_image_save(data):
             created = datetime.now(timezone.utc),
             modified = datetime.now(timezone.utc),
             image_type = find_image_type(data['image_type']),
-            captured = parse(data['captured']) if data['captured'] else None, # TODO: try to get this from the image
+            captured = data['captured'], 
             exp_time = data['exp_time'],
-            exp_temp = data['exp_temp']
+            exp_temp = data['exp_temp'],
         )
         ####image.equip = equip
         print (image.captured)
     db_session.add(image)
     db_session.commit()  # or flush?
     # If received a new file:
-    if (data['file']):
+    if ('file' in data and data['file']):
         # Delete old file
         if (image.image_path):
             os.remove(image.image_path) 
