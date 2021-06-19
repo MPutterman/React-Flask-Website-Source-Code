@@ -13,6 +13,9 @@
 //     is likely to cause bugs. Can callAPI be smarter and detect if there are complex objects
 //     and do this automatically... or better yet, switch content-type to application/json
 //     and stringify the whole data payload?  What happens to files in that case?
+// * https://github.com/axios/axios#handling-errors - some info on using request.error and response.error
+//     to make intelligent handling of issues
+// * Axios has a concept of 'interceptors'.  Use this for all the Date types.
 
 // RESOURCES:
 // * https://zetcode.com/javascript/axios/ (good description of commands and request/response content)
@@ -33,6 +36,7 @@ const backend_port = () => {
 export function backend_url(route) {
     return 'http://' + backend_ip() + ':' + backend_port() + '/' + route;
 }
+
 
 // TODO: add a timeout in case of crashed server etc...
 // TODO: add some error handling, and maybe extract out
