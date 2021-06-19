@@ -97,6 +97,17 @@ const ImageEdit = (props) => {
         loadImage(props.match.params.id);
     }, [props.match.params.id]);
 
+    // Pre-fill certain fields (e.g. when used as popup)
+    React.useEffect(() => {
+        console.log("In useEffect (props.autofill) =>", props.autofill);
+        if (props.autofill) {
+            setCurrentImage(prev => ({...prev, ...(props.autofill)}));
+            let prev=currentImage;
+            console.log("currentImage after autofill", {...prev, ...(props.autofill)});
+        }
+    }, [props.autofill]);
+
+
 
     // Save the record back to the database
     async function saveImage(data) {

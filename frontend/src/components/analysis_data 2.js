@@ -8,7 +8,9 @@
 * Can we automatically get the equip_id from uploaded images, and/or check if it matches what
   is selected for images?
 * Add plate type and cover type when selectors are ready...
-* Add a way for popup (for images) to be populated with Equip_ID from this form....
+* Add a way for popup (for images) to be populated with Equip_ID listed on this form....
+     e.g. some kind of filter/contstraints, e.g. filter=[{field: image_type, value: 'radio', relation:'equal'},
+        or prepopulate/autofill={image_type: 'radio', equip_id: <idval>, captured: <expt_datetime>}
 */
 
 import React from "react"; 
@@ -244,14 +246,14 @@ const AnalysisData = (props) => {
 
               <Grid container direction="column">
 
-              <AutoField name="radio_image_id" component={IDInputField} objectType="image"/>
+              <AutoField name="radio_image_id" component={IDInputField} objectType="image" autofill={{image_type: 'radio'}}/>
               <ErrorField name="radio_image_id" />
 
-              <AutoField name="bright_image_id" component={IDInputField} objectType="image"/>
+              <AutoField name="bright_image_id" component={IDInputField} objectType="image" autofill={{image_type: 'bright'}}/>
               <ErrorField name="bright_image_id" />
 
 <p>This field is obsolete:</p>
-              <AutoField name="uv_image_id" component={IDInputField} objectType="image"/>
+              <AutoField name="uv_image_id" component={IDInputField} objectType="image" autofill={{image_type: 'uv'}}/>
               <ErrorField name="uv_image_id" />
 
               <AutoField name="correct_dark" />
@@ -259,7 +261,7 @@ const AnalysisData = (props) => {
 
 {/* Disable the following based on value above */}
 
-              <AutoField name="dark_image_id" component={IDInputField} objectType="image"/>
+              <AutoField name="dark_image_id" component={IDInputField} objectType="image" autofill={{image_type: 'dark'}}/>
               <ErrorField name="dark_image_id" />
 
               <AutoField name="correct_flat" />
@@ -267,7 +269,7 @@ const AnalysisData = (props) => {
 
 {/* Disable the following based on value above */}
 
-              <AutoField name="flat_image_id" component={IDInputField} objectType="image"/>
+              <AutoField name="flat_image_id" component={IDInputField} objectType="image" autofill={{image_type: 'flat'}}/>
               <ErrorField name="flat_image_id" />
 
               <AutoField name="correct_bkgrd" />

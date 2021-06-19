@@ -142,9 +142,9 @@ function IDInput({ name, onChange, value, label, ref, ...props }: IDInputFieldPr
         <DialogContent>
           <DialogContentText>
             {{
-                'user': <UserSelect onSelect={setTemporaryModel}/>,
-                'image': <ImageSelect onSelect={setTemporaryModel}/>,
-                'equip': <EquipSelect onSelect={setTemporaryModel}/>,
+                'user': <UserSelect onSelect={setTemporaryModel} {...props} />,
+                'image': <ImageSelect onSelect={setTemporaryModel} {...props} />,
+                'equip': <EquipSelect onSelect={setTemporaryModel} {...props} />,
                 'default': <></>,
             } [props.objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
           </DialogContentText>
@@ -165,9 +165,9 @@ function IDInput({ name, onChange, value, label, ref, ...props }: IDInputFieldPr
         <DialogContent>
           <DialogContentText>
             {{
-                'user': <UserCreate new={true} onSave={setTemporaryModel}/>,
-                'image': <ImageCreate new={true} onSave={setTemporaryModel}/>,
-                //'equip': <EquipCreate new={true} onSave={setTemporaryModel}/>,
+                'user': <UserCreate new={true} onSave={setTemporaryModel} {...props} />,
+                'image': <ImageCreate new={true} onSave={setTemporaryModel} {...props} />,
+                //'equip': <EquipCreate new={true} onSave={setTemporaryModel} {...props} />,
                 'default': <></>,
             } [props.objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
           </DialogContentText>
