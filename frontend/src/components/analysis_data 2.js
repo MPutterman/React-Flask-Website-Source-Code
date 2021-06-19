@@ -8,6 +8,7 @@
 * Can we automatically get the equip_id from uploaded images, and/or check if it matches what
   is selected for images?
 * Add plate type and cover type when selectors are ready...
+* Add a way for popup (for images) to be populated with Equip_ID from this form....
 */
 
 import React from "react"; 
