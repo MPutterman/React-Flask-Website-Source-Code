@@ -246,7 +246,7 @@ const AnalysisData = (props) => {
 
               <Grid container direction="column">
 
-              <AutoField name="radio_image_id" component={IDInputField} objectType="image" autofill={{image_type: 'radio'}}/>
+              <AutoField name="radio_image_id" component={IDInputField} objectType="image" autofill={{image_type: 'radio'}} filter={[{field:'equip_id', value:'11111', operator:'eq'}]}/>
               <ErrorField name="radio_image_id" />
 
               <AutoField name="bright_image_id" component={IDInputField} objectType="image" autofill={{image_type: 'bright'}}/>

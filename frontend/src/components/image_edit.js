@@ -107,6 +107,19 @@ const ImageEdit = (props) => {
         }
     }, [props.autofill]);
 
+    // Pre-fill certain fields (e.g. when used as popup)
+    React.useEffect(() => {
+        if (props.filter) {
+            let override = {};
+            props.filter.forEach( element => {
+                if (element.operator == 'eq') {
+                    override[element.field] = element.value;
+                }
+            });
+            console.log('overriding values from props.filter', override);
+            setCurrentImage(prev => ({...prev, ...override}));
+        }
+    }, [props.filter]);
 
 
     // Save the record back to the database
