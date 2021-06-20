@@ -1,17 +1,12 @@
 // TODO:
 /*
 * Figure out how to auto-show/hide or disable e.g. dark_image_ID if correct_dark is false...
-* Add features to select e.g. only dark images, or to force type 'dark' when create a new image?
 * Consistency -- Should we use 'id' or 'analysis_id' internally in the database and code?
 * How do we cleanup images that were uploaded if an analysis wasn't created?  Or if someone
   accidentlally re-uploads the same image a couple of times?
 * Can we automatically get the equip_id from uploaded images, and/or check if it matches what
   is selected for images?
 * Add plate type and cover type when selectors are ready...
-* Add a way for popup (for images) to be populated with Equip_ID listed on this form....
-     e.g. some kind of filter/contstraints, e.g. filter=[{field: image_type, value: 'radio', relation:'equal'},
-        or prepopulate/autofill={image_type: 'radio', equip_id: <idval>, captured: <expt_datetime>}
-* BUG: popup for images is not writing the ID value back to the analysis form...
 */
 
 import React from "react"; 
@@ -39,9 +34,9 @@ import Busy from '../components/busy';
 
 const AnalysisData = (props) => {
 
-    // TODO: when use preferences... it doesn't pull up the 'name'
-    //   part for the ID values.  Maybe that should be linked to an API call,
-    //   /util/namelookup/<type>/id ???, and update whenever ID changes?
+    // TODO: when use preferences... it doesn't pull up the 'name' part for the ID values.
+    //    E.g. the default equip_id.  Should the 'name' part be linked to an API call in
+    //    IDInputField??  Probably would be cleaner (i.e. a lookupNameById function)
 
     const session = useAuthState();
     const dispatch = useAuthDispatch();
@@ -248,36 +243,57 @@ const AnalysisData = (props) => {
 
               <Grid container direction="column">
 
-              <AutoFieldImage name="radio_image_id" filter={[{field:'image_type', value:'radio'}]} />
+              <AutoField name="radio_image_id"
+                  component={IDInputField} objectType='image'
+                  filter={[{field:'image_type', value:'radio'}, {field:'equip_id', value:'equip_id', operator:'field'}]}
+              />
               <ErrorField name="radio_image_id" />
 
-              <AutoFieldImage name="bright_image_id" filter={[{field:'image_type', value:'bright'}]} />
+              <AutoField name="bright_image_id"
+                  component={IDInputField} objectType='image'
+                  filter={[{field:'image_type', value:'bright'}, {field:'equip_id', value:'equip_id', operator:'field'}]}
+              />
               <ErrorField name="bright_image_id" />
 
 <p>This field is obsolete:</p>
-              <AutoFieldImage name="uv_image_id" filter={[{field:'image_type', value:'uv'}]} />
+              <AutoField name="uv_image_id"
+                  component={IDInputField} objectType='image'
+                  filter={[{field:'image_type', value:'uv'}, {field:'equip_id', value:'equip_id', operator:'field'}]}
+              />
               <ErrorField name="uv_image_id" />
 
               <AutoField name="correct_dark" />
               <ErrorField name="correct_dark" />
 
+<p>
 {/* Disable the following based on value above */}
+</p>
 
-              <AutoFieldImage name="dark_image_id" filter={[{field:'image_type', value:'dark'}]} />
+              <AutoField name="dark_image_id"
+                  component={IDInputField} objectType='image'
+                  filter={[{field:'image_type', value:'dark'}, {field:'equip_id', value:'equip_id', operator:'field'}]}
+              />
               <ErrorField name="dark_image_id" />
 
               <AutoField name="correct_flat" />
               <ErrorField name="correct_flat" />
 
+<p>
 {/* Disable the following based on value above */}
+</p>
 
-              <AutoFieldImage name="flat_image_id" filter={[{field:'image_type', value:'flat'}]} />
+              <AutoField name="flat_image_id"
+                  component={IDInputField} objectType='image'
+                  filter={[{field:'image_type', value:'flat'}, {field:'equip_id', value:'equip_id', operator:'field'}]}
+              />
               <ErrorField name="flat_image_id" />
 
               <AutoField name="correct_bkgrd" />
               <ErrorField name="correct_bkgrd" />
 
+<p>
 {/* Disable the following based on value above */}
+</p>
 
               <AutoField name="bkgrd_algorithm" />
               <ErrorField name="bkgrd_algorithm" />
@@ -285,7 +301,9 @@ const AnalysisData = (props) => {
               <AutoField name="correct_filter" />
               <ErrorField name="correct_filter" />
 
+<p>
 {/* Disable the following based on value above */}
+</p>
 
               <AutoField name="filter_algorithm" />
               <ErrorField name="filter_algorithm" />
@@ -303,20 +321,6 @@ const AnalysisData = (props) => {
       </AutoForm>
 
       </div>
-    );
-}
-
-
-// HACK: cannot get form context via useForm() unless we are a component
-// inside the AutoForm.  Instead of write two-stage forms <AutoForm><Custom component with all fields/>,
-// we can make a special AutoField that can tap into the form.
-
-const AutoFieldImage = (props) => {
-    const form = useForm();
-    var filter = props.filter;
-    filter.push({field:'equip_id', value: form.model.equip_id});
-    return (
-        <AutoField {...props} component={IDInputField} objectType="image" filter={filter} />
     );
 }
 

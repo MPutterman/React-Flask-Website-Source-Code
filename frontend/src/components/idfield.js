@@ -3,10 +3,13 @@
 // The resulting ID value (selected or created) is returned to the form.
 //
 // Usage: <IDInputField objectType=<String> selectLabel=<String> createLabel=<String> clearLabel=<string> />
-// - objectType = user, image, equip, org, plate, cover
-// - selectLabel = text to write on the 'Select' button (select an existing item)
-// - chooseLabel = text to write on the 'Choose' button (create a new item)
-// - clearLabel = text to write o nthe 'Clear' button (clear the selection)
+// - objectType<String> = user, image, equip, org, plate, cover
+// - selectLabel<String> = text to write on the 'Select' button (select an existing item)
+// - chooseLabel<String> = text to write on the 'Choose' button (create a new item)
+// - clearLabel<String> = text to write o nthe 'Clear' button (clear the selection)
+// - filter<Array> = array of dict with 'field', 'value', and 'operator' to constrain
+//     the pre-populate some fields of 'create' forms, or filters on 'select' forms
+//     * Note a special 'field' operator means to take the value from the current (surrounding) form for the field named ${value}
 
 // TODO:
 // * Update to support multiple selection
@@ -24,6 +27,7 @@
 // Main imports
 import React from 'react';
 import { HTMLFieldProps, connectField } from 'uniforms';
+import { useForm } from 'uniforms';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
@@ -48,10 +52,36 @@ function IDInput({ name, onChange, value, label, ref, ...props }: IDInputFieldPr
   const [nameField, setNameField] = React.useState('');
   const [openSelect, setOpenSelect] = React.useState(false);
   const [openCreate, setOpenCreate] = React.useState(false);
+  const [filter, setFilter] = React.useState([]); // filter rewriter (will use useEffect to capture initial value)
 
   React.useEffect(() => {
     console.log ('In useEffect [temporaryModel], received new value: ', temporaryModel);
   }, [temporaryModel])
+
+  const form = useForm();
+
+  // If props.filter is provided, check if any use the special 'field' operator, and rewrite those
+  // entries into 'regular' filter entries for handling by the subforms. 
+  // Do this here because this component is definitely a child of the Form component and can access useForm()
+  // whereas the ultimate 'create' and 'select' sub-components may not always be rendered inside an outer form
+  // and useForm() will throw an error.
+  React.useEffect(() => {
+      if (props.filter) {
+          const copyFilter = [...props.filter];
+          let newFilter = [];
+          console.log('in idfield useEffect... props.filter incoming: ', copyFilter);
+          copyFilter.forEach( element => {
+              if (element.operator == 'field') {
+                  newFilter.push({field: element.field, value: form.model[element.value]});
+              } else {
+                  newFilter.push(element);
+              }
+          });
+          setFilter(newFilter);
+          console.log ('in idfield useEffect... props.filter rewritten: ', newFilter);
+      }
+  }, [props.filter, form.model]); // Need to pass in form.model as a dependency
+
 
   const onCloseSelect = (value) => {
   }
@@ -142,9 +172,9 @@ function IDInput({ name, onChange, value, label, ref, ...props }: IDInputFieldPr
         <DialogContent>
           <DialogContentText>
             {{
-                'user': <UserSelect onSelect={setTemporaryModel} {...props} />,
-                'image': <ImageSelect onSelect={setTemporaryModel} {...props} />,
-                'equip': <EquipSelect onSelect={setTemporaryModel} {...props} />,
+                'user': <UserSelect onSelect={setTemporaryModel} {...props} filter={filter} />,
+                'image': <ImageSelect onSelect={setTemporaryModel} {...props} filter={filter} />,
+                'equip': <EquipSelect onSelect={setTemporaryModel} {...props} filter={filter} />,
                 'default': <></>,
             } [props.objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
           </DialogContentText>
@@ -165,9 +195,9 @@ function IDInput({ name, onChange, value, label, ref, ...props }: IDInputFieldPr
         <DialogContent>
           <DialogContentText>
             {{
-                'user': <UserCreate new={true} onSave={setTemporaryModel} {...props} />,
-                'image': <ImageCreate new={true} onSave={setTemporaryModel} {...props} />,
-                //'equip': <EquipCreate new={true} onSave={setTemporaryModel} {...props} />,
+                'user': <UserCreate new={true} onSave={setTemporaryModel} {...props} filter={filter} />,
+                'image': <ImageCreate new={true} onSave={setTemporaryModel} {...props} filter={filter} />,
+                //'equip': <EquipCreate new={true} onSave={setTemporaryModel} {...props} filter={filter} />,
                 'default': <></>,
             } [props.objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
           </DialogContentText>

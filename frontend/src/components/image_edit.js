@@ -10,7 +10,9 @@
 // * Can the date sanitizing (and fix to above problem) be built into axios interceptors?
 // * Default exposure time and temp doesn't make sense for all image types (e.g. flat)....
 // * KNOWN BUG: It doesn't pick up prefs when navigate to /image/new... but it works if reach page
-//     via other means, e.g. analysis/new, then create a new image
+//     via other means, e.g. analysis/new, then create a new image. Does it have to do with when session
+//     gets populated?
+// * Add custom validator so that file/image is required if image_path doesn't exist
 
 import React from "react";
 import { callAPI } from './api.js';
@@ -33,7 +35,7 @@ import AlertList from '../components/alerts';
 const ImageEdit = (props) => {
 
     let formRef;
-
+    
     const session = useAuthState();
     const dispatch = useAuthDispatch();
 
@@ -59,9 +61,10 @@ const ImageEdit = (props) => {
     const [alert, setAlert] = React.useState({});
 
 
-    const onSubmit = (data, e) => {
+    async function onSubmit(data, e) {
 //      console.log("onSubmit: data => ", data);
       saveImage(data);
+
     };
     
     // Retrieve record with specified id from the database
@@ -81,6 +84,7 @@ const ImageEdit = (props) => {
  
                 setCurrentImage(response.data);
                 setLoading(false);
+
             })
             .catch((e) => {
                 console.error("GET /image/load/" + id + ": " + e);
@@ -100,6 +104,7 @@ const ImageEdit = (props) => {
     // If props.filter is provided, try to pre-fill fields (i.e. when used as popup)
     React.useEffect(() => {
         if (props.filter) {
+            console.log('in image_edit, received props.filter: ', props.filter);
             let override = {};
             props.filter.forEach( element => {
                 if (!element.operator || element.operator == 'eq') {
@@ -150,6 +155,17 @@ const ImageEdit = (props) => {
             setCurrentImage(response.data);
 //            reset(currentImage); // does this work?
             setLoading(false);
+
+            // Call callback 'onSave' if successfully saved image?
+            // NOTE: doesn't work if put 'currentImage' instead of response.data...
+            if (props.onSave) {
+                props.onSave({...response.data,
+                    id: response.data.image_id,
+                    name: response.data.name,
+                });
+            }
+
+
         })
         .catch((e) => {
             console.log("POST /image/save: " + e);
