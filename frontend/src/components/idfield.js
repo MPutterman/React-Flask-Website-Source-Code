@@ -23,6 +23,7 @@
 // * Add a 'View Details' button (popup or hover) to show details of currently selected item
 // * Add some intelligent behavior if the objectType doesn't exist, e.g. remove the button altogether?
 // * Figure out how to add a * next to label when field is required
+// * When we have an error state... make sure underlying components render in error state
 
 // Main imports
 import React from 'react';
@@ -69,7 +70,7 @@ function IDInput({ name, onChange, value, label, ref, ...props }: IDInputFieldPr
       if (props.filter) {
           const copyFilter = [...props.filter];
           let newFilter = [];
-          console.log('in idfield useEffect... props.filter incoming: ', copyFilter);
+//          console.log('in idfield useEffect... props.filter incoming: ', copyFilter);
           copyFilter.forEach( element => {
               if (element.operator == 'field') {
                   newFilter.push({field: element.field, value: form.model[element.value]});
@@ -78,7 +79,7 @@ function IDInput({ name, onChange, value, label, ref, ...props }: IDInputFieldPr
               }
           });
           setFilter(newFilter);
-          console.log ('in idfield useEffect... props.filter rewritten: ', newFilter);
+//          console.log ('in idfield useEffect... props.filter rewritten: ', newFilter);
       }
   }, [props.filter, form.model]); // Need to pass in form.model as a dependency
 

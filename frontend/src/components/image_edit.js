@@ -12,7 +12,11 @@
 // * KNOWN BUG: It doesn't pick up prefs when navigate to /image/new... but it works if reach page
 //     via other means, e.g. analysis/new, then create a new image. Does it have to do with when session
 //     gets populated?
-// * Add custom validator so that file/image is required if image_path doesn't exist
+// * How to get '*' to display on file input field when it is required (i.e. when path is empty)?
+// * Some validation issues, maybe due to the 'custom()' validator.  Once it throws an error
+//     (e.g. submit without choosing file)... it persists even if a file is chosen.  When ANOTHER
+//     error on the form is fixed (e.g. adding equip_id), then the file field error also gets resolved...
+//     Obviously, the file error should update independently of other field status the errors.
 
 import React from "react";
 import { callAPI } from './api.js';
@@ -261,7 +265,12 @@ const ImageEdit = (props) => {
       file: {
         label: 'File data',
         type: Blob,
-        required: false, // TODO: should be true
+        required: false,
+        custom() {
+          if (!this.value && !this.field('image_path').value) {
+            return "File is required";
+          }
+        },
       },
    });
 

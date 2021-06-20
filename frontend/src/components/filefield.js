@@ -2,6 +2,7 @@
 // * Provide a way to specify the upload type, or get it directly from files[0]. I'm just leaving as
 //     image/png since that was previously in the submission.js file...
 // * Show a prorgress bar when uploading large files
+// * When we have an error state... make sure underlying components render in error state
 
 // Usage:
 // <FileInputField buttonLabel=<String> filenameField=<String> />
@@ -21,7 +22,7 @@ export type FileInputFieldProps = HTMLFieldProps<string, HTMLDivElement>;
 
 function FileInput({ name, value, label, ref, ...props }: FileInputFieldProps) {
 
-  const { onChange } = useForm();
+  const form = useForm();
   const [filename, setFilename] = React.useState('');
 
   return (
@@ -47,9 +48,10 @@ function FileInput({ name, value, label, ref, ...props }: FileInputFieldProps) {
           if (files && files[0]) {
             setFilename(files[0].name);
             if (props.filenameField) {
-              onChange(props.filenameField, files[0].name);
+              form.onChange(props.filenameField, files[0].name);
             }
-            onChange(name, new Blob([files[0]],{type: 'image/png',})); //URL.createObjectURL(files[0]));
+            value = new Blob([files[0]], {type: 'image/png',});
+            form.onChange(name, value); //new Blob([files[0]],{type: 'image/png',})); //URL.createObjectURL(files[0]));
           }
         }}
         style={{ display: 'none' }}
