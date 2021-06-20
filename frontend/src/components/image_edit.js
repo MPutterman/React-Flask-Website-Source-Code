@@ -97,22 +97,12 @@ const ImageEdit = (props) => {
         loadImage(props.match.params.id);
     }, [props.match.params.id]);
 
-    // Pre-fill certain fields (e.g. when used as popup)
-    React.useEffect(() => {
-        console.log("In useEffect (props.autofill) =>", props.autofill);
-        if (props.autofill) {
-            setCurrentImage(prev => ({...prev, ...(props.autofill)}));
-            let prev=currentImage;
-            console.log("currentImage after autofill", {...prev, ...(props.autofill)});
-        }
-    }, [props.autofill]);
-
-    // Pre-fill certain fields (e.g. when used as popup)
+    // If props.filter is provided, try to pre-fill fields (i.e. when used as popup)
     React.useEffect(() => {
         if (props.filter) {
             let override = {};
             props.filter.forEach( element => {
-                if (element.operator == 'eq') {
+                if (!element.operator || element.operator == 'eq') {
                     override[element.field] = element.value;
                 }
             });

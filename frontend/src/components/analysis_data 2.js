@@ -11,6 +11,7 @@
 * Add a way for popup (for images) to be populated with Equip_ID listed on this form....
      e.g. some kind of filter/contstraints, e.g. filter=[{field: image_type, value: 'radio', relation:'equal'},
         or prepopulate/autofill={image_type: 'radio', equip_id: <idval>, captured: <expt_datetime>}
+* BUG: popup for images is not writing the ID value back to the analysis form...
 */
 
 import React from "react"; 
@@ -27,7 +28,8 @@ import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import Grid from '@material-ui/core/Grid';
 
 // Imports for automatic form generation
-import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField, LongTextField} from 'uniforms-material';
+import { useForm } from 'uniforms';
+import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField, LongTextField } from 'uniforms-material';
 import FileInputField from './filefield';
 import IDInputField from './idfield';
 import SimpleSchema from 'simpl-schema';
@@ -68,7 +70,7 @@ const AnalysisData = (props) => {
     const [currentAnalysis, setCurrentAnalysis] = React.useState(initialAnalysisState);
     const [busy, setBusy] = React.useState(false);
 
-    let formRef = null;
+    let formRef;
 
     // TODO: all ID types should become integers....
     const schema = new SimpleSchema ({
@@ -246,14 +248,14 @@ const AnalysisData = (props) => {
 
               <Grid container direction="column">
 
-              <AutoField name="radio_image_id" component={IDInputField} objectType="image" autofill={{image_type: 'radio'}} filter={[{field:'equip_id', value:'11111', operator:'eq'}]}/>
+              <AutoFieldImage name="radio_image_id" filter={[{field:'image_type', value:'radio'}]} />
               <ErrorField name="radio_image_id" />
 
-              <AutoField name="bright_image_id" component={IDInputField} objectType="image" autofill={{image_type: 'bright'}}/>
+              <AutoFieldImage name="bright_image_id" filter={[{field:'image_type', value:'bright'}]} />
               <ErrorField name="bright_image_id" />
 
 <p>This field is obsolete:</p>
-              <AutoField name="uv_image_id" component={IDInputField} objectType="image" autofill={{image_type: 'uv'}}/>
+              <AutoFieldImage name="uv_image_id" filter={[{field:'image_type', value:'uv'}]} />
               <ErrorField name="uv_image_id" />
 
               <AutoField name="correct_dark" />
@@ -261,7 +263,7 @@ const AnalysisData = (props) => {
 
 {/* Disable the following based on value above */}
 
-              <AutoField name="dark_image_id" component={IDInputField} objectType="image" autofill={{image_type: 'dark'}}/>
+              <AutoFieldImage name="dark_image_id" filter={[{field:'image_type', value:'dark'}]} />
               <ErrorField name="dark_image_id" />
 
               <AutoField name="correct_flat" />
@@ -269,7 +271,7 @@ const AnalysisData = (props) => {
 
 {/* Disable the following based on value above */}
 
-              <AutoField name="flat_image_id" component={IDInputField} objectType="image" autofill={{image_type: 'flat'}}/>
+              <AutoFieldImage name="flat_image_id" filter={[{field:'image_type', value:'flat'}]} />
               <ErrorField name="flat_image_id" />
 
               <AutoField name="correct_bkgrd" />
@@ -304,5 +306,18 @@ const AnalysisData = (props) => {
     );
 }
 
+
+// HACK: cannot get form context via useForm() unless we are a component
+// inside the AutoForm.  Instead of write two-stage forms <AutoForm><Custom component with all fields/>,
+// we can make a special AutoField that can tap into the form.
+
+const AutoFieldImage = (props) => {
+    const form = useForm();
+    var filter = props.filter;
+    filter.push({field:'equip_id', value: form.model.equip_id});
+    return (
+        <AutoField {...props} component={IDInputField} objectType="image" filter={filter} />
+    );
+}
 
 export default withRouter(AnalysisData);
