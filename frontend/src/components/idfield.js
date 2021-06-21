@@ -4,9 +4,11 @@
 //
 // Usage: <IDInputField objectType=<String> selectLabel=<String> createLabel=<String> clearLabel=<string> />
 // - objectType<String> = user, image, equip, org, plate, cover
-// - selectLabel<String> = text to write on the 'Select' button (select an existing item)
-// - chooseLabel<String> = text to write on the 'Choose' button (create a new item)
-// - clearLabel<String> = text to write o nthe 'Clear' button (clear the selection)
+// - selectButton<String> = text to write on the 'Select' button (select an existing item)
+// - chooseButton<String> = text to write on the 'Choose' button (create a new item)
+// - clearButton<String> = text to write o nthe 'Clear' button (clear the selection)
+// - selectTitle<String> = text to display as title on 'Select' popup
+// - createTitle<String> = text to display as title on 'Create' popup
 // - filter<Array> = array of dict with 'field', 'value', and 'operator' to constrain
 //     the pre-populate some fields of 'create' forms, or filters on 'select' forms
 //     * Note a special 'field' operator means to take the value from the current (surrounding) form for the field named ${value}
@@ -62,7 +64,7 @@ function IDInput({ name, error, onChange, value, label, ref, ...props }: IDInput
   const form = useForm();
 
   // If props.filter is provided, check if any use the special 'field' operator, and rewrite those
-  // entries into 'regular' filter entries for handling by the subforms. 
+  // entries into 'regular' filter entries for handling by the subforms. Ignore fields if value is '' or null.
   // Do this here because this component is definitely a child of the Form component and can access useForm()
   // whereas the ultimate 'create' and 'select' sub-components may not always be rendered inside an outer form
   // and useForm() will throw an error.
@@ -73,7 +75,9 @@ function IDInput({ name, error, onChange, value, label, ref, ...props }: IDInput
 //          console.log('in idfield useEffect... props.filter incoming: ', copyFilter);
           copyFilter.forEach( element => {
               if (element.operator == 'field') {
-                  newFilter.push({field: element.field, value: form.model[element.value]});
+                  if (form.model[element.value]) {
+                      newFilter.push({field: element.field, value: form.model[element.value]});
+                  }
               } else {
                   newFilter.push(element);
               }
@@ -141,34 +145,36 @@ function IDInput({ name, error, onChange, value, label, ref, ...props }: IDInput
       <TextField id={name} value={value ? value : ''} readOnly={true} disabled={true} error={error} label={label}/>
       <label htmlFor={name}>
         <TextField id={name + '-name'} disabled value={nameField} error={error} label={'Name'}/>
-        <span>
+        <div>
             <Button variant='contained' /*component='span'*/ onClick={handleOpenSelect}>
-              {props.selectLabel ? (
-                <span>{props.selectLabel}</span>
+              {props.selectButton ? (
+                <span>{props.selectButton}</span>
               ) : (
                 <span>Choose</span>
               )}
             </Button>
             <Button variant='contained' /*component='span'*/ onClick={handleOpenCreate}>
-              {props.createLabel ? (
-                <span>{props.createLabel}</span>
+              {props.createButton ? (
+                <span>{props.createButton}</span>
               ) : (
                 <span>Create</span>
               )}
             </Button>
             <Button variant='contained' /*component='span'*/ onClick={handleClear}>
-              {props.clearLabel ? (
-                <span>{props.clearLabel}</span>
+              {props.clearButton ? (
+                <span>{props.clearButton}</span>
               ) : (
                 <span>Clear</span>
               )}
             </Button>
-        </span>
+        </div>
       </label>
       
 
       <Dialog fullWidth open={openSelect} onClose={handleCloseSelect} >
-        <DialogTitle id="dialog-select">Select an existing item</DialogTitle>
+        <DialogTitle id="dialog-select">
+            {props.selectTitle ? ( <span>{props.selectTitle}</span> ) : ( <span>'Select an item'</span> )}
+        </DialogTitle>
         <DialogContent>
             {{
                 'user': <UserSelect onSelect={setTemporaryModel} {...props} filter={filter} />,
@@ -178,7 +184,6 @@ function IDInput({ name, error, onChange, value, label, ref, ...props }: IDInput
             } [props.objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
         </DialogContent>
         <DialogActions>
-          <p>TODO: maybe should have a way to override buttons in the modal... otherwise user will have to SAVE, and then hit OK after</p>
           <Button variant="contained" onClick={onCancelSelect} color="primary">
             Cancel
           </Button>
@@ -189,7 +194,9 @@ function IDInput({ name, error, onChange, value, label, ref, ...props }: IDInput
       </Dialog>
 
       <Dialog fullWidth open={openCreate} onClose={handleCloseCreate} >
-        <DialogTitle id="dialog-select">Create a new item</DialogTitle>
+        <DialogTitle id="dialog-select">
+            {props.createTitle ? ( <span>{props.createTitle}</span> ) : ( <span>'Select an item'</span> )}
+        </DialogTitle>
         <DialogContent>
             {{
                 'user': <UserCreate new={true} onSave={setTemporaryModel} {...props} filter={filter} />,
