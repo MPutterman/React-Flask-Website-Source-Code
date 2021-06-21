@@ -140,7 +140,7 @@ function IDInput({ name, error, onChange, value, label, ref, ...props }: IDInput
     <div className="IDInputField">
       <TextField id={name} value={value ? value : ''} readOnly={true} disabled={true} error={error} label={label}/>
       <label htmlFor={name}>
-        <TextField id={name + '-name'} disabled value={nameField} error={error}/>
+        <TextField id={name + '-name'} disabled value={nameField} error={error} label={'Name'}/>
         <span>
             <Button variant='contained' /*component='span'*/ onClick={handleOpenSelect}>
               {props.selectLabel ? (

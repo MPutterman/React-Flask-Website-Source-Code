@@ -28,7 +28,6 @@ function FileInput({ name, value, label, error, ref, ...props }: FileInputFieldP
   return (
     <div className="FileInputField">
       <label htmlFor={name}>
-        <div>{label}</div>
         <span>
             <Button variant='contained' component='span'>
               {props.buttonLabel ? (
@@ -37,7 +36,7 @@ function FileInput({ name, value, label, error, ref, ...props }: FileInputFieldP
                 <span>Choose file</span>
               )}
             </Button>
-            <TextField disabled value={filename ? filename : 'No file chosen'} error={error} />
+            <TextField disabled value={filename ? filename : 'No file chosen'} error={error} label={'File name'} />
         </span>
       </label>
       
