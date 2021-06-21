@@ -47,7 +47,7 @@ import EquipSelect from '../components/equip_search'; // renaming default compon
 
 export type IDInputFieldProps = HTMLFieldProps<string, HTMLDivElement>;
 
-function IDInput({ name, onChange, value, label, ref, ...props }: IDInputFieldProps) {
+function IDInput({ name, error, onChange, value, label, ref, ...props }: IDInputFieldProps) {
 
   const [temporaryModel, setTemporaryModel] = React.useState({});
   const [nameField, setNameField] = React.useState('');
@@ -138,10 +138,9 @@ function IDInput({ name, onChange, value, label, ref, ...props }: IDInputFieldPr
 
   return (
     <div className="IDInputField">
-      <TextField id={name} value={value ? value : ''} readOnly={true} disabled={true}/>
+      <TextField id={name} value={value ? value : ''} readOnly={true} disabled={true} error={error} label={label}/>
       <label htmlFor={name}>
-        <TextField id={name + '-name'} disabled value={nameField}/>
-        <div>{label}</div>
+        <TextField id={name + '-name'} disabled value={nameField} error={error}/>
         <span>
             <Button variant='contained' /*component='span'*/ onClick={handleOpenSelect}>
               {props.selectLabel ? (
@@ -171,17 +170,15 @@ function IDInput({ name, onChange, value, label, ref, ...props }: IDInputFieldPr
       <Dialog fullWidth open={openSelect} onClose={handleCloseSelect} >
         <DialogTitle id="dialog-select">Select an existing item</DialogTitle>
         <DialogContent>
-          <DialogContentText>
             {{
                 'user': <UserSelect onSelect={setTemporaryModel} {...props} filter={filter} />,
                 'image': <ImageSelect onSelect={setTemporaryModel} {...props} filter={filter} />,
                 'equip': <EquipSelect onSelect={setTemporaryModel} {...props} filter={filter} />,
                 'default': <></>,
             } [props.objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
-          </DialogContentText>
         </DialogContent>
         <DialogActions>
-          TODO: maybe should have a way to override buttons in the modal... otherwise user will have to SAVE, and then hit OK after
+          <p>TODO: maybe should have a way to override buttons in the modal... otherwise user will have to SAVE, and then hit OK after</p>
           <Button variant="contained" onClick={onCancelSelect} color="primary">
             Cancel
           </Button>
@@ -194,14 +191,12 @@ function IDInput({ name, onChange, value, label, ref, ...props }: IDInputFieldPr
       <Dialog fullWidth open={openCreate} onClose={handleCloseCreate} >
         <DialogTitle id="dialog-select">Create a new item</DialogTitle>
         <DialogContent>
-          <DialogContentText>
             {{
                 'user': <UserCreate new={true} onSave={setTemporaryModel} {...props} filter={filter} />,
                 'image': <ImageCreate new={true} onSave={setTemporaryModel} {...props} filter={filter} />,
                 //'equip': <EquipCreate new={true} onSave={setTemporaryModel} {...props} filter={filter} />,
                 'default': <></>,
             } [props.objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
-          </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button variant="contained" onClick={onCancelCreate} color="primary">
