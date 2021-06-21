@@ -36,7 +36,7 @@ function FileInput({ name, value, label, error, ref, ...props }: FileInputFieldP
                 <span>Choose file</span>
               )}
             </Button>
-            <TextField disabled value={filename ? filename : 'No file chosen'} error={error} label={'File name'} />
+            <TextField disabled value={filename} error={error} label={filename ? 'File name' : 'No file chosen'} />
         </span>
       </label>
       
