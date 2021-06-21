@@ -138,7 +138,7 @@ function IDInput({ name, onChange, value, label, ref, ...props }: IDInputFieldPr
 
   return (
     <div className="IDInputField">
-      <TextField id={name} value={value} readOnly={true} disabled={true}/>
+      <TextField id={name} value={value ? value : ''} readOnly={true} disabled={true}/>
       <label htmlFor={name}>
         <TextField id={name + '-name'} disabled value={nameField}/>
         <div>{label}</div>
