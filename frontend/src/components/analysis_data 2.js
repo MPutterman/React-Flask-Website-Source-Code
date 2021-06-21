@@ -42,7 +42,7 @@ const AnalysisData = (props) => {
     const dispatch = useAuthDispatch();
 
     const initialAnalysisState = {
-        id: null,
+        id: '',
         name: '',
         description: '',
         expt_date: '',
@@ -99,7 +99,7 @@ const AnalysisData = (props) => {
         }
       },
       radio_image_id: {
-        label: 'Radiation Image',
+        label: 'Radiation Image ID',
         type: String, 
         required: true,
       },
@@ -125,22 +125,22 @@ const AnalysisData = (props) => {
         required: false,
       },
       dark_image_id: {
-        label: 'Dark Image',
+        label: 'Dark Image ID',
         type: String,
         required: false,
       },
       flat_image_id: {
-        label: 'Flat Image',
+        label: 'Flat Image ID',
         type: String,
         required: false,
       },
       bright_image_id: {
-        label: 'Brightfield Image',
+        label: 'Brightfield Image ID',
         type: String,
         required: false,
       },
       uv_image_id: {
-        label: 'LEGACY: UV Image',
+        label: 'LEGACY: UV Image ID',
         type: String,
         required: false,
       },
