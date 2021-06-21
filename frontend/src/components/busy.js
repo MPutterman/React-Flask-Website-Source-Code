@@ -13,7 +13,9 @@ export const Busy = (props) => {
 
   return (
     <Backdrop className={theme.backdrop} open={props.busy} >
-      <p>{props.message}</p>
+      {props.message ? (
+        <p>{props.message}</p>
+      ) : <></>}
       <CircularProgress color="inherit" />
     </Backdrop>
   );
