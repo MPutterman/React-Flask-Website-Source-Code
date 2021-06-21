@@ -1,5 +1,6 @@
 // TODO:
 // * Add filters and sorting (server side) in case of large number of elements.  Will need a form to do this.
+// * Add initial filtering, but DataGrid only supports 1 column filtering...
 
 import React, {useState, useEffect } from "react";
 import { useHistory } from 'react-router-dom';
@@ -8,7 +9,7 @@ import { withRouter } from "react-router";
 import { useForm, Controller } from "react-hook-form";
 import Input from "@material-ui/core/Input";
 import Button from "@material-ui/core/Button";
-import { DataGrid } from "@material-ui/data-grid";
+import { DataGrid, GridLinkOperator } from "@material-ui/data-grid";
 import Busy from '../components/busy';
 
 /* Useful documentation:
@@ -24,17 +25,17 @@ const ImageSearch = (props) => {
     // TODO: do we want to display organizations, or analyses?
     // TODO: add to database.py the ability to include or exclude organizations and analyses when retrieving images
     const columns = [
-      { field: 'image_id', headerName: 'ID', flex: 0.1},
-      { field: 'image_type', headerName: 'Type', flex: 0.1},
-      { field: 'name', headerName: 'Name', flex: 0.3},
-      { field: 'equip_id', headerName: 'Equipment ID', flex: 0.1},
-      { field: 'owner_id', headerName: 'Owner ID', flex: 0.1},
-      { field: 'captured', headerName: 'Captured', flex: 0.1},
-      { field: 'created', headerName: 'created', flex: 0.1},
-      { field: 'modified', headerName: 'modified', flex: 0.1},
-      { field: 'exp_time', headerName: 'Exposure time', flex: 0.1},
-      { field: 'exp_temp', headerName: 'Exposure temp', flex: 0.1},
-      { field: 'image_path', headerName: 'Image path', flex: 0.2},
+      { field: 'image_id', headerName: 'ID', flex: 1},
+      { field: 'image_type', headerName: 'Type', flex: 1},
+      { field: 'name', headerName: 'Name', flex: 2},
+      { field: 'equip_id', headerName: 'Equipment ID', flex: 1},
+      { field: 'owner_id', headerName: 'Owner ID', flex: 1},
+      { field: 'captured', headerName: 'Captured', flex: 1},
+      { field: 'created', headerName: 'created', hide: true, flex: 1},
+      { field: 'modified', headerName: 'modified', hide: true, flex: 1},
+      { field: 'exp_time', headerName: 'Exposure time', hide: true, flex: 1},
+      { field: 'exp_temp', headerName: 'Exposure temp', hide: true, flex: 1},
+      { field: 'image_path', headerName: 'Image path', hide: true, flex: 2},
     ];
 
     // State
@@ -82,6 +83,25 @@ const ImageSearch = (props) => {
         }
     }
 
+    // Create filter model for data grid based on props.filter
+    // TODO: need to translate the actual operators, but haven't yet found list of
+    //   GridFilterModel operators...
+    const createFilterModel = (filters) => {
+        var filterModel = {
+            items: [],
+            linkOperator: GridLinkOperator.And,
+        };
+        filters.forEach(element => {
+            filterModel.items.push({
+                columnField: element.field,
+                operatorValue: element.operator ? element.operator : 'equals',
+                value: element.value,
+            });
+        });
+        console.log('heres the filter model=>', filterModel);
+        return filterModel;
+    }
+
     // Returns the search options form and then the search results list
     return (
       <>
@@ -100,6 +120,7 @@ const ImageSearch = (props) => {
                   sortingMode="client" // later server (if pagination server)
                   //checkboxSelection
                   onRowClick={onRowClick}
+                  filterModel={createFilterModel(props.filter)}
                   
               />
           ) : ( <p>No results found</p>)}
