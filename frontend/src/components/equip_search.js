@@ -21,17 +21,17 @@ const EquipSearch = (props) => {
     //  the equipment listed in preference?
 
     const columns = [
-      { field: 'equip_id', headerName: 'ID', flex: 0.1},
-      { field: 'name', headerName: 'Name', flex: 0.3},
-      { field: 'camera', headerName: 'Camera', flex: 0.3},
-      { field: 'description', headerName: 'Description', flex: 0.3},
-      { field: 'has_temp_control', headerName: 'Temp Control?', flex: 0.1},
-      { field: 'pixels_x', headerName: 'Image size - X (px)', flex: 0.1},
-      { field: 'pixels_y', headerName: 'Image size - Y (px)', flex: 0.1},
-      { field: 'fov_x', headerName: 'FOV - X (mm)', flex: 0.1},
-      { field: 'fov_y', headerName: 'FOV - Y (mm)', flex: 0.1},
-      { field: 'bpp', headerName: 'Bits per px', flex: 0.1},
-      { field: 'image_format', headerName: 'Image Format', flex: 0.1},
+      { field: 'equip_id', headerName: 'ID', flex: 1},
+      { field: 'name', headerName: 'Name', flex: 3},
+      { field: 'camera', headerName: 'Camera', hide: true, flex: 3},
+      { field: 'description', headerName: 'Description', flex: 3},
+      { field: 'has_temp_control', headerName: 'Temp Control?', hide: true, flex: 1},
+      { field: 'pixels_x', headerName: 'Image size - X (px)',  hide: true,  flex: 1},
+      { field: 'pixels_y', headerName: 'Image size - Y (px)', hide: true,  flex: 1},
+      { field: 'fov_x', headerName: 'FOV - X (mm)', hide: true, flex: 1},
+      { field: 'fov_y', headerName: 'FOV - Y (mm)', hide: true, flex: 1},
+      { field: 'bpp', headerName: 'Bits per px', hide: true, flex: 1},
+      { field: 'file_format', headerName: 'File Format', flex: 2},
     ];
 
     // State
@@ -83,7 +83,7 @@ const EquipSearch = (props) => {
     return (
       <>
       <Busy busy={loading} />
-      <div className="EquipSearchForm" width="100%">     
+      <div>
           {list.length > 0 ? (
               <DataGrid
                   rows={list}
@@ -100,8 +100,7 @@ const EquipSearch = (props) => {
                   
               />
           ) : ( <p>No results found</p>)}
-          
-        </div>
+        </div>  
         </>
       );
 }
