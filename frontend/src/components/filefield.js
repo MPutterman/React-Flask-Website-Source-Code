@@ -20,7 +20,7 @@ import { useForm } from 'uniforms';
 
 export type FileInputFieldProps = HTMLFieldProps<string, HTMLDivElement>;
 
-function FileInput({ name, value, label, ref, ...props }: FileInputFieldProps) {
+function FileInput({ name, value, label, error, ref, ...props }: FileInputFieldProps) {
 
   const form = useForm();
   const [filename, setFilename] = React.useState('');
@@ -37,7 +37,7 @@ function FileInput({ name, value, label, ref, ...props }: FileInputFieldProps) {
                 <span>Choose file</span>
               )}
             </Button>
-            <TextField disabled value={filename ? filename : 'No file chosen'} />
+            <TextField disabled value={filename ? filename : 'No file chosen'} error={error} />
         </span>
       </label>
       
