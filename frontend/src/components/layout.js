@@ -99,6 +99,10 @@ const useStyles = makeStyles((theme) => ({
   title: {
     flexGrow: 1,
   },
+  backdrop: {
+    zIndex: theme.zIndex.drawer + 1,
+    color: '#fff',
+  },
 }));
 
 const Layout = (props) => {
@@ -242,7 +246,7 @@ const Layout = (props) => {
           <ListItem button key={'home'}>
             <NavLink to={'/'} className="nav-link">
                 <ListItemIcon><HomeIcon /></ListItemIcon>
-                <ListItemText button style={{textDecoration: 'none',}} primary={'Home'} />
+                <ListItemText primary={'Home'} />
             </NavLink>
           </ListItem>
           <ListItem button key={'new analysis'}>
@@ -281,7 +285,7 @@ const Layout = (props) => {
         </List>
       </Drawer>
  
-      <div marginTop="50px" className={clsx(classes.content, {[classes.contentShift]: openDrawer, })} >
+      <div margintop="50px" className={clsx(classes.content, {[classes.contentShift]: openDrawer, })} >
 
         {/* Logo */}
         <div>
