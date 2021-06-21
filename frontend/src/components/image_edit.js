@@ -59,7 +59,7 @@ const ImageEdit = (props) => {
         file: null,
     };
 
-    const [loading, setLoading] = React.useState('false');
+    const [loading, setLoading] = React.useState(false);
     const [filename, setFilename] = React.useState('');
     const [currentImage, setCurrentImage] = React.useState(initialImageState);
     const [alert, setAlert] = React.useState({});
