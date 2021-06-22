@@ -15,6 +15,8 @@
 // * Maybe null/undefined values should not be sent to the database...? There may be an option in simplschema
 //    to clean-up the values before validate/submit
 // * useEffect seems to get called twice after Submit. Why?
+// * Implement some checking on the server, e.g. see if selected images equip and image ids are valid,
+//     and that Images are of the correct 'type' (dark/flat).
 
 import React from "react";
 import { withRouter } from "react-router";
@@ -63,6 +65,10 @@ const UserPrefs = (props) => {
             label: 'Time zone',
             type: String, // TODO: convert to select? or are there some predefined validators for valid timezones?
         },
+        "general.default_searchresult_pagesize": {
+            label: 'Default number of entries per page in searh results',
+            type: Number,
+        },
         analysis: {
             label: 'Category - Analysis preferences',
             type: Object,
@@ -92,7 +98,7 @@ const UserPrefs = (props) => {
             type: Boolean,
         },
         "analysis.default_flat_image": {
-            label: 'Default image for flat correction (if enabled)',
+            label: 'Default flat image',
             type: String, // image_id
         },
         "analysis.default_use_dark_correction": {
@@ -100,7 +106,7 @@ const UserPrefs = (props) => {
             type: Boolean,
         },
         "analysis.default_dark_image": {
-            label: 'Default image for dark correction (if enabled)',
+            label: 'Default dark image',
             type: String, // image_id
         },
         "analysis.default_use_bkgrd_correction": {
