@@ -82,15 +82,15 @@ const UserPrefs = (props) => {
             type: String, // cover_id
         },
         "analysis.default_equip": {
-            label: 'Default equipment ID for new analysis',
+            label: 'Default equipment ID',
             type: String, // equip_id
         },
         "analysis.default_exposure_time": {
-            label: 'Default exposure time (s) for new analysis',
+            label: 'Default exposure time (s)',
             type: Number,
         },
         "analysis.default_exposure_temp": {
-            label: 'Default exposure temperature (C) for new analysis',
+            label: 'Default exposure temperature (C)',
             type: Number, // TODO: somehow warn if equipment doesn't support cooling?
         },
         "analysis.default_use_flat_correction": {
@@ -184,7 +184,7 @@ const UserPrefs = (props) => {
 
     return (
 
-          <div className="UserPrefForm" style={{ maxWidth: '500px',}}>
+          <div className="UserPrefForm" style={{ margin: 'auto', maxWidth: '500px',}}>
 
             <Busy busy={loading} />
 
@@ -206,7 +206,7 @@ const UserPrefs = (props) => {
                     </AccordionDetails>
                 </Accordion>
                 <Accordion defaultExpanded={true}>
-                    <AccordionSummary expandIcon={<ExpandMoreIcon/>}>Analysis preferences</AccordionSummary>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon/>}>Analysis preferences (Defaults for New Analysis)</AccordionSummary>
                     <AccordionDetails>
                         <Grid container direction="column">
                             <AutoField name="analysis.default_equip" component={IDInputField} objectType="equip" />
