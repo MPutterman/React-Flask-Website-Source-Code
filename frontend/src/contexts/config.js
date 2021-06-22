@@ -46,6 +46,7 @@ export const initialState = {
     general: {
         maintenance_mode: false,
         redirect_after_logout: '/user/login',
+        searchresults_pagesize_options: [5, 10, 25, 100],
     },
 }
 
