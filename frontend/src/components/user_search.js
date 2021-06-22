@@ -2,7 +2,8 @@
 // * Add filters and sorting (server side) in case of large number of elements.  Will need a form to do this.
 // * Limitation: DataGrid only supports 1 column of filtering
 
-import React, {useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
+import { useConfigState } from "../contexts/config";
 import { useHistory } from 'react-router-dom';
 import { callAPI } from '../components/api';
 import { withRouter } from "react-router";
@@ -21,6 +22,7 @@ import Busy from '../components/busy';
 const UserSearch = (props) => {
 
     const history = useHistory();
+    const config = useConfigState();    
 
     // Define columns to show in results list
     // TODO: do we want to display organizations, or analyses?
@@ -109,7 +111,7 @@ const UserSearch = (props) => {
                   autoHeight
                   loading={loading}
                   density="compact"
-                  rowsPerPageOptions={[10,25,100]}
+                  rowsPerPageOptions={config.general.searchresults_pagesize_options}
                   paginationMode="client" // for now client (and return all rows)... later use database pagination
                   sortingMode="client" // later server (if pagination server)
                   //checkboxSelection
