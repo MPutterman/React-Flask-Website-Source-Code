@@ -1,13 +1,13 @@
+// Handle user preference form
+// Note after saving preferences we tell the auth context to refresh the session.
+
 // TODO:
-// * Like in other forms, need a useEffect() to reset form defaults (when user prefs changes),
-//     so that after submitting form, the new values get 'locked in', and reset will return to the new saved state
-// * MAJOR: does not yet mark the Auth context as dirty when update prefs (nor updates the prefs in the session)
+// * After saving preferences we trigger a session reload. Would be more efficient just to mark prefs 
+//     as dirty.
 // * Add preference: list of favorite plate_types
 // * Add preference: list of favorite cover_types
 // * Add option to reset preferences to site defaults?  (I -think- form reset will return to state of model (from database))
 // * Should tie into the backend session and be retrieved when load sesion.
-// * Make sure caching in front-end Auth context handled properly (i.e. mark dirty when preferences
-//   are saved).
 // * In the IDInputField, need more control over button labels... e.g. for images, we might like 'Choose' and 'Upload', rather
 //   than 'Choose and 'Create'....?
 // * How do we handle the case when an equipment or image, etc.. refered in someone's preference is deleted?
@@ -239,11 +239,10 @@ const UserPrefs = (props) => {
                     </AccordionDetails>
                 </Accordion>
 
-                <SubmitField>Save Preferences</SubmitField>
+                <SubmitField fullWidth variant='contained'>Save Preferences</SubmitField>
+                <Button fullWidth variant='contained' onClick={() => formRef.reset()}>Cancel</Button>
 
             </AutoForm>
-
-            <Button variant='contained' onClick={() => formRef.reset()}>Cancel (doesn't work properly yet)</Button>
 
             <AlertList alert={alert} />
 
