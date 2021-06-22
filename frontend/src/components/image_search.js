@@ -1,15 +1,13 @@
 // TODO:
 // * Add filters and sorting (server side) in case of large number of elements.  Will need a form to do this.
-// * Add initial filtering, but DataGrid only supports 1 column filtering...
+// * Limitation: DataGrid only supports 1 column of filtering
 
 import React, {useState, useEffect } from "react";
 import { useHistory } from 'react-router-dom';
 import { callAPI } from '../components/api';
 import { withRouter } from "react-router";
-import { useForm, Controller } from "react-hook-form";
-import Input from "@material-ui/core/Input";
-import Button from "@material-ui/core/Button";
 import { DataGrid, GridLinkOperator } from "@material-ui/data-grid";
+import { createFilterModel } from "../helpers/search_utils";
 import Busy from '../components/busy';
 
 /* Useful documentation:
@@ -83,30 +81,11 @@ const ImageSearch = (props) => {
         }
     }
 
-    // Create filter model for data grid based on props.filter
-    // TODO: need to translate the actual operators, but haven't yet found list of
-    //   GridFilterModel operators...
-    const createFilterModel = (filters) => {
-        var filterModel = {
-            items: [],
-            linkOperator: GridLinkOperator.And,
-        };
-        filters.forEach(element => {
-            filterModel.items.push({
-                columnField: element.field,
-                operatorValue: element.operator ? element.operator : 'equals',
-                value: element.value,
-            });
-        });
-        console.log('heres the filter model=>', filterModel);
-        return filterModel;
-    }
-
     // Returns the search options form and then the search results list
     return (
       <>
       <Busy busy={loading} />
-      <div className="ImageSearchForm" width="100%">     
+      <div >     
           {imageList.length > 0 ? (
               <DataGrid
                   rows={imageList}

@@ -1,14 +1,13 @@
 // TODO:
 // * Add filters and sorting (server side) in case of large number of elements.  Will need a form to do this.
+// * Limitation: DataGrid only supports 1 column of filtering
 
 import React, {useState, useEffect } from "react";
 import { useHistory } from 'react-router-dom';
 import { callAPI } from '../components/api';
 import { withRouter } from "react-router";
-import { useForm, Controller } from "react-hook-form";
-import Input from "@material-ui/core/Input";
-import Button from "@material-ui/core/Button";
-import { DataGrid } from "@material-ui/data-grid";
+import { DataGrid, GridLinkOperator } from "@material-ui/data-grid";
+import { createFilterModel } from "../helpers/search_utils";
 import Busy from '../components/busy';
 
 const EquipSearch = (props) => {
@@ -97,6 +96,7 @@ const EquipSearch = (props) => {
                   sortingMode="client" // later server (if pagination server)
                   //checkboxSelection
                   onRowClick={onRowClick}
+                  filterModel={createFilterModel(props.filter)}
                   
               />
           ) : ( <p>No results found</p>)}
