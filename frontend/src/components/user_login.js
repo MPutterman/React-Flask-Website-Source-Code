@@ -143,9 +143,9 @@ const UserLogin = (props) => {
               <ErrorField name="password" />
               <AutoField name="remember" />
               <ErrorField name="remember" />
-              <SubmitField>Login</SubmitField>
+              <SubmitField fullWidth variant='contained'>Login</SubmitField>
 
-              <Button fullWidth variant="outlined" onClick={onRegister}>Register for Account</Button>
+              <Button fullWidth variant="contained" onClick={onRegister}>Register for Account</Button>
 
             </AutoForm>
 
