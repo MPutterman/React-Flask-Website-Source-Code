@@ -167,6 +167,8 @@ const ImageEdit = (props) => {
                     id: response.data.image_id,
                     name: response.data.name,
                 });
+            } else {
+                props.history.replace('/image/edit/' + response.data.image_id);
             }
 
 
