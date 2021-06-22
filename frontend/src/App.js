@@ -21,7 +21,7 @@ import Layout from './components/layout';
 
 // Import Router and pages
 import {BrowserRouter as Router, Switch, Route, Redirect } from "react-router-dom";
-import Start from './components/start';
+import Home from './components/home';
 import About from './components/about';
 import Contact from './components/contact';
 import NotFound from './components/notfound';
@@ -30,8 +30,6 @@ import Analysis from './components/analysis';
 import AnalysisSearch from './components/analysis_search';
 import Database from './components/database'
 import Submission from './components/submission'
-//import Start from './components/start'
-//import User from './components/user';
 import UserEdit from './components/user_edit';
 import UserSearch from "./components/user_search";
 import UserLogin from "./components/user_login"; 
@@ -77,7 +75,7 @@ const App = (props) => {
         <Layout>
             <Switch>
 {/*                <Route path = '/analysis/search' component={Database}/> */}
-                <Route path='/start' component={Start}/>
+{/*                <Route path='/start' component={Start}/> */}
 {/* TODO: Need to find a way to force a refresh for /analysis/new... or create a new component? 
       currently if in /analysis/edit/<id>, then go to /analysis/new, all the data/state is still there */}
                 <Route path='/analysis/new' component={Analysis}/>
@@ -92,9 +90,10 @@ const App = (props) => {
                 <Route path='equip/new' render={(props) => (<EquipEdit {...props} new={true}/>)}
                 <Route path='equip/edit/:id' component={EquipEdit} />
                 */}
-                <Route exact path='/' component={Start} />
-                <Route path='/contact' component={Contact} />
-                <Route path='/about' component={About} />
+                <Route exact path='/' component={Home} />
+                <Route exact path='/home' component={Home} />
+                <Route exact path='/contact' component={Contact} />
+                <Route exact path='/about' component={About} />
                 <Route exact path='/user/edit/:id' component={UserEdit} />
                 <Route exact path='/user/register' render={(props)=> (<UserEdit {...props} register={true}/>)} /> 
                 <Route exact path='/user/change_password/:id' render={(props)=> (<UserEdit {...props} change_password={true}/>)} /> 
