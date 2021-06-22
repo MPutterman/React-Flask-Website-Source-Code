@@ -67,6 +67,7 @@ export const defaultUserPrefs = {
     general: {
         redirect_after_login: '/',                 // relative url
         timezone: '',
+        default_searchresult_pagesize: 10,      
     },
     analysis: {
         default_equip: null,                       // equip_id
