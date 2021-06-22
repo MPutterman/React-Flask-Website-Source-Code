@@ -1,4 +1,5 @@
 // Manage global site configuration
+// TODO: Do we need dynamic setting of config variables?  If not, this can be a simple import.
 
 import React from "react";
 
@@ -10,7 +11,7 @@ const ConfigDispatchContext = React.createContext();
 export function useConfigState() {
   const context = React.useContext(ConfigStateContext);
   if (context === undefined) {
-    throw new Error("useConfigState must be used within a PrefProvider");
+    throw new Error("useConfigState must be used within a ConfigProvider");
   }
   return context;
 }
@@ -18,7 +19,7 @@ export function useConfigState() {
 export function useConfigDispatch() {
   const context = React.useContext(ConfigDispatchContext);
   if (context === undefined) {
-    throw new Error("useConfigDispatch must be used within a PrefProvider");
+    throw new Error("useConfigDispatch must be used within a ConfigProvider");
   }
   return context;
 }
