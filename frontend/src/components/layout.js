@@ -38,7 +38,7 @@ import InfoIcon from '@material-ui/icons/Info';
 
 
 
-const drawerWidth = 120;
+const drawerWidth = 135;
 
 const useStyles = makeStyles((theme) => ({
   root: {
@@ -94,7 +94,7 @@ const useStyles = makeStyles((theme) => ({
       easing: theme.transitions.easing.easeOut,
       duration: theme.transitions.duration.enteringScreen,
     }),
-    marginLeft: drawerWidth,
+//    marginLeft: drawerWidth,
   },
   title: {
     flexGrow: 1,
@@ -182,6 +182,16 @@ const Layout = (props) => {
           >
             <MenuIcon />
           </IconButton>
+          <img 
+            style={{width: '80px', height: '40px', }}
+            src={process.env.PUBLIC_URL + "/logo_UCLA_blue_boxed.png"}
+            alt='logo'
+          />
+          &nbsp; &nbsp;
+          <div>
+            <p>van Dam Lab <br/> TLC Analyzer</p>
+          </div>
+          &nbsp; &nbsp; &nbsp; 
           <Typography variant="h6" className={classes.title}>
             {location.pathname}
           </Typography>
@@ -219,7 +229,7 @@ const Layout = (props) => {
               </Menu>
             </div>
           ) : (
-            <Button variant='outlined' onClick={handleUserLogin}>Log in</Button>
+            <Button variant='outlined' onClick={handleUserLogin}>Login</Button>
           )}
         </Toolbar>
       </AppBar>
@@ -285,19 +295,8 @@ const Layout = (props) => {
         </List>
       </Drawer>
  
-      <div margintop="50px" className={clsx(classes.content, {[classes.contentShift]: openDrawer, })} >
+      <div style={{marginTop: '25px'}} className={clsx(classes.content, {[classes.contentShift]: openDrawer, })} >
 
-        {/* Logo */}
-        <div>
-            <img 
-              style={{width: '10%', height: '10%', }}
-              src={process.env.PUBLIC_URL + "/logo_UCLA_blue_boxed.png"}
-              alt='logo'
-            />
-            <h1>van Dam Lab - Radio-TLC Analyzer</h1>
-            <h2>Semi-automated computation of lane composition and RF values</h2>
-            <br />
-        </div>
         <div>
             {props.children}
         </div>
