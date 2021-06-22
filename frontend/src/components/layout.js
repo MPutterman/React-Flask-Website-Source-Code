@@ -295,7 +295,7 @@ const Layout = (props) => {
         </List>
       </Drawer>
  
-      <div style={{marginTop: '25px'}} className={clsx(classes.content, {[classes.contentShift]: openDrawer, })} >
+      <div style={{marginTop: '75px'}} className={clsx(classes.content, {[classes.contentShift]: openDrawer, })} >
 
         <div>
             {props.children}
