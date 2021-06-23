@@ -1072,13 +1072,42 @@ def image_save():
     ##id = db_image_save(data)
     ##return {'id' : id }
 
-# Check if user email already exists
-@app.route('/api/user/email_exists', methods = ['POST'])
+# Check if user exists
+# Can check by user_id or by email
+@app.route('/api/user/exists', methods = ['POST'])
 @cross_origin(supports_credentials=True)
-def user_email_exists():
-    from database import db_user_load_by_email
-    user = db_user_load_by_email(request.form.get('email'))
-    return { 'email_exists': (user is not None) }
+def user_exists():
+    user_id = request.form.get('user_id')
+    email = request.form.get('email')
+    if (user_id):
+        from database import db_user_load
+        user = db_user_load(user_id);
+        return { 'exists': (user is not None) }
+    if (email):
+        from database import db_user_load_by_email
+        user = db_user_load_by_email(request.form.get('email'))
+        return { 'exists': (user is not None) }
+
+# Check if image exists
+@app.route('/api/image/exists', methods = ['POST'])
+@cross_origin(supports_credentials=True)
+def image_exists():
+    image_id = request.form.get('image_id')
+    if (image_id):
+        from database import db_image_load
+        image = db_image_load(image_id)
+        return { 'exists': (image is not None) }
+
+# Check if equip exists
+@app.route('/api/equip/exists', methods = ['POST'])
+@cross_origin(supports_credentials=True)
+def equip_exists():
+    equip_id = request.form.get('equip_id')
+    if (equip_id):
+        from database import db_equip_load
+        equip = db_equip_load(equip_id);
+        return { 'exists': (equip is not None) }
+
 
 # TODO: move the list formatting out of database.py and into here instead.
 # Return a list of images (array of dict)
