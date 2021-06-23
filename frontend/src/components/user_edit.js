@@ -44,7 +44,7 @@ const UserEdit = (props) => {
     let formRef;
 
     const initialUserState = {
-        user_id: null,
+        user_id: '',
         first_name: '',
         last_name: '',
         email: '',
@@ -260,7 +260,7 @@ const UserEdit = (props) => {
     // TODO: is the return set up properly and return a promise as expected?
     async function onValidate(model, error) {
 
-        // Helper function to check if email error exists. If so, don't do extra validation yet
+        // Helper function to check if email validation error exists. If so, don't do backend validation yet
         const email_error_exists = () => {
             let found = false;
             if (error) {
@@ -276,9 +276,9 @@ const UserEdit = (props) => {
         console.log ('model =>', model);
         if (error) console.log ('error.details =>', error.details);
         if (!model.user_id && model.email && !email_error_exists()) { 
-            return callAPI('POST', 'api/user/email_exists', model)
+            return callAPI('POST', 'api/user/exists', model)
             .then((response) => {
-                if (response.data.email_exists) {
+                if (response.data.exists) {
                     if (!error) error = {errorType: 'ClientError', name: 'ClientError', error: 'validation-error', details: [], };
                     error.details.push({name: 'email', value: model.email, type: 'custom', message: 'An account with this email address already exists'});
                     return error;
@@ -301,7 +301,7 @@ const UserEdit = (props) => {
 
     return (
 
-          <div className="UserEditForm" style={{ maxWidth: '350px',}}>
+          <div className="UserEditForm" style={{ margin: 'auto', maxWidth: '350px',}}>
 
             <Busy busy={loading} />
 
