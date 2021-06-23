@@ -16,14 +16,12 @@
 //   and require successful entry of previous password.  Also a 'forgot password' functionality is needed.
 // * PERHAPS, if user_id is not valid (i.e. registering), then show passwords,
 //   otherwise omit these fields... and have a special change password form....
-// * TODO: figure out if still need all the reset-related form hooks, etc...
 // * There is a bug... after successful save, it shows validation error (email already exists)... as soon as
 //    edit another field, it's fine... somehow need to trigger validate to clear it?
 
 import React from "react";
 import { callAPI } from './api.js';
 import { withRouter } from "react-router";
-import { useForm, Controller } from "react-hook-form";
 import Button from "@material-ui/core/Button";
 import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField,} from 'uniforms-material';
 import SimpleSchema from 'simpl-schema';
@@ -57,11 +55,6 @@ const UserEdit = (props) => {
     const [currentUser, setCurrentUser] = React.useState(initialUserState);
     const [alert, setAlert] = React.useState({});
     const [availableOrganizations, setAvailableOrganizations] = React.useState([]);
-
-    // Form hooks
-    // mode is the render mode (both onChange and onBlur)
-    // defaultValues defines how the form will be 'reset'. Fill back in with retrieved user info
-    const {handleSubmit, reset, control} = useForm({mode: 'all', defaultValues: currentUser}); 
 
     // Actions when form is submitted
     // TODO: need to handle other types of submit, e.g. delete?
@@ -114,18 +107,6 @@ const UserEdit = (props) => {
         getOrganizations();
     }, [props.match.params.id]);
 
-    // This second useEffect is triggered whenever 'currentUser' changes (i.e. after loading from database).
-    // When triggered, it sets the defaultValues of the form to currentUser, then triggers the form to reset.
-    // This causes the form fields to fill in with the newly retrieved data in currentUser.
-    // TODO: for some reason if I try to put reset(currentUser) in the loadUser function it doesn't
-    // properly reset the form...
-    ////// TODO: make sure to convert to the reset by Uniforms not react-hook-forms...
-    React.useEffect(() => {
-        console.log("In useEffect #2 => ", currentUser); //initUser);
-        reset(currentUser);
-    }, [currentUser]);
-
-
     // TODO: improve this... this is used in IDInputField to feedback 'name' in addition to the ID
     //   for newly created items.  Need a uniform way of doing this across all objects, both for 'edit' and 'select' forms...
     // Hack to implement an 'onSave'
@@ -138,14 +119,6 @@ const UserEdit = (props) => {
         }
     }, [currentUser.user_id])
 
-
-
-    const onReset = () => {
-        //console.log("In resetUser: currentUser => ", currentUser);
-        reset(currentUser);
-
-    }
-
     // Save the user information back to the database
     async function saveUser(data) {
         // TODO: need to filter anything out of 'data'?
@@ -155,7 +128,6 @@ const UserEdit = (props) => {
             console.log(response.data);
             setAlert({severity: 'success', message: 'User saved successfully'});
             setCurrentUser(response.data);
-            reset(currentUser); // set form with current value so reset won't revert
             setLoading(false);
         })
         .catch((e) => {
