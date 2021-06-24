@@ -239,6 +239,7 @@ const Layout = (props) => {
         variant="persistent"
         anchor="left"
         open={openDrawer}
+        onMouseLeave={handleDrawerClose}
         classes={{
           paper: classes.drawerPaper,
         }}
