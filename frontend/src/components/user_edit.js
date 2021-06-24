@@ -1,4 +1,5 @@
 // TODO:
+// * Check backend, make sure when run user/save that it is properly updating the session data
 // * I want to hide password (if not on registration), 
 //    But then there is a validation error... even if the fields are omitted from being displayed
 // * Rename as 'model, setModel' so all forms more alike?
@@ -20,9 +21,10 @@
 //    edit another field, it's fine... somehow need to trigger validate to clear it?
 
 import React from "react";
-import { callAPI } from './api.js';
+import { callAPI } from './api';
 import { withRouter } from "react-router";
 import Button from "@material-ui/core/Button";
+import { useAuthState, useAuthDispatch, authRefreshSession } from "../contexts/auth";
 import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField,} from 'uniforms-material';
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
@@ -40,6 +42,9 @@ import NotFound from '../components/notfound';
 const UserEdit = (props) => {
 
     let formRef;
+
+    const session = useAuthState();
+    const dispatch = useAuthDispatch();
 
     const initialUserState = {
         user_id: '',
@@ -130,6 +135,10 @@ const UserEdit = (props) => {
             setCurrentUser(response.data);
             setLoading(false);
         })
+        .then(() => {
+            authRefreshSession(dispatch);
+        })
+
         .catch((e) => {
             console.log("POST /user/save: " + e);
             setLoading(false);
