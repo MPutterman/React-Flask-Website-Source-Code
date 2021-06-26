@@ -31,7 +31,7 @@
 import React from 'react';
 import { HTMLFieldProps, connectField } from 'uniforms';
 import { useForm } from 'uniforms';
-import { callAPI } from '../components/api';  // For async lookup of 'name' corresponding to ID
+import { name_lookup } from '../helpers/validation_utils';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
@@ -94,7 +94,7 @@ function IDInput({ name, error, onChange, value, label, ref, ...props }: IDInput
   //  creating or selecting an object.
   React.useEffect(() => {
       if (value) {
-          lookupName(props.objectType, value)
+          name_lookup(props.objectType, value)
           .then((name) => {
               setNameField(name);
           })
@@ -154,15 +154,6 @@ function IDInput({ name, error, onChange, value, label, ref, ...props }: IDInput
   const handleClear = () => {
       setNameField('');
       onChange('');
-  }
-
-  // Look up the name field for the given ID
-  // TODO: add error handling if error response or no response
-  async function lookupName(objectType, id) {
-      return callAPI('GET', `api/${objectType}/name/${id}`)
-      .then((response) => {
-          return response.data.name;
-      });
   }
 
   return (
