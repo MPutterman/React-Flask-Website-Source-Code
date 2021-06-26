@@ -25,6 +25,7 @@ import { withRouter } from "react-router";
 import { useAuthState, useAuthDispatch, defaultUserPrefs, authRefreshSession } from '../contexts/auth';
 
 import Button from "@material-ui/core/Button";
+import ButtonGroup from "@material-ui/core/ButtonGroup";
 import { id_exists } from '../helpers/validation_utils';
 import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField, LongTextField} from 'uniforms-material';
 import SimpleSchema from 'simpl-schema';
@@ -342,10 +343,11 @@ const ImageEdit = (props) => {
               <AutoField name="exp_temp" />
               <ErrorField name="exp_temp" />
 
-              <SubmitField>Save / Upload</SubmitField>
-
-              <Button fullWidth variant='outlined' type='reset' onClick={() => formRef.reset()}>Cancel</Button>
-              <Button fullWidth variant='outlined' type="delete" >Delete (not yet working)</Button>
+              <ButtonGroup variant='outlined'>
+                  <SubmitField>Save/Upload</SubmitField>
+                  <Button type="reset" onClick={() => formRef.reset()}>Cancel</Button>
+                  <Button type="delete" >Delete (not working)</Button>
+              </ButtonGroup>
 
               <p>Additional fields:</p>
               <AutoField name="captured" />
