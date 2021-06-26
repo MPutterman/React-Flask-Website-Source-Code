@@ -39,6 +39,7 @@ import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
+import ButtonGroup from '@material-ui/core/ButtonGroup';
 
 // Object-specific imports
 import ImageSelect from '../components/image_search'; // renaming default component
@@ -158,31 +159,33 @@ function IDInput({ name, error, onChange, value, label, ref, ...props }: IDInput
 
   return (
     <div className="IDInputField">
-      <TextField id={name} value={value ? value : ''} readOnly={true} disabled={true} error={error} label={label}/>
+      <TextField id={name} value={value ? value : ''} readOnly={true} disabled={true} error={!!(error)} label={label}/>
       <label htmlFor={name}>
-        <TextField id={name + '-name'} disabled value={nameField} error={error} label={'Name'}/>
+        <TextField id={name + '-name'} disabled value={nameField} error={!!(error)} label={'Name'}/>
         <div>
-            <Button variant='contained' /*component='span'*/ onClick={handleOpenSelect}>
-              {props.selectButton ? (
-                <span>{props.selectButton}</span>
-              ) : (
-                <span>Choose</span>
-              )}
-            </Button>
-            <Button variant='contained' /*component='span'*/ onClick={handleOpenCreate}>
-              {props.createButton ? (
-                <span>{props.createButton}</span>
-              ) : (
-                <span>Create</span>
-              )}
-            </Button>
-            <Button variant='contained' /*component='span'*/ onClick={handleClear}>
-              {props.clearButton ? (
-                <span>{props.clearButton}</span>
-              ) : (
-                <span>Clear</span>
-              )}
-            </Button>
+            <ButtonGroup variant='outlined'>
+                <Button onClick={handleOpenSelect}>
+                  {props.selectButton ? (
+                    <span>{props.selectButton}</span>
+                  ) : (
+                    <span>Choose</span>
+                  )}
+                </Button>
+                <Button onClick={handleOpenCreate}>
+                  {props.createButton ? (
+                    <span>{props.createButton}</span>
+                  ) : (
+                    <span>Create</span>
+                  )}
+                </Button>
+                <Button onClick={handleClear}>
+                  {props.clearButton ? (
+                    <span>{props.clearButton}</span>
+                  ) : (
+                    <span>Clear</span>
+                  )}
+                </Button>
+            </ButtonGroup>
         </div>
       </label>
       
