@@ -23,6 +23,6 @@ export function createFilterModel(filters) {
             });
         });
     }
-    console.log('heres the filter model=>', filterModel);
+    //console.log('heres the filter model=>', filterModel);
     return filterModel;
 }
