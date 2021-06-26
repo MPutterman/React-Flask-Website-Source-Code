@@ -21,12 +21,15 @@
 import React from "react";
 import { withRouter } from "react-router";
 import Grid from "@material-ui/core/Grid";
+import Box from "@material-ui/core/Box";
 import Button from "@material-ui/core/Button";
+import ButtonGroup from "@material-ui/core/ButtonGroup";
 import Accordion from "@material-ui/core/Accordion";
 import AccordionSummary from "@material-ui/core/AccordionSummary";
 import AccordionDetails from "@material-ui/core/AccordionDetails";
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import { useAuthState, useAuthDispatch, defaultUserPrefs, authRefreshSession } from '../contexts/auth';
+import { useConfigState } from '../contexts/config';
 import Busy from '../components/busy';
 import AlertList from '../components/alerts';
 import { callAPI } from '../components/api';
@@ -43,6 +46,7 @@ const UserPrefs = (props) => {
 
     const session = useAuthState();
     const dispatch = useAuthDispatch();
+    const config = useConfigState();
 
     const initialUserPrefs = defaultUserPrefs; // Defaults currently stored in auth.js
 
@@ -117,6 +121,7 @@ const UserPrefs = (props) => {
         "analysis.default_bkgrd_algorithm": {
             label: 'Default background correction algorithm',
             type: String, // TODO: change to selector
+            allowedValues: config.analysis.bkgrd_algorithm_options,
         },
         "analysis.default_use_filter_correction": {
             label: 'Turn on filter correction by default?',
@@ -125,6 +130,7 @@ const UserPrefs = (props) => {
         "analysis.default_filter": {
             label: 'Default filter correction',
             type: String, // TODO: change to selector
+            allowedValues: config.analysis.filter_algorithm_options,
         },
         //default_bright_image_exposure_time: '',   // OMIT FOR NOW
         //default_bright_image_exposure_temp: '',   // OMIT FOR NOW
@@ -294,8 +300,10 @@ const UserPrefs = (props) => {
                     </AccordionDetails>
                 </Accordion>
 
-                <SubmitField fullWidth variant='contained'>Save Preferences</SubmitField>
-                <Button fullWidth variant='contained' onClick={() => formRef.reset()}>Cancel</Button>
+                <ButtonGroup variant='contained'>
+                    <SubmitField>Save Changes</SubmitField>
+                    <Button onClick={() => formRef.reset()}>Cancel</Button>
+                </ButtonGroup>
 
             </AutoForm>
 
