@@ -31,6 +31,7 @@
 import React from 'react';
 import { HTMLFieldProps, connectField } from 'uniforms';
 import { useForm } from 'uniforms';
+import { callAPI } from '../components/api';  // For async lookup of 'name' corresponding to ID
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
@@ -72,7 +73,7 @@ function IDInput({ name, error, onChange, value, label, ref, ...props }: IDInput
       if (props.filter) {
           const copyFilter = [...props.filter];
           let newFilter = [];
-//          console.log('in idfield useEffect... props.filter incoming: ', copyFilter);
+          // console.log('In idfield useEffect. Incoming props.filter = ', copyFilter);
           copyFilter.forEach( element => {
               if (element.operator == 'field') {
                   if (form.model[element.value]) {
@@ -83,9 +84,27 @@ function IDInput({ name, error, onChange, value, label, ref, ...props }: IDInput
               }
           });
           setFilter(newFilter);
-//          console.log ('in idfield useEffect... props.filter rewritten: ', newFilter);
+          // console.log ('In idfield useEffect. Rewritten props.filter = ', newFilter);
       }
   }, [props.filter, form.model]); // Need to pass in form.model as a dependency
+
+
+  // Whenever value of ID field changes, lookup the name to display.
+  // This allows to uniformly obtain the name whether showing the form initially, or after
+  //  creating or selecting an object.
+  React.useEffect(() => {
+      if (value) {
+          lookupName(props.objectType, value)
+          .then((name) => {
+              setNameField(name);
+          })
+          .catch((e) => {
+              setNameField('Lookup error');
+          });
+      } else {
+          setNameField('');
+      }
+  }, [value]);
 
 
   const onCloseSelect = (value) => {
@@ -106,7 +125,6 @@ function IDInput({ name, error, onChange, value, label, ref, ...props }: IDInput
   const onOKSelect = () => {
     // TODO: if multi-select, set value to new selection(s)
     setOpenSelect(false);
-    setNameField(temporaryModel.name); // Set the text for the 'name' display
     onChange(temporaryModel.id); // Set the value of the ID field
   };
 
@@ -126,7 +144,6 @@ function IDInput({ name, error, onChange, value, label, ref, ...props }: IDInput
     // TODO: if multi-select, APPEND new item to currently selected item(s)
     //  Or just replace?
     setOpenCreate(false);
-    setNameField(temporaryModel.name); // Set the text for the 'name' display
     onChange(temporaryModel.id);  // Set the value of the ID field
   };
 
@@ -139,6 +156,14 @@ function IDInput({ name, error, onChange, value, label, ref, ...props }: IDInput
       onChange('');
   }
 
+  // Look up the name field for the given ID
+  // TODO: add error handling if error response or no response
+  async function lookupName(objectType, id) {
+      return callAPI('GET', `api/${objectType}/name/${id}`)
+      .then((response) => {
+          return response.data.name;
+      });
+  }
 
   return (
     <div className="IDInputField">
@@ -195,7 +220,7 @@ function IDInput({ name, error, onChange, value, label, ref, ...props }: IDInput
 
       <Dialog fullWidth open={openCreate} onClose={handleCloseCreate} >
         <DialogTitle id="dialog-select">
-            {props.createTitle ? ( <span>{props.createTitle}</span> ) : ( <span>'Select an item'</span> )}
+            {props.createTitle ? ( <span>{props.createTitle}</span> ) : ( <span>'Create an item'</span> )}
         </DialogTitle>
         <DialogContent>
             {{
