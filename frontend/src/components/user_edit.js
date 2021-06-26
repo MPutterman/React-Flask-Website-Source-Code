@@ -2,6 +2,7 @@
 // * Check backend, make sure when run user/save that it is properly updating the session data
 // * I want to hide password (if not on registration), 
 //    But then there is a validation error... even if the fields are omitted from being displayed
+// * When save profile, need to check email doesn't match any other user_id...
 // * Rename as 'model, setModel' so all forms more alike?
 // * Divide into toplevel form (exported with withRouter), and a modal form
 // * Temporarily added a props.admin to show/edit the password.  Need to make sure user_save behaves properly
@@ -238,25 +239,13 @@ const UserEdit = (props) => {
     var bridge = new SimpleSchema2Bridge(schema);
 
     // Asynchronous validation check (to see if email is unique)
-    // TODO: is the return set up properly and return a promise as expected?
     async function onValidate(model, error) {
 
-        // Helper function to check if email validation error exists. If so, don't do backend validation yet
-        const email_error_exists = () => {
-            let found = false;
-            if (error) {
-                for (let i=0; i<error.details.length; i++) {
-                    if (error.details[i].name == 'email') found = true;
-                }
-            }
-            return found;
-        }
-
         // Do backend validation, but only if user_id is not defined (i.e. new user), and
-        // email address is provided, and there is no other error on email field.
+        // email address is provided
         console.log ('model =>', model);
         if (error) console.log ('error.details =>', error.details);
-        if (!model.user_id && model.email && !email_error_exists()) { 
+        if (!model.user_id && model.email) { 
             return callAPI('POST', 'api/user/exists', model)
             .then((response) => {
                 if (response.data.exists) {
