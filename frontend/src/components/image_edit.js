@@ -3,6 +3,7 @@
 //   the schema and which API calls to make.  Maybe merge into a generic handler?
 // * Currently using this page for creating (uploading and create record)
 //   as well as editing previously added image.
+// * Delete 'description' from images? (backend too?)
 // * KNOWN BUG: the client side (react) creates Date objects with local time but sets TZ = UTC.
 //     Similarly when displaying backend-generated times (which are correct) it convers them to UTC
 //     for display in the window.
@@ -24,6 +25,7 @@ import { withRouter } from "react-router";
 import { useAuthState, useAuthDispatch, defaultUserPrefs, authRefreshSession } from '../contexts/auth';
 
 import Button from "@material-ui/core/Button";
+import { id_exists } from '../helpers/validation_utils';
 import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField, LongTextField} from 'uniforms-material';
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
@@ -47,7 +49,7 @@ const ImageEdit = (props) => {
         image_id: '', // NOTE: if set null here, the edit form ID value overlaps the help text
         image_type: '',
         name: '',
-        description: 'Maybe eliminate this field?',
+        description: '',
         owner_id: null,
         created: null, 
         modified: null, 
@@ -274,9 +276,34 @@ const ImageEdit = (props) => {
           }
         },
       },
-   });
+    });
 
     var bridge = new SimpleSchema2Bridge(schema);
+
+
+    // Async validation to check the equip_id 
+    async function onValidate(model, error) {
+
+        console.log ('In onValidate. model =>', model);
+        if (error) console.log ('error.details =>', error.details);
+
+        var new_errors = [];
+
+        if (model.equip_id) {
+            if (!await id_exists('equip', model.equip_id)) {
+                new_errors.push({name: 'equip_id', value: model.equip_id, type: 'custom', message: 'Invalid ID'});
+            }
+        }
+
+        if (new_errors.length > 0) {
+            if (!error) error = {errorType: 'ClientError', name: 'ClientError', error: 'validation-error', details: [], };
+            error.details.push(new_errors);
+            return error;
+        } else {
+            return error;
+        }
+    }
+
 
     return (
 
@@ -291,6 +318,7 @@ const ImageEdit = (props) => {
               onSubmit={onSubmit}
               ref={ref => (formRef = ref)}
               model={currentImage}
+              onValidate={onValidate}
             >
               <AutoField name="image_id" readOnly={true} />
               <ErrorField name="image_id" />
@@ -303,8 +331,10 @@ const ImageEdit = (props) => {
               <ErrorField name="file" />
               <AutoField name="name" />
               <ErrorField name="name" />
+{/*
               <AutoField name="description" component={LongTextField} />
               <ErrorField name="description" />
+*/}
               <AutoField name="equip_id" component={IDInputField} objectType='equip'/>
               <ErrorField name="equip_id" />
               <AutoField name="exp_time" />
