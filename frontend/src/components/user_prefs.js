@@ -31,6 +31,7 @@ import Busy from '../components/busy';
 import AlertList from '../components/alerts';
 import { callAPI } from '../components/api';
 import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField,} from 'uniforms-material';
+import { id_exists } from '../helpers/validation_utils';
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import IDInputField from '../components/idfield';
@@ -182,15 +183,6 @@ const UserPrefs = (props) => {
 
     var bridge = new SimpleSchema2Bridge(schema);
 
-
-    // TODO: add error checking
-    async function id_exists (objectType, id) {
-        return callAPI('GET', `api/${objectType}/exists/${id}`)
-        .then((response) => {
-            return response.data.exists;
-        });
-    }
-
     // Asynchronous validation check (to check if ID parameters are valid)
     // TODO: is the return set up properly and return a promise as expected?
     // TODO: there should be a way to launch all async checks at once
@@ -200,47 +192,43 @@ const UserPrefs = (props) => {
         console.log ('In onValidate. model =>', model);
         if (error) console.log ('error.details =>', error.details);
 
-        var new_errors = [];
+        return Promise.all([
+            id_exists('equip', model.analysis.default_equip),
+            id_exists('plate', model.analysis.default_plate),
+            id_exists('cover', model.analysis.default_cover),
+            id_exists('image', model.analysis.default_dark_image),
+            id_exists('image', model.analysis.default_flat_image),
+        ])
+        .then(([exists_equip, exists_plate, exists_cover, exists_default_flat, exists_default_dark]) => {
 
-        if (model.analysis.default_equip) {
-            if (await id_exists('equip', model.analysis.defalut_equip)) {
+            var new_errors = [];
+            if (!exists_equip) {
                 new_errors.push({name: 'analysis.default_equip', value: model.analysis.default_equip, type: 'custom', message: 'Invalid ID'});
             }
-        }
-
-        if (model.analysis.default_plate) {
-            if (await id_exists('plate', model.analysis.default_plate)) {
+            if (!exists_plate) {
                 new_errors.push({name: 'analysis.default_plate', value: model.analysis.default_plate, type: 'custom', message: 'Invalid ID'});
             }
-        }
-
-        if (model.analysis.default_cover) {
-            if (await id_exists('cover', model.analysis.default_cover)) {
+            if (!exists_cover) {
                 new_errors.push({name: 'analysis.default_cover', value: model.analysis.default_cover, type: 'custom', message: 'Invalid ID'});
             }
-        }
-
-        if (model.analysis.default_flat_image) {
-            if (await id_exists('image', model.analysis.default_flat_image)) { // check type too?
+            if (!exists_default_flat) { 
                 new_errors.push({name: 'analysis.default_flat_image', value: model.analysis.default_flat_image, type: 'custom', message: 'Invalid ID'});
             }
-        }
-
-        if (model.analysis.default_dark_image) {
-            if (await id_exists('image', model.analysis.default_dark_image)) { // check type too?
+            if (!exists_default_dark) {
                 new_errors.push({name: 'analysis.default_dark_image', value: model.analysis.default_dark_image, type: 'custom', message: 'Invalid ID'});
             }
-        }
 
-        if (new_errors.length > 0) {
-            if (!error) error = {errorType: 'ClientError', name: 'ClientError', error: 'validation-error', details: [], };
-            error.details.push(new_errors);
-            return error;
-        } else {
-            return error;
-        }
+            if (new_errors.length > 0) {
+                if (!error) error = {errorType: 'ClientError', name: 'ClientError', error: 'validation-error', details: [], };
+                error.details.push(new_errors);
+                console.log('new_errors', new_errors);
+                return error;
+            } else {
+                console.log('error', error);
+                return error;
+            }
+        });
     }
-
 
     return (
 
