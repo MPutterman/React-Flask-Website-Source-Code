@@ -908,6 +908,88 @@ def get_image_upload_pathname(image_id):
 def get_image_cache_pathname(analysis_id, filename):
     return os.path.join(app.config['IMAGE_CACHE_PATH'], analysis_id, filename) # already a string
 
+# ----------------------
+# General-purpose routes
+# ----------------------
+
+# Determine whether a record of specified type with specified id exists in database.
+# Returns {exists: <Boolean>}
+@app.route('/api/<objectType>/exists/<id>', methods=['GET'])
+@cross_origin(supports_credentials=True)
+def generic_exists(objectType, id):
+    if objectType=='image':
+            from database import db_image_load
+            record = db_image_load(id)
+            return { 'exists': record is not None }
+    elif objectType=='equip':
+            from database import db_equip_load
+            record = db_equip_load(id)
+            return { 'exists': record is not None }
+    elif objectType=='user':
+            from database import db_user_load
+            record = db_user_load(id)
+            return { 'exists': record is not None }
+    elif objectType=='plate':
+            from database import db_plate_load
+            record = db_plate_load(id)
+            return { 'exists': record is not None }
+    elif objectType=='cover':
+            from database import db_cover_load
+            record = db_cover_load(id)
+            return { 'exists': record is not None }
+    elif objectType=='analysis':
+            from database import db_analysis_load
+            record = db_analysis_load(id)
+            return { 'exists': record is not None }
+    elif objectType=='org':
+            from database import db_org_load
+            record = db_org_load(id)
+            return { 'exists': record is not None }
+    else:
+            return {
+                'error': True,
+                'message': 'Invalid objectType',
+            }
+
+# Lookup the name of the record of specified object type with specified ie
+# Returns {name: <String>}
+@app.route('/api/<objectType>/name/<id>', methods=['GET'])
+@cross_origin(supports_credentials=True)
+def generic_lookup_name(objectType, id):
+    if objectType=='image':
+            from database import db_image_load
+            record = db_image_load(id)
+            return { 'name': record.name }
+    elif objectType=='equip':
+            from database import db_equip_load
+            record = db_equip_load(id)
+            return { 'name': record.name }
+    elif objectType=='user':
+            from database import db_user_load
+            record = db_user_load(id)
+            return { 'name': record.name }
+    elif objectType=='plate':
+            from database import db_plate_load
+            record = db_plate_load(id)
+            return { 'name': record.name }
+    elif objectType=='cover':
+            from database import db_cover_load
+            record = db_cover_load(id)
+            return { 'name': record.name }
+    elif objectType=='analysis':
+            from database import db_analysis_load
+            record = db_analysis_load(id)
+            return { 'exists': record is not None }
+    elif objectType=='org':
+            from database import db_org_load
+            record = db_org_load(id)
+            return { 'exists': record is not None }
+    else:
+            return {
+                'error': True,
+                'message': 'Invalid objectType',
+            }
+
 
 # -------------------
 # USER-related routes
