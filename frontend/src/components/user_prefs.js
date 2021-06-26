@@ -270,11 +270,17 @@ const UserPrefs = (props) => {
                             <ErrorField name="analysis.default_exposure_temp" />
                             <AutoField name="analysis.default_use_dark_correction" />
                             <ErrorField name="analysis.default_use_dark_correction" />
-                            <AutoField name="analysis.default_dark_image" component={IDInputField} objectType="image" /* TODO:filter by image-type? */ />
+                            <AutoField name="analysis.default_dark_image"
+                                component={IDInputField} objectType="image"
+                                filter={[{field:'image_type', value:'dark'},]}
+                            /> {/* Also filter by equip_id? */}
                             <ErrorField name="analysis.default_dark_image" /> 
                             <AutoField name="analysis.default_use_flat_correction" />
                             <ErrorField name="analysis.default_use_flat_correction" />
-                            <AutoField name="analysis.default_flat_image" component={IDInputField} objectType="image" /* TODO:filter by image-type? */ />
+                            <AutoField name="analysis.default_flat_image"
+                                component={IDInputField} objectType="image"
+                                filter={[{field:'image_type', value:'flat'},]}
+                            /> {/* Also filter by equip_id? */}
                             <ErrorField name="analysis.default_flat_image" />
                             <AutoField name="analysis.default_use_bkgrd_correction" />
                             <ErrorField name="analysis.default_use_bkgrd_correction" />
