@@ -182,6 +182,66 @@ const UserPrefs = (props) => {
 
     var bridge = new SimpleSchema2Bridge(schema);
 
+
+    // TODO: add error checking
+    async function id_exists (objectType, id) {
+        return callAPI('GET', `api/${objectType}/exists/${id}`)
+        .then((response) => {
+            return response.data.exists;
+        });
+    }
+
+    // Asynchronous validation check (to check if ID parameters are valid)
+    // TODO: is the return set up properly and return a promise as expected?
+    // TODO: there should be a way to launch all async checks at once
+    // TODO: improve error handling
+    async function onValidate(model, error) {
+
+        console.log ('In onValidate. model =>', model);
+        if (error) console.log ('error.details =>', error.details);
+
+        var new_errors = [];
+
+        if (model.analysis.default_equip) {
+            if (await id_exists('equip', model.analysis.defalut_equip)) {
+                new_errors.push({name: 'analysis.default_equip', value: model.analysis.default_equip, type: 'custom', message: 'Invalid ID'});
+            }
+        }
+
+        if (model.analysis.default_plate) {
+            if (await id_exists('plate', model.analysis.default_plate)) {
+                new_errors.push({name: 'analysis.default_plate', value: model.analysis.default_plate, type: 'custom', message: 'Invalid ID'});
+            }
+        }
+
+        if (model.analysis.default_cover) {
+            if (await id_exists('cover', model.analysis.default_cover)) {
+                new_errors.push({name: 'analysis.default_cover', value: model.analysis.default_cover, type: 'custom', message: 'Invalid ID'});
+            }
+        }
+
+        if (model.analysis.default_flat_image) {
+            if (await id_exists('image', model.analysis.default_flat_image)) { // check type too?
+                new_errors.push({name: 'analysis.default_flat_image', value: model.analysis.default_flat_image, type: 'custom', message: 'Invalid ID'});
+            }
+        }
+
+        if (model.analysis.default_dark_image) {
+            if (await id_exists('image', model.analysis.default_dark_image)) { // check type too?
+                new_errors.push({name: 'analysis.default_dark_image', value: model.analysis.default_dark_image, type: 'custom', message: 'Invalid ID'});
+            }
+        }
+
+        if (new_errors.length > 0) {
+            if (!error) error = {errorType: 'ClientError', name: 'ClientError', error: 'validation-error', details: [], };
+            error.details.push(new_errors);
+            return error;
+        } else {
+            return error;
+        }
+    }
+
+
     return (
 
           <div className="UserPrefForm" style={{ margin: 'auto', maxWidth: '500px',}}>
@@ -193,6 +253,7 @@ const UserPrefs = (props) => {
               onSubmit={onSubmit}
               ref={ref => (formRef = ref)}
               model={currentUserPrefs}
+              onValidate={onValidate}
             >
                 <Accordion defaultExpanded={true}>
                     <AccordionSummary expandIcon={<ExpandMoreIcon/>}>General preferences</AccordionSummary>
