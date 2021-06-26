@@ -48,6 +48,10 @@ export const initialState = {
         redirect_after_logout: '/user/login',
         searchresults_pagesize_options: [5, 10, 25, 100],
     },
+    analysis: {
+        bkgrd_algorithm_options: ['1st order', '2nd order', '3rd order',],
+        filter_algorithm_options: ['median 3x3',],
+    },
 }
 
 export const ConfigReducer = (initialState, action) => {
