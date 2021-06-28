@@ -18,6 +18,7 @@ import Typography from '@material-ui/core/Typography';
 import IconButton from '@material-ui/core/IconButton';
 import Menu from '@material-ui/core/Menu';
 import MenuItem from '@material-ui/core/MenuItem';
+import MenuList from '@material-ui/core/MenuList';
 import Divider from '@material-ui/core/Divider';
 import List from '@material-ui/core/List';
 import ListItem from '@material-ui/core/ListItem';
@@ -255,39 +256,39 @@ const Layout = (props) => {
         <Divider />
         <List >
           <ListItem button key={'home'}>
-            <NavLink to={'/'} className="nav-link">
+            <NavLink to={'/'} exact className="nav-link" activeClassName="nav-link-active">
                 <ListItemIcon><HomeIcon /></ListItemIcon>
                 <ListItemText primary={'Home'} />
             </NavLink>
           </ListItem>
           <ListItem button key={'new analysis'}>
-            <NavLink to={'/analysis/new'} className="nav-link">
+            <NavLink to={'/analysis/new'} className="nav-link" activeClassName="nav-link-active">
               <ListItemIcon><AddIcon /></ListItemIcon>
               <ListItemText primary={'New Analysis'} />
             </NavLink>
           </ListItem>
           <ListItem button key={'Search Analyses'}>
-            <NavLink to={'/analysis/search'} className="nav-link">
+            <NavLink to={'/analysis/search'} className="nav-link" activeClassName="nav-link-active">
               <ListItemIcon><SearchIcon /></ListItemIcon>
               <ListItemText primary={'Search Analyses'} />
             </NavLink>
           </ListItem>
           <ListItem button key={'load analysis'}>
-            <NavLink to={'/analysis/load'} className="nav-link">
+            <NavLink to={'/analysis/load'} className="nav-link" activeClassName="nav-link-active">
               <ListItemIcon><EditIcon /></ListItemIcon>
               <ListItemText primary={'Load/Edit Analysis'} />
             </NavLink>
           </ListItem>
 
           <ListItem button key={'user search'}>
-            <NavLink to={'/user/search'} className="nav-link">
+            <NavLink to={'/user/search'} className="nav-link" activeClassName="nav-link-active">
               <ListItemIcon><SearchIcon /></ListItemIcon>
               <ListItemText primary={'Search Users'} />
             </NavLink>
           </ListItem>
 
           <ListItem button key={'about'}>
-            <NavLink to={'/about'} className="nav-link">
+            <NavLink to={'/about'} className="nav-link" activeClassName="nav-link-active">
               <ListItemIcon><InfoIcon /></ListItemIcon>
               <ListItemText secondary={'About'} />
             </NavLink>

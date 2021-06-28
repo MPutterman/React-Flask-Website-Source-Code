@@ -10,6 +10,16 @@
             user-select: none; /* Non-prefixed version, currently
                                   supported by Chrome, Edge, Opera and Firefox */
 }
+
+.nav-link {
+  color: lightgray;
+  text-decoration: none;
+}
+.nav-link-active {
+  color: goldenrod;
+  text-decoration: none;
+}
+
 #container{
   
   height:130vh;
