@@ -290,7 +290,7 @@ const Layout = (props) => {
           <ListItem button key={'about'}>
             <NavLink to={'/about'} className="nav-link" activeClassName="nav-link-active">
               <ListItemIcon><InfoIcon /></ListItemIcon>
-              <ListItemText secondary={'About'} />
+              <ListItemText primary={'About'} />
             </NavLink>
           </ListItem>
 
