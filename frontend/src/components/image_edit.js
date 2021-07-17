@@ -1,13 +1,14 @@
 // TODO:
 // * All these 'edit' functions are pretty similar other than
 //   the schema and which API calls to make.  Maybe merge into a generic handler?
+// * Relies on some utilities to fix datetime issues
+// * Occasionally when click on 'search equipment', no results are returned
+// * Do we want to save the front-end filename to the database
 // * Currently using this page for creating (uploading and create record)
 //   as well as editing previously added image.
 // * Delete 'description' from images? (backend too?)
-// * KNOWN BUG: the client side (react) creates Date objects with local time but sets TZ = UTC.
-//     Similarly when displaying backend-generated times (which are correct) it convers them to UTC
-//     for display in the window.
 // * EQUIPMENT-ID is required
+// * Add a feature to prompt to update preferences (default dark and default flat) if create a new image?
 // * Can the date sanitizing (and fix to above problem) be built into axios interceptors?
 // * Default exposure time and temp doesn't make sense for all image types (e.g. flat)....
 // * KNOWN BUG: It doesn't pick up prefs when navigate to /image/new... but it works if reach page
@@ -26,12 +27,22 @@ import { useAuthState, useAuthDispatch, defaultUserPrefs, authRefreshSession } f
 
 import Button from "@material-ui/core/Button";
 import ButtonGroup from "@material-ui/core/ButtonGroup";
+import Box from '@material-ui/core/Box';
+import { spacing } from '@material-ui/system'
+import IconButton from "@material-ui/core/IconButton";
+import ClearIcon from "@material-ui/icons/Clear";
+import { KeyboardDateTimePicker } from '@material-ui/pickers'
+import Accordion from '@material-ui/core/Accordion';
+import AccordionSummary from '@material-ui/core/AccordionSummary';
+import AccordionDetails from '@material-ui/core/AccordionDetails';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { id_exists } from '../helpers/validation_utils';
 import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField, LongTextField} from 'uniforms-material';
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import FileInputField from './filefield';
 import IDInputField from './idfield';
+import { fixDateFromFrontend, fixDateFromBackend } from '../helpers/datetime_utils';
 import Busy from '../components/busy';
 import AlertList from '../components/alerts';
 
@@ -84,9 +95,9 @@ const ImageEdit = (props) => {
 
 //                console.log('loadImage, got response =>', response.data);
                 // Sanitize datetime fields
-                if (response.data.created != null) response.data.created = new Date(response.data.created);
-                if (response.data.modified != null) response.data.modified = new Date(response.data.modified);
-                if (response.data.captured != null) response.data.captured = new Date(response.data.captured);
+                response.data.created = fixDateFromBackend(response.data.created);
+                response.data.modified = fixDateFromBackend(response.data.modified);
+                response.data.captured = fixDateFromBackend(response.data.captured);
 //                console.log('loadImage, after change date format =>', response.data);
  
                 setCurrentImage(response.data);
@@ -104,9 +115,13 @@ const ImageEdit = (props) => {
 
     // Call this upon first value of props.match.params.id (should only run once)
     React.useEffect(() => {
-        console.log("In useEffect, change of [props.match.params.id]"); 
-        loadImage(props.match.params.id);
-    }, [props.match.params.id]);
+        console.log("In useEffect, change of [props.match.params.id] or [props.object_id]"); 
+        if (props.object_id) {
+            loadImage(props.object_id);
+        } else if (props.match.params.id) {
+            loadImage(props.match.params.id);
+        }
+    }, [props.match.params.id, props.object_id]);
 
     // If props.filter is provided, try to pre-fill fields (i.e. when used as popup)
     React.useEffect(() => {
@@ -136,7 +151,7 @@ const ImageEdit = (props) => {
 
         let dataCopy = {captured: null, modified: null, created: null, ...data};
         if (data['captured']) {
-            let dateString = data['captured'].toISOString();
+            let dateString = fixDateFromFrontend(data['captured']).toISOString();
             dataCopy['captured'] = dateString;
         }
         if (data['modified']) {
@@ -154,9 +169,12 @@ const ImageEdit = (props) => {
 //            console.log('data received after image/save:', response.data);
 
             // Convert from date strings to objects
-            if (response.data.created != null) response.data.created = new Date(response.data.created);
-            if (response.data.modified != null) response.data.modified = new Date(response.data.modified);
-            if (response.data.captured != null) response.data.captured = new Date(response.data.captured);
+            // Hack: timezone conversion not working properly natively. Maually correct backend (UTC)
+            // to display in local timezone
+            response.data.created = fixDateFromBackend(response.data.created);
+            response.data.modified = fixDateFromBackend(response.data.modified);
+            response.data.captured = fixDateFromBackend(response.data.captured);
+
 //            console.log('data converted after image/save:', response.data);
 
             setCurrentImage(response.data);
@@ -219,11 +237,11 @@ const ImageEdit = (props) => {
           required: false,
       },
       captured: {
-        label: 'Image captured datetime',
+        label: 'Image captured',
         type: Date,
         required: false,
         uniforms: {
-          type: 'datetime',
+          type: 'datetime-local',
         }
       },
       created: {
@@ -243,7 +261,7 @@ const ImageEdit = (props) => {
         }
       },
       owner_id: {
-        label: 'Owner user_id',   // set by server (allow admin override), show readonly
+        label: 'Owner ID',   // set by server (allow admin override), show readonly
         type: String, // should be integer?  Should use selector  if empty?
         required: false,
       },
@@ -308,7 +326,7 @@ const ImageEdit = (props) => {
 
     return (
 
-          <div className="ImageEditForm" style={{ maxWidth: '400px',}}>
+          <div className="ImageEditForm" style={{ maxWidth: '600px', align:'center'}}>
 
             <Busy busy={loading} />
 
@@ -321,15 +339,20 @@ const ImageEdit = (props) => {
               model={currentImage}
               onValidate={onValidate}
             >
-              <AutoField name="image_id" readOnly={true} />
-              <ErrorField name="image_id" />
-              <AutoField name="image_type" />
-              <ErrorField name="image_type" />
-              <AutoField name="file" component={FileInputField}
-                buttonLabel={currentImage.image_path ? 'Replace Image' : 'Select Image'}
-                filenameField='name'
-              />
-              <ErrorField name="file" />
+
+              <Box display="flex" flexDirection="row">
+              <Box width='20%' pr={2}>
+                <AutoField name="image_type" />
+                <ErrorField name="image_type" />
+              </Box>
+              <Box width='80%' pl={2} /* TODO: width not working? */>
+                <AutoField name="file" component={FileInputField}
+                  wibuttonLabel={currentImage.image_path ? 'Replace Image' : 'Select Image'}
+                  filenameField='name'
+                />
+                <ErrorField name="file" />
+              </Box>
+              </Box>
               <AutoField name="name" />
               <ErrorField name="name" />
 {/*
@@ -338,28 +361,75 @@ const ImageEdit = (props) => {
 */}
               <AutoField name="equip_id" component={IDInputField} objectType='equip'/>
               <ErrorField name="equip_id" />
-              <AutoField name="exp_time" />
-              <ErrorField name="exp_time" />
-              <AutoField name="exp_temp" />
-              <ErrorField name="exp_temp" />
+              <Box display="flex" flexDirection="row">
+                <Box width='33%' pr={2}>
+                <AutoField name="exp_time" />
+                <ErrorField name="exp_time" />
+                </Box>
+                <Box width='33%' px={2}>
+                <AutoField name="exp_temp" />
+                <ErrorField name="exp_temp" />
+                </Box>
+                <Box width='33%' pl={2}>
+                <AutoField name="captured" format="yyyy-mm-ddThh:mm:ss"/>
+                <ErrorField name="captured" />
+                </Box>
+              </Box>
+{/*
+                    component={KeyboardDateTimePicker} variant="inline" format="yyyy-mm-ddThh:mm:ss"
+                    InputProps={{
+                        endAdornment: (
+                            <IconButton onClick={(e) => formRef.onChange('captured', null)}>
+                                <ClearIcon />
+                            </IconButton>
+                        )
+                    }}
+*/}
+              <Box py={1}>
+              </Box>
 
-              <ButtonGroup variant='outlined'>
+              <Accordion /*defaultExpanded*/ elevation={10}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <span>Additional fields</span>
+                </AccordionSummary>
+                <AccordionDetails>
+
+{/*              <Box border={1} p={2} style={{background:"#222225"}}> */}
+              <Box display='flex' flexDirection='column'>
+              <Box display="flex" flexDirection="row">
+                <Box width='50%' pr={2}>
+                <AutoField name="image_id" readOnly={true} />
+                <ErrorField name="image_id" />              
+                </Box>
+                <Box width='50%' pl={2}>
+                <AutoField name="image_path" disabled={true}/>
+                <ErrorField name="image_path" />
+                </Box>
+              </Box>
+              <Box display="flex" flexDirection="row">
+                <Box width='50%' pr={2}>
+                <AutoField name="created" disabled={true}/>
+                <ErrorField name="created" />
+                </Box>
+                <Box width='50%' pl={2}>
+                <AutoField name="modified" disabled={true}/>
+                <ErrorField name="modified" />
+                </Box>
+              </Box>
+              <AutoField name="owner_id" component={IDInputField} objectType='user' disabled={true} />
+              <ErrorField name="owner_id" />
+              </Box>
+
+            </AccordionDetails>
+            </Accordion>
+
+              <Box py={2}>
+              <ButtonGroup variant='contained' >
                   <SubmitField>Save/Upload</SubmitField>
                   <Button type="reset" onClick={() => formRef.reset()}>Cancel</Button>
                   <Button type="delete" >Delete (not working)</Button>
               </ButtonGroup>
-
-              <p>Additional fields:</p>
-              <AutoField name="captured" />
-              <ErrorField name="captured" />
-              <AutoField name="created" readOnly={true}/>
-              <ErrorField name="created" />
-              <AutoField name="modified" readOnly={true}/>
-              <ErrorField name="modified" />
-              <AutoField name="owner_id" component={IDInputField} objectType='user'/>
-              <ErrorField name="owner_id" />
-              <AutoField name="image_path" readOnly={true}/>
-              <ErrorField name="image_path" />
+              </Box>
 
 
             </AutoForm>
