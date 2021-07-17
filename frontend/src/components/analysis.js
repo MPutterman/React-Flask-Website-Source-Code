@@ -1,8 +1,12 @@
+// GLOBAL TODO:
+// * Default values for id numbers are currently a mix of '' or null.  Make this consistent.
+// * Need to resolve timezone handling difference (backend ok, frontend incorrect assigns current local time as UTC)
+// * How to constraint time for datetime selector in Autoform (i.e. to show only the date)
 
 // TODO:
 // * Add feature to export as .csv text file, excel file, etc.
 // * Add feature to export a full PDF report?  E.g. with image, etc..
-
+// * Update to use callAPI when backend updated
 // * I've probably broken things related to "doUV". (In general, someone wouldn't select origins etc without 
 //   a brightfield or UV image... but if they want to, might as well allow it.)
 // * When change origins and ROIs, need to reset something so 'autolane' will work correctly.
@@ -10,15 +14,17 @@
 // * Upload to database seems not working. Maybe instead of "save" we instead have a "delete from database" button?
 // -- During testing I had a lot of issue trying to re-analyze the same analysis ID... I think we should instead save it
 // -- automatically so the images and ROIs are always available.
-// * We should add export buttons (either as file, or just .CVS text that can be copied to clipboard)
-// * Finish moving file upload options etc. into this file
 // * Regarding RF values, I think we should always compute these if origins are defined for at least one lane.  
 //   Maybe we can have a client-side option to show or hide those results if needed
+// * There are some interesting graphical libraries, e.g. https://docs.bokeh.org/en/latest/docs/gallery.html#gallery (python)
+//     that may allow use to do interesting things like live line plots, lasso-based ROI selection, etc...
+//     Also more react-specific stuff here: https://stackshare.io/bokeh/alternatives
 
 import React from "react";
 import axios from "axios";
 import { withRouter } from "react-router";
 import { backend_url } from './config.js';
+import { fixDateFromFrontend, fixDateFromBackend } from '../helpers/datetime_utils';
 
 import Button from "@material-ui/core/Button";
 import Slider from "@material-ui/core/Slider";
@@ -57,7 +63,6 @@ import {useEventListener} from '../hooks/useEventListener';
 
 export const Analysis = (props) => {
 
-
     // Define step sizes (in pixels) to increment position or radius (via keypresses)
     const STEP_X = 4;
     const STEP_Y = 4;
@@ -69,25 +74,26 @@ export const Analysis = (props) => {
 
     // State variables
     // TODO: check if all of these need to be state variables (i.e. affect rendering)
+    // TODO: this repeats a lot of what's in 'analysis_data'... figure out which component should handle state
     const initialDataState = {
         id: props.match.params.id,
         owner_id: null,
-        date_created: null,
-        date_modified: null,
+        created: null,
+        modified: null,
         name: '',
         description: '',
-        date_experiment: null,
+        expt_datetime: null,
         equip_id: null,
         plate_id: null,
         cover_id: null,
-        image_rad_id: null,
+        image_radio_id: null,
         image_bright_id: null,
         image_dark_id: null,
         image_flat_id: null,
-        corr_dark: false,
-        corr_flat: false,
-        corr_bkgd: false,
-        corr_filter: false,
+        correct_dark: false,
+        correct_flat: false,
+        correct_bkgd: false,
+        correct_filter: false,
         algorithm_bkgd: null,
         algorithm_filter: null,
         image_computed_id: null, // Need this in the front end??
@@ -151,6 +157,10 @@ export const Analysis = (props) => {
       return axios
           .get(backend_url('retrieve_analysis/' + id)) // TODO: change to /api/analysis/load
           .then((res) => {
+            res.data.created = fixDateFromBackend(res.data.created);
+            res.data.modified = fixDateFromBackend(res.data.modified);
+            res.data.expt_datetime = fixDateFromBackend(res.data.expt_datetime);
+
             console.log ('response =>', res);
             setLegacyState(prev => ({...prev,
               do_RF: res.data.doRF,
