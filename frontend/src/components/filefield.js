@@ -1,7 +1,9 @@
 // TODO:
+// * Why does the field display just slightly above others?
 // * Provide a way to specify the upload type, or get it directly from files[0]. I'm just leaving as
 //     image/png since that was previously in the submission.js file...
 // * Show a prorgress bar when uploading large files
+// * Add a way to view/download existing file?  Also provide a way to delete the current file?
 // * When we have an error state... make sure underlying components render in error state
 
 // Usage:
@@ -12,6 +14,8 @@
 
 import React from 'react';
 import { HTMLFieldProps, connectField } from 'uniforms';
+import Input from '@material-ui/core/Input';
+import InputAdornment from '@material-ui/core/InputAdornment';
 import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
 import { useForm } from 'uniforms';
@@ -20,27 +24,32 @@ import { useForm } from 'uniforms';
 
 export type FileInputFieldProps = HTMLFieldProps<string, HTMLDivElement>;
 
-function FileInput({ name, value, label, error, ref, ...props }: FileInputFieldProps) {
+function FileInput({ onChange, name, value, label, error, ref, ...props }: FileInputFieldProps) {
 
   const form = useForm();
   const [filename, setFilename] = React.useState('');
 
   return (
-    <div className="FileInputField">
+    <>
       <label htmlFor={name}>
-        <span>
-            <Button variant='outlined' component='span'>
-              {props.buttonLabel ? (
-                <span>{props.buttonLabel}</span>
-              ) : (
-                <span>Choose file</span>
-              )}
-            </Button>
-            <TextField disabled value={filename} error={!!(error)} label={filename ? 'File name' : 'No file chosen'} />
-        </span>
+            <TextField disabled value={filename ? filename : 'No file chosen'} error={!!(error)}
+              label='File to upload'
+              InputProps={{
+                startAdornment:(
+                  <InputAdornment position="start">
+                    <Button size='small' variant='outlined' component='span'>
+                      {props.buttonLabel ? (
+                        <span>{props.buttonLabel}</span>
+                      ) : (
+                        <span>Choose file</span>
+                      )}
+                    </Button>
+                  </InputAdornment>
+                )}}
+            />
       </label>
       
-      <input
+      <Input
         //accept="image/*" // TODO: read this from the properties if specified
         id={name}
         onChange={({ target: { files } }) => {
@@ -50,13 +59,27 @@ function FileInput({ name, value, label, error, ref, ...props }: FileInputFieldP
               form.onChange(props.filenameField, files[0].name);
             }
             value = new Blob([files[0]], {type: 'image/png',});
-            form.onChange(name, value); //new Blob([files[0]],{type: 'image/png',})); //URL.createObjectURL(files[0]));
+            onChange(value); //new Blob([files[0]],{type: 'image/png',})); //URL.createObjectURL(files[0]));
           }
         }}
         style={{ display: 'none' }}
         type="file"
+/*
+        InputProps={{
+          startAdornment:(
+            <InputAdornment position="start">
+              <Button variant='outlined' component='span'>
+                {props.buttonLabel ? (
+                  <span>{props.buttonLabel}</span>
+                ) : (
+                  <span>Choose file</span>
+                )}
+              </Button>
+            </InputAdornment>
+          ),}}
+*/
       />
-    </div>
+    </>
   );
 }
 
