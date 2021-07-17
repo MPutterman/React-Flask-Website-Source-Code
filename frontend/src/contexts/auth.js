@@ -15,6 +15,7 @@
 // * Separate profile out of the user_id? 
 // * Implement a way to 'dirty' the prefs (or the whole session) when prefs are saved. Trigger reload of
 //     these values from backend.
+// * Add 'roles' to authUser
 
 import React, { useReducer, useEffect } from "react";
 import { callAPI } from '../components/api';
@@ -63,10 +64,13 @@ export const AuthProvider = ({ children }) => {
 
 // Reducer component
 
+
+// Default preferences
 export const defaultUserPrefs = {
     general: {
         redirect_after_login: '/',                 // relative url
         timezone: '',
+        theme: 'dark',
         default_searchresult_pagesize: 10,      
     },
     analysis: {
@@ -80,11 +84,29 @@ export const defaultUserPrefs = {
         default_use_dark_correction: false,
         default_dark_image: null,                  // image_id
         default_use_bkgrd_correction: false,
-        default_bkgrd_algorithm: 'linear',         // enum: (linear | quadratic | ...)
+        default_bkgrd_algorithm: '',         
         default_use_filter_correction: false,
-        default_filter: '3x3 median',              // enum: (3x3 median | ...)
+        default_filter: '',              
     },
 }
+
+// Default roles
+export const defaultAnonymousRoles = [];
+export const defaultUserRoles = [
+    'image:create',
+    'image:view',
+    'analysis:create',
+    'analysis:view',
+    'equip:create',
+    'equip:view',
+    'plate:create',
+    'plate:view',
+    'cover:create',
+    'cover:view',
+    //'user:create',
+    //'user:view',
+];
+
 
 const initialState = { // This is the session info provided to child components
   auth: false,
@@ -93,6 +115,7 @@ const initialState = { // This is the session info provided to child components
   error: false,
   errorMessage: '',
   prefs: defaultUserPrefs,
+  roles: defaultUserRoles,
 };
 
 export const AuthReducer = (initialState, action) => {
@@ -216,7 +239,7 @@ async function loadSessionFromServer(dispatch) { // This one is not exported and
 }
 
 // TODO: think if this is the best approach. Called after changing prefs or profile on 
-//  the server
+//  the server. Or changing permissions/roles
 export async function authRefreshSession(dispatch,data){
     return loadSessionFromServer(dispatch);
 }
