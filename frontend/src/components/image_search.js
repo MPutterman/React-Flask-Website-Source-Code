@@ -1,4 +1,6 @@
 // TODO:
+// * Add a feature to prompt to update preferences (default dark and default flat) if select a new image (i.e. from
+//    analysis/new)?
 // * Add filters and sorting (server side) in case of large number of elements.  Will need a form to do this.
 // * Limitation: DataGrid only supports 1 column of filtering
 
@@ -96,7 +98,7 @@ const ImageSearch = (props) => {
                   autoHeight
                   loading={loading}
                   density="compact"
-                  rowsPerPageOptions={config.general.searchresults_pagesize_options}
+                  rowsPerPageOptions={config.general.searchresult_pagesize_options}
                   paginationMode="client" // for now client (and return all rows)... later use database pagination
                   sortingMode="client" // later server (if pagination server)
                   //checkboxSelection
