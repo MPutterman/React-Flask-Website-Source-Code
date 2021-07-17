@@ -70,9 +70,15 @@ const UserPrefs = (props) => {
             label: 'Time zone',
             type: String, // TODO: convert to select? or are there some predefined validators for valid timezones?
         },
+        "general.theme": {
+            label: 'Theme',
+            type: String,
+            allowedValues: config.general.theme_options,
+        },
         "general.default_searchresult_pagesize": {
             label: 'Default number of entries per page in searh results',
             type: Number,
+            allowedValues: config.general.searchresult_pagesize_options,
         },
         analysis: {
             label: 'Category - Analysis preferences',
@@ -249,20 +255,24 @@ const UserPrefs = (props) => {
               model={currentUserPrefs}
               onValidate={onValidate}
             >
-                <Accordion defaultExpanded={true}>
+                <Accordion defaultExpanded={true} square variant='elevation' elevation={8}>
                     <AccordionSummary expandIcon={<ExpandMoreIcon/>}>General preferences</AccordionSummary>
-                    <AccordionDetails>
+                    <AccordionDetails >
                         <Grid container direction="column">
                             <AutoField name="general.redirect_after_login" />
                             <ErrorField name="general.redirect_after_login" />
                             <AutoField name="general.timezone" /* component={TimezoneSelect} timezone={i18nTimezones} */ />
                             <ErrorField name="general.timezone" />
+                            <AutoField name="general.theme" />
+                            <ErrorField name="general.theme" />
+                            <AutoField name="general.default_searchresult_pagesize" />
+                            <ErrorField name="general.default_searchresult_pagesize" />
                         </Grid>
                     </AccordionDetails>
                 </Accordion>
-                <Accordion defaultExpanded={true}>
+                <Accordion defaultExpanded={true} square variant='elevation' elevation={8}>
                     <AccordionSummary expandIcon={<ExpandMoreIcon/>}>Analysis preferences (Defaults for New Analysis)</AccordionSummary>
-                    <AccordionDetails>
+                    <AccordionDetails >
                         <Grid container direction="column">
                             <AutoField name="analysis.default_equip" component={IDInputField} objectType="equip" />
                             <ErrorField name="analysis.default_equip" />
