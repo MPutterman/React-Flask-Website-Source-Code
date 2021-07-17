@@ -21,12 +21,14 @@ import AccordionSummary from '@material-ui/core/AccordionSummary';
 import AccordionDetails from '@material-ui/core/AccordionDetails';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import Grid from '@material-ui/core/Grid';
+import Box from '@material-ui/core/Box';
 
 // Imports for automatic form generation
 import { useForm } from 'uniforms';
 import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField, LongTextField } from 'uniforms-material';
 import FileInputField from './filefield';
 import IDInputField from './idfield';
+import { fixDateFromFrontend, fixDateFromBackend } from '../helpers/datetime_utils';
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 
@@ -47,8 +49,8 @@ const AnalysisData = (props) => {
         description: '',
         expt_date: '',
         owner_id: null,
-        created: '',
-        modified: '',
+        created: null,
+        modified: null,
         equip_id: session.prefs['analysis']['default_equip'],
         radio_image_id: null,
         bright_image_id: null,
@@ -82,6 +84,27 @@ const AnalysisData = (props) => {
       description: {
         label: 'Description',
         type: String,
+        required: false,
+      },
+      created: {
+        label: 'Record created', // set by server (allow admin override?), show readonly
+        type: Date,
+        required: false,
+        uniforms: {
+          type: 'date',
+        }
+      },
+      modified: {     
+        label: 'Record modified',  // set by server (allow admin override), show readonly
+        type: Date,
+        required: false,
+        uniforms: {
+          type: 'date',
+        }
+      },
+      owner_id: {
+        label: 'Owner ID',   // set by server (allow admin override), show readonly
+        type: String, // should be integer?  Should use selector  if empty?
         required: false,
       },
       equip_id: {
@@ -173,8 +196,14 @@ const AnalysisData = (props) => {
         // TODO: ignore fields: owner_id, created, modified
         
         setBusy(true);
-         
-        return callAPI('POST', 'analysis_save', data)
+
+        let dataCopy = {expt_datetime: null, modified: null, created: null, ...data};
+        if (data['expt_datetime']) {
+            let dateString = fixDateFromFrontend(data['expt_datetime']).toISOString();
+            dataCopy['expt_datetime'] = dateString;
+        }
+
+        return callAPI('POST', 'analysis_save', dataCopy)
         .then((response) => {
             // If don't currently have an id, set it and redirect to fix the URL
             if (!currentAnalysis.id) {
@@ -203,18 +232,11 @@ const AnalysisData = (props) => {
           ref={ref => (formRef = ref)}
         >
 
-        <Grid container direction="row">
+        <Grid container direction="row" >
 
-        <Accordion defaultExpanded>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />} >
-            Analysis information
-          </AccordionSummary>
-          <AccordionDetails>
+            <Grid container direction='column' xs={5}>
 
-              <Grid container direction='column'>
-
-              <AutoField name="id" disabled={true} />
-              <ErrorField name="id" />
+              <p>Analysis Information</p>
 
               <AutoField name="name" />
               <ErrorField name="name" />
@@ -228,21 +250,6 @@ const AnalysisData = (props) => {
               <AutoField name="expt_date" type="date" />
               <ErrorField name="expt_date" />
 
-<p> TODO: also should show owner_id, created, modified? </p>
-
-              </Grid>
-
-          </AccordionDetails>
-        </Accordion>
-
-        <Accordion defaultExpanded>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />} >
-            Images and corrections
-          </AccordionSummary> 
-          <AccordionDetails>              
-
-              <Grid container direction="column">
-
               <AutoField name="radio_image_id"
                   component={IDInputField} objectType='image'
                   filter={[{field:'image_type', value:'radio'}, {field:'equip_id', value:'equip_id', operator:'field'}]}
@@ -255,7 +262,43 @@ const AnalysisData = (props) => {
               />
               <ErrorField name="bright_image_id" />
 
-<p>This field is obsolete:</p>
+              <Grid item>
+              </Grid>
+
+              <Accordion /*defaultExpanded*/ elevation={10}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                  <span>Additional fields</span>
+                </AccordionSummary>
+                <AccordionDetails>
+
+{/*              <Box border={1} p={2} style={{background:"#222225"}}> */}
+              <Box display='flex' flexDirection='column'>
+                <AutoField name="id" readOnly={true} />
+                <ErrorField name="id" />              
+              <Box display="flex" flexDirection="row">
+                <Box width='50%' pr={2}>
+                <AutoField name="created" disabled={true}/>
+                <ErrorField name="created" />
+                </Box>
+                <Box width='50%' pl={2}>
+                <AutoField name="modified" disabled={true}/>
+                <ErrorField name="modified" />
+                </Box>
+              </Box>
+              <AutoField name="owner_id" component={IDInputField} objectType='user' disabled={true} />
+              <ErrorField name="owner_id" />
+              </Box>
+
+            </AccordionDetails>
+            </Accordion>
+
+            </Grid>
+            <Grid container xs={2}>
+            </Grid>
+            <Grid container direction='column' xs={5}>
+
+              <p>Corrections</p>
+
               <AutoField name="uv_image_id"
                   component={IDInputField} objectType='image'
                   filter={[{field:'image_type', value:'uv'}, {field:'equip_id', value:'equip_id', operator:'field'}]}
@@ -264,10 +307,6 @@ const AnalysisData = (props) => {
 
               <AutoField name="correct_dark" />
               <ErrorField name="correct_dark" />
-
-<p>
-{/* Disable the following based on value above */}
-</p>
 
               <AutoField name="dark_image_id"
                   component={IDInputField} objectType='image'
@@ -278,10 +317,6 @@ const AnalysisData = (props) => {
               <AutoField name="correct_flat" />
               <ErrorField name="correct_flat" />
 
-<p>
-{/* Disable the following based on value above */}
-</p>
-
               <AutoField name="flat_image_id"
                   component={IDInputField} objectType='image'
                   filter={[{field:'image_type', value:'flat'}, {field:'equip_id', value:'equip_id', operator:'field'}]}
@@ -291,9 +326,6 @@ const AnalysisData = (props) => {
               <AutoField name="correct_bkgrd" />
               <ErrorField name="correct_bkgrd" />
 
-<p>
-{/* Disable the following based on value above */}
-</p>
 
               <AutoField name="bkgrd_algorithm" />
               <ErrorField name="bkgrd_algorithm" />
@@ -301,22 +333,16 @@ const AnalysisData = (props) => {
               <AutoField name="correct_filter" />
               <ErrorField name="correct_filter" />
 
-<p>
-{/* Disable the following based on value above */}
-</p>
-
               <AutoField name="filter_algorithm" />
               <ErrorField name="filter_algorithm" />
 
-              </Grid>
-          </AccordionDetails>
-        </Accordion>
+          </Grid>
         </Grid>
 
         <p>For now... if you submit without choosing files, it will use sample data</p>
 
-        <SubmitField>Save info and upload files</SubmitField>
-        <Button onClick={onCancel}>Cancel</Button>
+        <SubmitField variant='contained' fullWidth>Save info and upload files</SubmitField>
+        <Button variant='contained' fullWidth onClick={onCancel}>Cancel</Button>
 
       </AutoForm>
 
