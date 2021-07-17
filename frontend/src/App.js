@@ -16,6 +16,11 @@ import { blueGrey } from '@material-ui/core/colors';
 import { ConfigProvider } from './contexts/config';
 import { AuthProvider } from './contexts/auth';
 
+// Import Material-UI pickers
+import { MuiPickersUtilsProvider } from '@material-ui/pickers';
+//import LuxonUtils from '@date-io/luxon';
+import DateFnsUtils from '@date-io/date-fns';
+
 // Import main interface components
 import Layout from './components/layout';
 
@@ -61,6 +66,34 @@ const App = (props) => {
           dark: "#002884",
           contrastText: "#000",
         },
+        background: {
+          paper: '#222222',
+          default: '#111111',
+        }
+      },
+    });
+
+    // How to reveal the auth context to get theme preference?
+    const lightMode = createMuiTheme({
+      palette: {
+        type: "light",
+/*        primary: {
+          light: blueGrey[500],
+          main: blueGrey[800],
+          dark: blueGrey[900],
+          contrastText: "#fff",
+        },
+        secondary: {
+          light: "#ff7961",
+          main: blueGrey[700],
+          dark: "#002884",
+          contrastText: "#000",
+        },
+        background: {
+          paper: '#222222',
+          default: '#111111',
+        }
+*/
       },
     });
 
@@ -68,6 +101,7 @@ const App = (props) => {
     return (
       <>
       <ConfigProvider>
+      <MuiPickersUtilsProvider utils={DateFnsUtils}>
       <AuthProvider>
         <ThemeProvider theme={darkMode}>
         <CssBaseline />
@@ -113,6 +147,7 @@ const App = (props) => {
         </Router>
         </ThemeProvider>
       </AuthProvider>
+      </MuiPickersUtilsProvider>
       </ConfigProvider>
       </>
     );
