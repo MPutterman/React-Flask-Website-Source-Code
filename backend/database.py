@@ -185,12 +185,13 @@ class Equipment(Base):
     description = Column(Text)
     camera = Column(String(128), nullable=False)
     has_temp_control = Column(Boolean, nullable=False)
+    has_metadata = Column(Boolean)  # Do the files/images have metadata we can read? (Date, temp, etc..)?  If so we can skip things on the image_edit form
     pixels_x = Column(Integer, nullable=False)
     pixels_y = Column(Integer, nullable=False)
     fov_x = Column(Float) # size in mm
     fov_y = Column(Float) # size in mm
-    bpp = Column(Integer, nullable=False) # QUESTION: is it same to assume all images will be monochrome?
-    image_format = Column(String(128), nullable=False) # This will help identify how to read the file before loading it (maybe should be enum type)
+    bpp = Column(Integer, nullable=False) # Assumes images are monochrome
+    file_format = Column(String(128), nullable=False) # Each type will map to an 'importer' function
 
     def as_dict(self):
         # Returns full represenation of model.
@@ -383,8 +384,10 @@ def db_add_test_data():
    
     db_session.add(plate1)
     db_session.add(plate2)
-    equip1 = Equipment(name = 'Crump Cerenkov #1', description = 'some text', equip_id = 2938,camera = 'QSI 540 (KAI-04022 CCD sensor)', has_temp_control = True, pixels_x = 682, pixels_y = 682, bpp = 16, image_format = 'tiff')
+    equip1 = Equipment(name = 'Crump Cerenkov #1', description = 'some text', equip_id = 2938,camera = 'QSI 540 (KAI-04022 CCD sensor)', has_temp_control = True, pixels_x = 682, pixels_y = 682, bpp = 16, file_format = 'tiff')
+    equip2 = Equipment(name = 'Crump Cerenkov #2', description = '', equip_id = 4000,camera = 'Something else', has_temp_control = True, pixels_x = 682, pixels_y = 682, bpp = 16, file_format = 'tiff')
     db_session.add(equip1)
+    db_session.add(equip2)
     org1 = Organization(name = 'UCLA Crump Institute for Molecular Imaging', org_id =1153078, plate_list=[plate1,plate2],cover_list = [cover], equip_list=[equip1])
     org2 = Organization(name = 'UCLA Ahmanson Translational Theranosticis Division', org_id = 21857,plate_list=[plate1],cover_list = [cover])
     org3 = Organization(name = 'Imaginary University Deparment of Radiochemistry',org_id = 25987)
