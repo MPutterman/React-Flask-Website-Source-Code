@@ -11,11 +11,6 @@ import { DataGrid, GridLinkOperator } from "@material-ui/data-grid";
 import { createFilterModel } from "../helpers/search_utils";
 import Busy from '../components/busy';
 
-/* Useful documentation:
-   DataGrid documentation: https://material-ui.com/api/data-grid/
-   DataGrid column definitions: https://material-ui.com/components/data-grid/columns/#column-definitions
-*/
-
 const AnalysisSearch = (props) => {
 
     const history = useHistory();
@@ -28,6 +23,10 @@ const AnalysisSearch = (props) => {
       { field: 'name', headerName: 'Name', flex: 0.3},
       { field: 'description', headerName: 'Description', flex: 0.5},
       { field: 'owner_id', headerName: 'Owner ID', flex: 0.1},
+      { field: 'expt_datetime', headerName: 'Experiment date', flex: 0.2},
+      { field: 'modified', headerName: 'Modified', hidden: true, flex: 0.1},
+      { field: 'created', headerName: 'Created', hidden: true, flex: 0.1},
+      // TODO: other analysis options, image IDs, etc...
     ];
 
     // State
@@ -82,7 +81,7 @@ const AnalysisSearch = (props) => {
                   autoHeight
                   loading={loading}
                   density="compact"
-                  rowsPerPageOptions={config.general.searchresults_pagesize_options}
+                  rowsPerPageOptions={config.general.searchresult_pagesize_options}
                   paginationMode="client" // for now client (and return all rows)... later use database pagination
                   sortingMode="client" // later server (if pagination server)
                   //checkboxSelection
