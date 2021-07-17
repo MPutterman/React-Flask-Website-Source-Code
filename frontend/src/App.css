@@ -17,9 +17,8 @@
 }
 .nav-link-active {
   color: goldenrod;
-  text-decoration: none;
+  font-weight: bold;
 }
-
 #container{
   
   height:130vh;
