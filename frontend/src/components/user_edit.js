@@ -117,12 +117,15 @@ const UserEdit = (props) => {
     //   for newly created items.  Need a uniform way of doing this across all objects, both for 'edit' and 'select' forms...
     // Hack to implement an 'onSave'
     React.useEffect(() => {
-        if (props.onSave) {
+        if (currentUser.user_id && props.onSave) {
           props.onSave({...currentUser,
             id: currentUser.user_id,
             name: currentUser.first_name + ' ' + currentUser.last_name,
           });
+        } else if (currentUser.user_id) {
+          props.history.replace('/user/edit/' + currentUser.user_id);
         }
+
     }, [currentUser.user_id])
 
     // Save the user information back to the database
