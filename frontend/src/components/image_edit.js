@@ -24,6 +24,7 @@ import React from "react";
 import { callAPI } from './api.js';
 import { withRouter } from "react-router";
 import { useAuthState, useAuthDispatch, defaultUserPrefs, authRefreshSession } from '../contexts/auth';
+import { useErrorStatus } from '../contexts/error';
 
 import Button from "@material-ui/core/Button";
 import ButtonGroup from "@material-ui/core/ButtonGroup";
@@ -56,6 +57,7 @@ const ImageEdit = (props) => {
     
     const session = useAuthState();
     const dispatch = useAuthDispatch();
+    const setErrorStatus = useErrorStatus();
 
     const initialImageState = {
         image_id: '', // NOTE: if set null here, the edit form ID value overlaps the help text
@@ -106,6 +108,10 @@ const ImageEdit = (props) => {
             })
             .catch((e) => {
                 console.error("GET /image/load/" + id + ": " + e);
+                setErrorStatus({
+                    code: 404,
+                    message: "ImageEdit.loadImage. GET /image/load/" + id + " returned error: " + e,
+                });
                 setLoading(false);
             });
         } else {
@@ -196,6 +202,10 @@ const ImageEdit = (props) => {
         })
         .catch((e) => {
             console.log("POST /image/save: " + e);
+            setErrorStatus({
+                code: 500,
+                message: "ImageEdit.saveImage. POST /image/save/" + data['image_id'] + " returned error: " + e,
+            });
             setLoading(false);
         });
     }
@@ -326,7 +336,7 @@ const ImageEdit = (props) => {
 
     return (
 
-          <div className="ImageEditForm" style={{ maxWidth: '600px', align:'center'}}>
+          <div className="ImageEditForm" style={{ maxWidth: '600px', align:'middle'}}>
 
             <Busy busy={loading} />
 

@@ -16,6 +16,9 @@ import { blueGrey } from '@material-ui/core/colors';
 import { ConfigProvider } from './contexts/config';
 import { AuthProvider } from './contexts/auth';
 
+// Import error handler
+import { ErrorHandler } from './contexts/error';
+
 // Import Material-UI pickers
 import { MuiPickersUtilsProvider } from '@material-ui/pickers';
 //import LuxonUtils from '@date-io/luxon';
@@ -107,6 +110,7 @@ const App = (props) => {
         <CssBaseline />
         <Router>
         <Layout>
+          <ErrorHandler>
             <Switch>
 {/*                <Route path = '/analysis/search' component={Database}/> */}
 {/*                <Route path='/start' component={Start}/> */}
@@ -143,6 +147,7 @@ const App = (props) => {
                 */}
                 <Route component={NotFound} status={404} /> 
             </Switch>
+          </ErrorHandler>
         </Layout>
         </Router>
         </ThemeProvider>
