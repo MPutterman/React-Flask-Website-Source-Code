@@ -16,7 +16,7 @@ import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import Visibility from '@material-ui/icons/Visibility';
 import VisibilityOff from '@material-ui/icons/VisibilityOff';
-import AlertList from '../components/alerts';
+import { useAlerts } from '../contexts/alerts';
 import Busy from '../components/busy';
 
 // User Login form
@@ -26,14 +26,13 @@ const UserLogin = (props) => {
     let formRef; // use to access reset() and submit() methods...
 
     const history = useHistory();
+    const setAlert = useAlerts();
 
     const [defaults, setDefaults] = React.useState( {email: '', password: '', remember: false} );
 
     // Support for 'loading' spinner while login/logout in progress
     const [loginPending, setLoginPending] = React.useState(false);
     const [logoutPending, setLogoutPending] = React.useState(false);
-
-    const [alert, setAlert] = React.useState({});
 
     // Connect to Auth context
     const authDispatch = useAuthDispatch();
@@ -164,7 +163,6 @@ const UserLogin = (props) => {
 
         )}
 
-        <AlertList alert={alert} />
         </>
     );
     

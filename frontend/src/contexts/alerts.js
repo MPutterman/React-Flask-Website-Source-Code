@@ -6,8 +6,9 @@
 
 
 // Usage in child component:
-//      import { setAlert } from './contexts/alerts';
-//      const setAlert = useAlert();
+//      import { useAlerts } from './contexts/alerts';
+//      const setAlert = useAlerts();
+//      ...
 //      setAlert ({ severity:<severity>, message:<message> });
 // Allowed values for severity: 'error', 'warning', 'info', 'success'
 
@@ -23,10 +24,10 @@ import MuiAlert from '@material-ui/lab/Alert';
 const AlertContext = React.createContext();
 
 // Define hook
-export function useAlert() {
+export function useAlerts() {
   const context = React.useContext(AlertContext);
   if (context === undefined) {
-    throw new Error("useAlert must be used within an AlertContext.Provider");
+    throw new Error("useAlerts must be used within an AlertContext.Provider");
   }
   return context;
 }

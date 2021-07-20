@@ -47,7 +47,7 @@ import FileInputField from './filefield';
 import IDInputField from './idfield';
 import { fixDateFromFrontend, fixDateFromBackend } from '../helpers/datetime_utils';
 import Busy from '../components/busy';
-import { useAlert } from '../contexts/alerts';
+import { useAlerts } from '../contexts/alerts';
 
 
 // Image edit form
@@ -60,7 +60,7 @@ const ImageEdit = (props) => {
     const session = useAuthState();
     const dispatch = useAuthDispatch();
     const setErrorStatus = useErrorStatus();
-    const setAlert = useAlert();
+    const setAlert = useAlerts();
 
     const initialImageState = {
         image_id: '', // NOTE: if set null here, the edit form ID value overlaps the help text
@@ -81,7 +81,6 @@ const ImageEdit = (props) => {
     const [loading, setLoading] = React.useState(false);
     const [filename, setFilename] = React.useState('');
     const [currentImage, setCurrentImage] = React.useState(initialImageState);
-    // const [alert, setAlert] = React.useState({});
 
 
     async function onSubmit(data, e) {

@@ -31,7 +31,7 @@ import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import { useAuthState, useAuthDispatch, defaultUserPrefs, authRefreshSession } from '../contexts/auth';
 import { useConfigState } from '../contexts/config';
 import Busy from '../components/busy';
-import AlertList from '../components/alerts';
+import { useAlerts } from '../contexts/alerts';
 import { callAPI } from '../components/api';
 import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField,} from 'uniforms-material';
 import { id_exists } from '../helpers/validation_utils';
@@ -47,14 +47,13 @@ const UserPrefs = (props) => {
     const session = useAuthState();
     const dispatch = useAuthDispatch();
     const config = useConfigState();
+    const setAlert = useAlerts();
 
     const initialUserPrefs = defaultUserPrefs; // Defaults currently stored in auth.js
 
     const [loading, setLoading] = React.useState(false); 
 
     const [currentUserPrefs, setCurrentUserPrefs] = React.useState(initialUserPrefs);
-
-    const [alert, setAlert] = React.useState({});
 
     // Schema (uses multi-level inputs for categories and keys)
     const schema = new SimpleSchema ({
@@ -316,8 +315,6 @@ const UserPrefs = (props) => {
                 </ButtonGroup>
 
             </AutoForm>
-
-            <AlertList alert={alert} />
 
           </div>
         );

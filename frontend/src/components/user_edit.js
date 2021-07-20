@@ -30,7 +30,7 @@ import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField,} 
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import Busy from '../components/busy';
-import { useAlert } from '../contexts/alerts';
+import { useAlerts } from '../contexts/alerts';
 import NotFound from '../components/notfound';
 
 // User Edit form
@@ -46,7 +46,7 @@ const UserEdit = (props) => {
 
     const session = useAuthState();
     const dispatch = useAuthDispatch();
-    const setAlert = useAlert();
+    const setAlert = useAlerts();
     
     const initialUserState = {
         user_id: '',
