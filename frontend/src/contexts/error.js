@@ -10,6 +10,15 @@ import { useHistory } from 'react-router-dom';
 
 const ErrorContext = React.createContext();
 
+export function useErrorStatus() {
+  const context = React.useContext(ErrorContext);
+  if (context === undefined) {
+    throw new Error("useErrorStatus must be used within an ErrorContext.Provider");
+  }
+  return context;
+}
+
+
 export const ErrorHandler = ({ children }) => {
 
   const history = useHistory();
@@ -66,8 +75,4 @@ export const ErrorHandler = ({ children }) => {
     </ErrorContext.Provider>
   );
 }
-
-// A custom hook to quickly read the context's value. It's
-// only here to allow quick imports
-export const useErrorStatus = () => React.useContext(ErrorContext);
 
