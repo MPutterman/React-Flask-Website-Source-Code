@@ -19,6 +19,9 @@ import { AuthProvider } from './contexts/auth';
 // Import error handler
 import { ErrorHandler } from './contexts/error';
 
+// Import alert list
+import { AlertList } from './contexts/alerts';
+
 // Import Material-UI pickers
 import { MuiPickersUtilsProvider } from '@material-ui/pickers';
 //import LuxonUtils from '@date-io/luxon';
@@ -110,6 +113,7 @@ const App = (props) => {
         <CssBaseline />
         <Router>
         <Layout>
+          <AlertList>
           <ErrorHandler>
             <Switch>
 {/*                <Route path = '/analysis/search' component={Database}/> */}
@@ -148,6 +152,7 @@ const App = (props) => {
                 <Route component={NotFound} status={404} /> 
             </Switch>
           </ErrorHandler>
+          </AlertList>
         </Layout>
         </Router>
         </ThemeProvider>

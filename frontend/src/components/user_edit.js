@@ -30,7 +30,7 @@ import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField,} 
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import Busy from '../components/busy';
-import AlertList from '../components/alerts';
+import { useAlert } from '../contexts/alerts';
 import NotFound from '../components/notfound';
 
 // User Edit form
@@ -46,7 +46,8 @@ const UserEdit = (props) => {
 
     const session = useAuthState();
     const dispatch = useAuthDispatch();
-
+    const setAlert = useAlert();
+    
     const initialUserState = {
         user_id: '',
         first_name: '',
@@ -59,7 +60,6 @@ const UserEdit = (props) => {
 
     const [loading, setLoading] = React.useState('false');
     const [currentUser, setCurrentUser] = React.useState(initialUserState);
-    const [alert, setAlert] = React.useState({});
     const [availableOrganizations, setAvailableOrganizations] = React.useState([]);
 
     // Actions when form is submitted
@@ -318,8 +318,6 @@ const UserEdit = (props) => {
               <Button fullWidth variant='outlined' type="delete" >Delete (not yet working)</Button>
 
             </AutoForm>
-
-            <AlertList alert={alert} />
 
           </div>
         );

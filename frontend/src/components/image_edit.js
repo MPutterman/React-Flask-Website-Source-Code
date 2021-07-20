@@ -47,7 +47,7 @@ import FileInputField from './filefield';
 import IDInputField from './idfield';
 import { fixDateFromFrontend, fixDateFromBackend } from '../helpers/datetime_utils';
 import Busy from '../components/busy';
-import AlertList from '../components/alerts';
+import { useAlert } from '../contexts/alerts';
 
 
 // Image edit form
@@ -60,6 +60,7 @@ const ImageEdit = (props) => {
     const session = useAuthState();
     const dispatch = useAuthDispatch();
     const setErrorStatus = useErrorStatus();
+    const setAlert = useAlert();
 
     const initialImageState = {
         image_id: '', // NOTE: if set null here, the edit form ID value overlaps the help text
@@ -80,7 +81,7 @@ const ImageEdit = (props) => {
     const [loading, setLoading] = React.useState(false);
     const [filename, setFilename] = React.useState('');
     const [currentImage, setCurrentImage] = React.useState(initialImageState);
-    const [alert, setAlert] = React.useState({});
+    // const [alert, setAlert] = React.useState({});
 
 
     async function onSubmit(data, e) {
@@ -187,44 +188,45 @@ const ImageEdit = (props) => {
 
         return callAPI('POST', 'image/save', dataCopy)
         .then((response) => {
+
             if (response.error) {
-              setErrorStatus ({
-                code: response.status,
-                message: response.statusText,
-                details: response.data.error,
-              });
-              setLoading(false);
-              return false;
+                setErrorStatus ({
+                    code: response.status,
+                    message: response.statusText,
+                    details: response.data.error,
+                });
+                setLoading(false);
+                return false;
 
             } else {
-            setAlert({severity: 'success', message: "yay, success"});
+                setAlert({severity: 'success', message: "yay, success"});
 //            console.log('data received after image/save:', response.data);
 
-            // Convert from date strings to objects
-            // Hack: timezone conversion not working properly natively. Maually correct backend (UTC)
-            // to display in local timezone
-            response.data.created = fixDateFromBackend(response.data.created);
-            response.data.modified = fixDateFromBackend(response.data.modified);
-            response.data.captured = fixDateFromBackend(response.data.captured);
+                // Convert from date strings to objects
+                // Hack: timezone conversion not working properly natively. Maually correct backend (UTC)
+                // to display in local timezone
+                response.data.created = fixDateFromBackend(response.data.created);
+                response.data.modified = fixDateFromBackend(response.data.modified);
+                response.data.captured = fixDateFromBackend(response.data.captured);
 
 //            console.log('data converted after image/save:', response.data);
 
-            setCurrentImage(response.data);
-//            reset(currentImage); // does this work?
-            setLoading(false);
+                setCurrentImage(response.data);
+    //            reset(currentImage); // does this work?
+                setLoading(false);
 
-            // Call callback 'onSave' if successfully saved image?
-            // NOTE: doesn't work if put 'currentImage' instead of response.data...
-            if (props.onSave) {
-                props.onSave({...response.data,
-                    id: response.data.image_id,
-                    name: response.data.name,
-                });
-            } else {
-                props.history.replace('/image/edit/' + response.data.image_id);
+                // Call callback 'onSave' if successfully saved image?
+                // NOTE: doesn't work if put 'currentImage' instead of response.data...
+                if (props.onSave) {
+                    props.onSave({...response.data,
+                        id: response.data.image_id,
+                        name: response.data.name,
+                    });
+                } else {
+                    props.history.replace('/image/edit/' + response.data.image_id);
+                }
+
             }
-
-          }
 
         });
 /*
@@ -470,10 +472,7 @@ const ImageEdit = (props) => {
               </ButtonGroup>
               </Box>
 
-
             </AutoForm>
-
-            <AlertList alert={alert} />
 
           </div>
         );
