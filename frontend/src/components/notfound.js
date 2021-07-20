@@ -1,12 +1,16 @@
 import React from 'react';
+import { useErrorResponse } from '../contexts/error';
 
 const NotFound = (props) => {
 
-    return (
-        <div>
-            <p>Error: the requested resource could not be found (<strong>{props.location.pathname}</strong>)</p>
-        </div>
-    );
+    const setErrorResponse = useErrorResponse();
+
+    setErrorResponse({
+        code: 404, // Not Found
+        details: 'Invalid route',
+    })
+
+    return (<></>);
 }
 
 export default NotFound;

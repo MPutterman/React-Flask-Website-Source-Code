@@ -1,16 +1,25 @@
 // Error Handler context
 // Credit: https://itnext.io/centralizing-api-error-handling-in-react-apps-810b2be1d39d
+//
+// Usage in components:
+//    import { useErrorResponse } from '../contexts/error';
+//    const setErrorResponse = useErrorResponse();
+//    ...
+//    setErrorResponse({ code:<Integer>, details:<String>})
+//    -- code is the status code (e.g. 404, or StatusCodes.NOT_FOUND)
+//    -- details can be used to provide any desired additional information
+//
+// References:
+// https://www.npmjs.com/package/http-status-codes (lookup of HTTP status codes / reasons)
 
-// TODO:
-// * Add default status messages (from HTTP specification) if not
-//   provided by the calling component?
 
 import React from 'react';
 import { useHistory } from 'react-router-dom';
+import { StatusCodes, getReasonPhrase } from 'http-status-codes';
 
 const ErrorContext = React.createContext();
 
-export function useErrorStatus() {
+export function useErrorResponse() {
   const context = React.useContext(ErrorContext);
   if (context === undefined) {
     throw new Error("useErrorStatus must be used within an ErrorContext.Provider");
@@ -25,17 +34,16 @@ export const ErrorHandler = ({ children }) => {
 
   const errorNone = {
       code: undefined,  // HTTP status code
-      message: '',      // HTTP status message
-      details: '',      // additional details (e.g. for debugging)
+      details: '',      // Error details (e.g. for debugging)
   }
 
-  const [errorStatus, setErrorStatus] = React.useState(errorNone);
+  const [errorResponse, setErrorResponse] = React.useState(errorNone);
 
   // Need to remove the error status whenever the user navigates
   // to a new URL.
   React.useEffect(() => {
     // Listen for changes to the current location
-    const unlisten = history.listen(() => setErrorStatus(errorNone));
+    const unlisten = history.listen(() => setErrorResponse(errorNone));
     // cleanup the listener on unmount
     return unlisten;
   }, []);
@@ -45,13 +53,13 @@ export const ErrorHandler = ({ children }) => {
   // children as normal.
   const renderContent = () => {
 
-    // Render a generic error page (assumes errorStatus.code is empty if no error)
-    if (errorStatus.code) {
-
+    // If error condition (i.e. non-empty errorResponse.code), then render
+    // an error page and supress rendering of children
+    if (errorResponse.code) {
         return (
             <>
-            <h1>Error {errorStatus.code}: {errorStatus.message}</h1>
-            {errorStatus.details ? ( <h2>{errorStatus.details}</h2> ) : ( <></> )}
+            <h1>Error {errorResponse.code}: {getReasonPhrase(errorResponse.code)}</h1>
+            {errorResponse.details ? ( <h2>{errorResponse.details}</h2> ) : ( <></> )}
             </>
         );
     }
@@ -59,18 +67,9 @@ export const ErrorHandler = ({ children }) => {
     return children;
   }
 
-  // TODO: implement this  
-  // We wrap it in a useMemo for performance reasons. More here:
-  // https://kentcdodds.com/blog/how-to-optimize-your-context-value/
-  const contextPayload = React.useMemo(
-    () => ({ setErrorStatus }), 
-    [setErrorStatus]
-  );
-  
-  // We expose the context's value down to our components, while
-  // also making sure to render the proper content to the screen 
+  // We are passing the setErrorResponse function to children components
   return (
-    <ErrorContext.Provider value={setErrorStatus} /*{contextPayload}*/>
+    <ErrorContext.Provider value={setErrorResponse}>
       {renderContent()}
     </ErrorContext.Provider>
   );

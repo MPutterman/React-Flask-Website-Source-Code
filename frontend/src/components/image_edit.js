@@ -1,6 +1,4 @@
 // TODO:
-// * TODO: change setErrorStatus to accept a dict that matches what is from callAPI
-//     (at least somehow unify them)
 // * All these 'edit' functions are pretty similar other than
 //   the schema and which API calls to make.  Maybe merge into a generic handler?
 // * Relies on some utilities to fix datetime issues
@@ -26,7 +24,7 @@ import React from "react";
 import { callAPI } from './api.js';
 import { withRouter } from "react-router";
 import { useAuthState, useAuthDispatch, defaultUserPrefs, authRefreshSession } from '../contexts/auth';
-import { useErrorStatus } from '../contexts/error';
+import { useErrorResponse } from '../contexts/error';
 
 import Button from "@material-ui/core/Button";
 import ButtonGroup from "@material-ui/core/ButtonGroup";
@@ -59,7 +57,7 @@ const ImageEdit = (props) => {
     
     const session = useAuthState();
     const dispatch = useAuthDispatch();
-    const setErrorStatus = useErrorStatus();
+    const setErrorResponse = useErrorResponse();
     const setAlert = useAlerts();
 
     const initialImageState = {
@@ -97,9 +95,8 @@ const ImageEdit = (props) => {
           callAPI('GET', `image/load/${id}`)
           .then((response) => {
               if (response.error) {
-                setErrorStatus({
+                setErrorResponse({
                     code: response.status,
-                    message: response.statusText,
                     details: response.data.error ? response.data.error : '',
                 });
                 setLoading(false);
@@ -123,7 +120,7 @@ const ImageEdit = (props) => {
 /*
             .catch((e) => {
                 console.error("GET /image/load/" + id + ": " + e);
-                setErrorStatus({
+                setErrorResponse({
                     code: 500,
                     message: "ImageEdit.loadImage. GET /image/load/" + id + " returned error: " + e,
                 });
@@ -189,9 +186,8 @@ const ImageEdit = (props) => {
         .then((response) => {
 
             if (response.error) {
-                setErrorStatus ({
+                setErrorResponse ({
                     code: response.status,
-                    message: response.statusText,
                     details: response.data.error,
                 });
                 setLoading(false);
@@ -231,7 +227,7 @@ const ImageEdit = (props) => {
 /*
         .catch((e) => {
             console.log("POST /image/save: " + e);
-            setErrorStatus({
+            setErrorResponse({
                 code: 500,
                 message: "ImageEdit.saveImage. POST /image/save/" + data['image_id'] + " returned error: " + e,
             });
