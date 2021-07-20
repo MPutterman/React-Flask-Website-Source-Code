@@ -1,6 +1,10 @@
 // Error Handler context
 // Credit: https://itnext.io/centralizing-api-error-handling-in-react-apps-810b2be1d39d
 
+// TODO:
+// * Add default status messages (from HTTP specification) if not
+//   provided by the calling component?
+
 import React from 'react';
 import { useHistory } from 'react-router-dom';
 
@@ -10,51 +14,43 @@ export const ErrorHandler = ({ children }) => {
 
   const history = useHistory();
 
-  const noError = {
-      code: undefined,
-      message: '',
-      //redirect: '',
+  const errorNone = {
+      code: undefined,  // HTTP status code
+      message: '',      // HTTP status message
+      details: '',      // additional details (e.g. for debugging)
   }
 
-  const [errorStatus, setErrorStatus] = React.useState(noError);
+  const [errorStatus, setErrorStatus] = React.useState(errorNone);
 
-  const messagePrefix = {
-      '401': 'Unauthorized',
-      '403': 'Forbidden', // TODO: maybe just use 404 message?
-      '404': 'Resource not found',
-      '500': 'Internal server error',
-  }
-
-  // Make sure to "remove" this status code whenever the user 
-  // navigates to a new URL. If we didn't do that, then the user
-  // would be "trapped" into error pages forever
+  // Need to remove the error status whenever the user navigates
+  // to a new URL.
   React.useEffect(() => {
-    // Listen for changes to the current location.
-    const unlisten = history.listen(() => setErrorStatus(noError));
+    // Listen for changes to the current location
+    const unlisten = history.listen(() => setErrorStatus(errorNone));
     // cleanup the listener on unmount
     return unlisten;
   }, []);
-  
-  // This is what the component will render. If it has an 
-  // errorStatusCode that matches an API error, it will only render
-  // an error page. If there is no error status, then it will render
-  // the children as normal
+
+  // Render the component. If there is a recognized error
+  // status, render an error page. Otherwise, render the 
+  // children as normal.
   const renderContent = () => {
 
-    // Render a generic error page
+    // Render a generic error page (assumes errorStatus.code is empty if no error)
     if (errorStatus.code) {
 
         return (
             <>
-            <h1>Error {errorStatus.code}: {messagePrefix[errorStatus.code]}</h1>
-            <p>Message: {errorStatus.message}</p>
+            <h1>Error {errorStatus.code}: {errorStatus.message}</h1>
+            {errorStatus.details ? ( <h2>{errorStatus.details}</h2> ) : ( <></> )}
             </>
         );
     }
 
     return children;
   }
-  
+
+  // TODO: implement this  
   // We wrap it in a useMemo for performance reasons. More here:
   // https://kentcdodds.com/blog/how-to-optimize-your-context-value/
   const contextPayload = React.useMemo(

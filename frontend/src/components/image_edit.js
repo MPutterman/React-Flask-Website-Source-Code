@@ -1,4 +1,6 @@
 // TODO:
+// * TODO: change setErrorStatus to accept a dict that matches what is from callAPI
+//     (at least somehow unify them)
 // * All these 'edit' functions are pretty similar other than
 //   the schema and which API calls to make.  Maybe merge into a generic handler?
 // * Relies on some utilities to fix datetime issues
@@ -92,8 +94,18 @@ const ImageEdit = (props) => {
     async function loadImage(id) {
         setLoading(true);
         if (id) {
-          callAPI('GET', 'image/load/' + id)
+          callAPI('GET', `image/load/${id}`)
           .then((response) => {
+              if (response.error) {
+                setErrorStatus({
+                    code: response.status,
+                    message: response.statusText,
+                    details: response.data.error ? response.data.error : '',
+                });
+                setLoading(false);
+                return false;
+              } else {
+                // TODO: if error response (not found), issue 404 error
 
 //                console.log('loadImage, got response =>', response.data);
                 // Sanitize datetime fields
@@ -103,17 +115,21 @@ const ImageEdit = (props) => {
 //                console.log('loadImage, after change date format =>', response.data);
  
                 setCurrentImage(response.data);
+                console.log(response);
                 setLoading(false);
+              }
 
-            })
+            });
+/*
             .catch((e) => {
                 console.error("GET /image/load/" + id + ": " + e);
                 setErrorStatus({
-                    code: 404,
+                    code: 500,
                     message: "ImageEdit.loadImage. GET /image/load/" + id + " returned error: " + e,
                 });
                 setLoading(false);
             });
+*/
         } else {
             setLoading(false);
         }
@@ -171,6 +187,16 @@ const ImageEdit = (props) => {
 
         return callAPI('POST', 'image/save', dataCopy)
         .then((response) => {
+            if (response.error) {
+              setErrorStatus ({
+                code: response.status,
+                message: response.statusText,
+                details: response.data.error,
+              });
+              setLoading(false);
+              return false;
+
+            } else {
             setAlert({severity: 'success', message: "yay, success"});
 //            console.log('data received after image/save:', response.data);
 
@@ -198,8 +224,10 @@ const ImageEdit = (props) => {
                 props.history.replace('/image/edit/' + response.data.image_id);
             }
 
+          }
 
-        })
+        });
+/*
         .catch((e) => {
             console.log("POST /image/save: " + e);
             setErrorStatus({
@@ -208,6 +236,7 @@ const ImageEdit = (props) => {
             });
             setLoading(false);
         });
+*/
     }
 
     // NOT YET FUNCTIONAL AND BACKEND NOT IMPLEMENTED (add a status message when implement this)
