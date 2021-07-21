@@ -36,13 +36,13 @@ const UserSearch = (props) => {
 
     // State
     const [renderOnce] = useState(true);
-    const [loading, setLoading] = useState(true); // Support for loading indicator
+    const [busy, setBusy] = useState(true); // Support for loading indicator
     const [userList, setUserList] = useState([]);
     const [organizationList, setOrganizationList] = useState([]);
 
     // Retrieve user with specified id from the database
     const getUserList = (filters) => {
-        setLoading(true);
+        setBusy(true);
         return callAPI('GET', 'user/search')
         .then((response) => {
             // Reformat... return as array indexed by ID... but DataGrid wants list of dicts
@@ -52,11 +52,11 @@ const UserSearch = (props) => {
             })
             setUserList(response.data);
             //console.log ("In getUsers: response data => ", response.data);
-            setLoading(false);
+            setBusy(false);
         })
         .catch((e) => {
             console.error("GET /user/search (filters: " + filters + "): " + e);
-            setLoading(false);
+            setBusy(false);
         });
     }
 
@@ -101,7 +101,7 @@ const UserSearch = (props) => {
     // Returns the search options form and then the search results list
     return (
       <>
-      <Busy busy={loading} />
+      <Busy busy={busy} />
       <div className="UserSearchForm" width="100%">     
           {userList.length > 0 ? (
               <DataGrid
@@ -109,7 +109,7 @@ const UserSearch = (props) => {
                   columns={columns}
                   pageSize={10} // default page size
                   autoHeight
-                  loading={loading}
+                  loading={busy}
                   density="compact"
                   rowsPerPageOptions={config.general.searchresult_pagesize_options}
                   paginationMode="client" // for now client (and return all rows)... later use database pagination

@@ -38,12 +38,12 @@ const EquipSearch = (props) => {
     ];
 
     // State
-    const [loading, setLoading] = useState(true); // Support for loading indicator
+    const [busy, setBusy] = useState(true); // Support for loading indicator
     const [list, setList] = useState([]);
 
     // Retrieve list of records
     const getList = (filters) => {
-        setLoading(true);
+        setBusy(true);
         return callAPI('GET', 'equip/search')
         .then((response) => {
             // Reformat... return as array indexed by ID... but DataGrid wants list of dicts
@@ -51,11 +51,11 @@ const EquipSearch = (props) => {
                 element['id'] = element['equip_id']; 
             })
             setList(response.data);
-            setLoading(false);
+            setBusy(false);
         })
         .catch((e) => {
             console.error("GET /equip/search (filters: " + filters + "): " + e);
-            setLoading(false);
+            setBusy(false);
         });
     }
 
@@ -85,7 +85,7 @@ const EquipSearch = (props) => {
     // Returns the search options form and then the search results list
     return (
       <>
-      <Busy busy={loading} />
+      <Busy busy={busy} />
       <div>
           {list.length > 0 ? (
               <DataGrid
@@ -93,7 +93,7 @@ const EquipSearch = (props) => {
                   columns={columns}
                   pageSize={10} // default page size
                   autoHeight
-                  loading={loading}
+                  loading={busy}
                   density="compact"
                   rowsPerPageOptions={config.general.searchresult_pagesize_options}
                   paginationMode="client" // for now client (and return all rows)... later use database pagination

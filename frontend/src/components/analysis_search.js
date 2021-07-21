@@ -30,12 +30,12 @@ const AnalysisSearch = (props) => {
     ];
 
     // State
-    const [loading, setLoading] = useState(true); // Support for busy indicator
+    const [busy, setBusy] = useState(true); // Support for busy indicator
     const [analysisList, setAnalysisList] = useState([]);
 
     // Retrieve analysis with specified id from the database
     const getAnalysisList = (filters) => {
-        setLoading(true);
+        setBusy(true);
         return callAPI('GET', 'analysis/search')
         .then((response) => {
             // Reformat... returned as array indexed by ID... but DataGrid wants list of dicts
@@ -44,11 +44,11 @@ const AnalysisSearch = (props) => {
             })
             setAnalysisList(response.data);
             //console.log ("In getAnalyisList: response data => ", response.data);
-            setLoading(false);
+            setBusy(false);
         })
         .catch((e) => {
             console.error("GET /analysis/search (filters: " + filters + "): " + e);
-            setLoading(false);
+            setBusy(false);
         });
     }
 
@@ -70,7 +70,7 @@ const AnalysisSearch = (props) => {
     return (
       <>
 
-      <Busy busy={loading} />
+      <Busy busy={busy} />
 
       <div className="AnalysisSearchForm" width="100%">     
           {analysisList.length > 0 ? (
@@ -79,7 +79,7 @@ const AnalysisSearch = (props) => {
                   columns={columns}
                   pageSize={10} // default page size
                   autoHeight
-                  loading={loading}
+                  loading={busy}
                   density="compact"
                   rowsPerPageOptions={config.general.searchresult_pagesize_options}
                   paginationMode="client" // for now client (and return all rows)... later use database pagination

@@ -41,12 +41,12 @@ const ImageSearch = (props) => {
     ];
 
     // State
-    const [loading, setLoading] = useState(true); // Support for loading indicator
+    const [busy, setBusy] = useState(true); // Support for loading indicator
     const [imageList, setImageList] = useState([]);
 
     // Retrieve list of images
     const getImageList = (filters) => {
-        setLoading(true);
+        setBusy(true);
         return callAPI('GET', 'image/search')
         .then((response) => {
             // Reformat... return as array indexed by ID... but DataGrid wants list of dicts
@@ -54,11 +54,11 @@ const ImageSearch = (props) => {
                 element['id'] = element['image_id']; 
             })
             setImageList(response.data);
-            setLoading(false);
+            setBusy(false);
         })
         .catch((e) => {
             console.error("GET /image/search (filters: " + filters + "): " + e);
-            setLoading(false);
+            setBusy(false);
         });
     }
 
@@ -88,7 +88,7 @@ const ImageSearch = (props) => {
     // Returns the search options form and then the search results list
     return (
       <>
-      <Busy busy={loading} />
+      <Busy busy={busy} />
       <div >     
           {imageList.length > 0 ? (
               <DataGrid
@@ -96,7 +96,7 @@ const ImageSearch = (props) => {
                   columns={columns}
                   pageSize={10} // default page size
                   autoHeight
-                  loading={loading}
+                  loading={busy}
                   density="compact"
                   rowsPerPageOptions={config.general.searchresult_pagesize_options}
                   paginationMode="client" // for now client (and return all rows)... later use database pagination

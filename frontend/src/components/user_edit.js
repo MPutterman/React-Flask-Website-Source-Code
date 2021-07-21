@@ -59,7 +59,7 @@ const UserEdit = (props) => {
         org_list: [],
     };
 
-    const [loading, setLoading] = React.useState(false);
+    const [busy, setBusy] = React.useState(false);
     const [model, setModel] = React.useState(initialModel);
     const [availableOrganizations, setAvailableOrganizations] = React.useState([]);
 
@@ -73,7 +73,7 @@ const UserEdit = (props) => {
     // TODO: Error handling if user is not found... need to redirect to not found page
     async function load(id) {
         if (id) {
-            setLoading(true);
+            setBusy(true);
             callAPI('GET', 'user/load/' + id)
             .then((response) => {
 
@@ -81,13 +81,13 @@ const UserEdit = (props) => {
 
                 // TODO: handle some specific errors (e.g. unauthorized) or add error details?
                 setErrorResponse({code: response.status, details: response.data.error ? response.data.error : '' });
-                setLoading(false);
+                setBusy(false);
                 return false;
 
               } else {
 
                 setModel(response.data);
-                setLoading(false);
+                setBusy(false);
                 return true;
               
               }
@@ -140,13 +140,13 @@ const UserEdit = (props) => {
     // Save the user information back to the database
     async function saveUser(data) {
         // TODO: need to filter anything out of 'data'?
-        setLoading(true);
+        setBusy(true);
         return callAPI('POST', 'user/save', data)
         .then((response) => {
             console.log(response.data);
             setAlert({severity: 'success', message: 'User saved successfully'});
             setModel(response.data);
-            setLoading(false);
+            setBusy(false);
         })
         .then(() => {
             authRefreshSession(dispatch);
@@ -154,7 +154,7 @@ const UserEdit = (props) => {
 
         .catch((e) => {
             console.log("POST /user/save: " + e);
-            setLoading(false);
+            setBusy(false);
         });
     }
 
@@ -285,7 +285,7 @@ const UserEdit = (props) => {
 
           <div className="UserEditForm" style={{ margin: 'auto', maxWidth: '350px',}}>
 
-            <Busy busy={loading} />
+            <Busy busy={busy} />
 
 
             {props.register ? (<p>New user registration</p>) : (<></>)}

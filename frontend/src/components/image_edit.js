@@ -76,7 +76,7 @@ const ImageEdit = (props) => {
         file: null,
     };
 
-    const [loading, setLoading] = React.useState(false);
+    const [busy, setBusy] = React.useState(false);
     const [filename, setFilename] = React.useState('');
     const [model, setModel] = React.useState(initialModel);
 
@@ -94,7 +94,7 @@ const ImageEdit = (props) => {
     // Retrieve record with specified id from the database
     async function load(id) {
         if (id) {
-          setLoading(true);
+          setBusy(true);
           callAPI('GET', `image/load/${id}`)
           .then((response) => {
 
@@ -102,7 +102,7 @@ const ImageEdit = (props) => {
 
                 // TODO: handle some specific errors (e.g. unauthorized) or add error details?
                 setErrorResponse({code: response.status, details: response.data.error ? response.data.error : '' });
-                setLoading(false);
+                setBusy(false);
                 return false;
 
               } else {
@@ -116,7 +116,7 @@ const ImageEdit = (props) => {
  
                 setModel(response.data);
                 console.log(response);
-                setLoading(false);
+                setBusy(false);
                 return true;
               }
 
@@ -155,7 +155,7 @@ const ImageEdit = (props) => {
     // Save the record back to the database
     async function save(data) {
         // TODO: need to filter anything out of 'data'?
-        setLoading(true);
+        setBusy(true);
 
         // Sanitize datetime fields.  Note it seems necessary to make a copy
         // of and add the date-related fields as strings, rather than overwrite the
@@ -183,7 +183,7 @@ const ImageEdit = (props) => {
 
                 // TODO: handle some kinds of errors (e.g. unauthorized?)
                 setAlert({severity: 'error', message: `Error: Received status ${response.status} from backend (${response.data.error})`});
-                setLoading(false);
+                setBusy(false);
                 return false;
 
             } else {
@@ -201,7 +201,7 @@ const ImageEdit = (props) => {
 //            console.log('data converted after image/save:', response.data);
 
                 setModel(response.data);
-                setLoading(false);
+                setBusy(false);
 
                 // Call callback 'onSave' if successfully saved image?
                 // NOTE: doesn't work if put 'model' instead of response.data...
@@ -348,7 +348,7 @@ const ImageEdit = (props) => {
 
           <div className="ImageEditForm" style={{ maxWidth: '600px', align:'middle'}}>
 
-            <Busy busy={loading} />
+            <Busy busy={busy} />
 
             {props.new ? (<p>New image creation</p>) : (<></>)}
 
