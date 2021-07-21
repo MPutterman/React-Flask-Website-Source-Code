@@ -11,6 +11,8 @@
 //
 // References:
 // https://www.npmjs.com/package/http-status-codes (lookup of HTTP status codes / reasons)
+// https://stackoverflow.com/questions/41773406/react-router-not-found-404-for-dynamic-content
+//   (other interesting concepts for error handling strategies)
 
 
 import React from 'react';
@@ -26,7 +28,6 @@ export function useErrorResponse() {
   }
   return context;
 }
-
 
 export const ErrorHandler = ({ children }) => {
 
