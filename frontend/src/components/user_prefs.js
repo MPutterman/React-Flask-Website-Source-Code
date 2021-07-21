@@ -51,7 +51,7 @@ const UserPrefs = (props) => {
 
     const initialUserPrefs = defaultUserPrefs; // Defaults currently stored in auth.js
 
-    const [loading, setLoading] = React.useState(false); 
+    const [busy, setBusy] = React.useState(false); 
 
     const [currentUserPrefs, setCurrentUserPrefs] = React.useState(initialUserPrefs);
 
@@ -149,10 +149,10 @@ const UserPrefs = (props) => {
     // TODO: should this need a backend method, or just work entirely with the session?
     // When save prefs, need to trigger session to reload / update prefs...
     async function loadUserPrefs() {
-        setLoading(true);
+        setBusy(true);
         setCurrentUserPrefs(session.prefs);
         console.log('found prefs =>', currentUserPrefs);
-        setLoading(false);
+        setBusy(false);
     }
 
     React.useEffect(() => {
@@ -169,7 +169,7 @@ const UserPrefs = (props) => {
     // TODO: currently doesn't pass a user_id... maybe something we want in the future for admins?
     async function saveUserPrefs(data) {
         console.log ('saveUserPrefs, incoming data', data);
-        setLoading(true);
+        setBusy(true);
         // Hack -- better option might be to set content-type to application/json
         // Backend needs to un-stringify this
         let newdata = {prefs: JSON.stringify(data)};
@@ -178,7 +178,7 @@ const UserPrefs = (props) => {
         return callAPI('POST', 'api/prefs/save', newdata)
         .then((response) => {
             setAlert({severity: 'success', message: 'Preferences successfully saved'});
-            setLoading(false);
+            setBusy(false);
             return true;
         })
         .then(() => {
@@ -187,7 +187,7 @@ const UserPrefs = (props) => {
         .catch((e) => {
             setAlert({severity: 'error', message: 'Error while saving preferences'});
             console.log("saveUserPrefs - exception: " + e);
-            setLoading(false);
+            setBusy(false);
             return false;
         });
     }
@@ -245,7 +245,7 @@ const UserPrefs = (props) => {
 
           <div className="UserPrefForm" style={{ margin: 'auto', maxWidth: '500px',}}>
 
-            <Busy busy={loading} />
+            <Busy busy={busy} />
 
             <AutoForm
               schema={bridge}
