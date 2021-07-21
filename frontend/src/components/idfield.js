@@ -2,6 +2,9 @@
 // object by ID, including a popup to search for an item, or a popup to create a new item. 
 // The resulting ID value (selected or created) is returned to the form.
 //
+// Note: we define a new ErrorContext in here so that an error in retrieving data for
+// a modal dialog just generates an error in the modal... not a full-page error page.
+//
 // Usage: <IDInputField objectType=<String> selectLabel=<String> createLabel=<String> clearLabel=<string> />
 // - objectType<String> = user, image, equip, org, plate, cover
 // - selectTitle<String> = text to display as title on 'Select' popup
@@ -26,6 +29,10 @@
 // * Add some intelligent behavior if the objectType doesn't exist, e.g. remove the button altogether?
 // * Figure out how to add a * next to label when field is required
 // * When we have an error state... make sure underlying components render in error state'
+// * There is a risk of polluting the database a bit.  If a user creates a new record, it gets saved
+//     immediately.  If user then creates again... it will create a whole new object and the oriignal
+//     one is hanging (not part of any analysis/object).  Should 'clear' delete the object
+//     (if it is not used anywhere else), and maybe disable 'create' if ID is already defined?
 // * Add a 'disabled' or 'readOnly' mode that disabled/removes buttons when only want to show the ID and Name
 
 // Main imports
@@ -33,6 +40,7 @@ import React from 'react';
 import { HTMLFieldProps, connectField } from 'uniforms';
 import { useForm } from 'uniforms';
 import { name_lookup } from '../helpers/validation_utils';
+import { ErrorHandler } from '../contexts/error';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
@@ -247,12 +255,14 @@ function IDInput({ name, error, onChange, value, label, ref, ...props }: IDInput
             {props.editTitle ? ( <span>{props.editTitle}</span> ) : ( <span>Edit record</span> )}
         </DialogTitle>
         <DialogContent>
+            <ErrorHandler>
             {{
                 'user': <UserEdit object_id={value} onSave={setTemporaryModel} {...props} />,
                 'image': <ImageEdit object_id={value} onSave={setTemporaryModel} {...props} />,
                 //'equip': <EquipEdit object_id={value} onSave={setTemporaryModel} {...props} />,
                 'default': <></>,
             } [props.objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
+            </ErrorHandler>
         </DialogContent>
         <DialogActions>
           <Button variant="contained" color="primary" /* not disabled */ onClick={onOKEdit}>
@@ -270,12 +280,14 @@ function IDInput({ name, error, onChange, value, label, ref, ...props }: IDInput
             {props.selectTitle ? ( <span>{props.selectTitle}</span> ) : ( <span>Select record</span> )}
         </DialogTitle>
         <DialogContent>
+            <ErrorHandler>
             {{
                 'user': <UserSelect onSelect={setTemporaryModel} {...props} filter={filter} />,
                 'image': <ImageSelect onSelect={setTemporaryModel} {...props} filter={filter} />,
                 'equip': <EquipSelect onSelect={setTemporaryModel} {...props} filter={filter} />,
                 'default': <></>,
             } [props.objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
+            </ErrorHandler>
         </DialogContent>
         <DialogActions>
           <Button variant="contained" color="primary"
@@ -295,12 +307,14 @@ function IDInput({ name, error, onChange, value, label, ref, ...props }: IDInput
             {props.createTitle ? ( <span>{props.createTitle}</span> ) : ( <span>Create new record</span> )}
         </DialogTitle>
         <DialogContent>
+            <ErrorHandler>
             {{
                 'user': <UserCreate new={true} onSave={setTemporaryModel} {...props} filter={filter} />,
                 'image': <ImageCreate new={true} onSave={setTemporaryModel} {...props} filter={filter} />,
                 //'equip': <EquipCreate new={true} onSave={setTemporaryModel} {...props} filter={filter} />,
                 'default': <></>,
             } [props.objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
+            </ErrorHandler>
         </DialogContent>
         <DialogActions>
           <Button variant="contained" color="primary"
