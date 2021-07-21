@@ -60,7 +60,7 @@ const ImageEdit = (props) => {
     const setErrorResponse = useErrorResponse();
     const setAlert = useAlerts();
 
-    const initialImageState = {
+    const initialModel = {
         image_id: '', // NOTE: if set null here, the edit form ID value overlaps the help text
         image_type: '',
         name: '',
@@ -78,69 +78,63 @@ const ImageEdit = (props) => {
 
     const [loading, setLoading] = React.useState(false);
     const [filename, setFilename] = React.useState('');
-    const [currentImage, setCurrentImage] = React.useState(initialImageState);
+    const [model, setModel] = React.useState(initialModel);
 
+    // Rendering as modal component?
+    const isModal = () => {
+        return !!props.onSave;      
+    }
 
     async function onSubmit(data, e) {
 //      console.log("onSubmit: data => ", data);
-      saveImage(data);
+      save(data);
 
     };
     
     // Retrieve record with specified id from the database
-    // TODO: Error handling if id not found... need to redirect to not found page
-    async function loadImage(id) {
-        setLoading(true);
+    async function load(id) {
         if (id) {
+          setLoading(true);
           callAPI('GET', `image/load/${id}`)
           .then((response) => {
+
               if (response.error) {
-                setErrorResponse({
-                    code: response.status,
-                    details: response.data.error ? response.data.error : '',
-                });
+
+                // TODO: handle some specific errors (e.g. unauthorized) or add error details?
+                setErrorResponse({code: response.status, details: response.data.error ? response.data.error : '' });
                 setLoading(false);
                 return false;
-              } else {
-                // TODO: if error response (not found), issue 404 error
 
-//                console.log('loadImage, got response =>', response.data);
+              } else {
+
+//                console.log('load, got response =>', response.data);
                 // Sanitize datetime fields
                 response.data.created = fixDateFromBackend(response.data.created);
                 response.data.modified = fixDateFromBackend(response.data.modified);
                 response.data.captured = fixDateFromBackend(response.data.captured);
-//                console.log('loadImage, after change date format =>', response.data);
+//                console.log('load, after change date format =>', response.data);
  
-                setCurrentImage(response.data);
+                setModel(response.data);
                 console.log(response);
                 setLoading(false);
+                return true;
               }
 
-            });
-/*
-            .catch((e) => {
-                console.error("GET /image/load/" + id + ": " + e);
-                setErrorResponse({
-                    code: 500,
-                    message: "ImageEdit.loadImage. GET /image/load/" + id + " returned error: " + e,
-                });
-                setLoading(false);
-            });
-*/
-        } else {
-            setLoading(false);
+          });
         }
+        return true;
     }
 
-    // Call this upon first value of props.match.params.id (should only run once)
     React.useEffect(() => {
-        console.log("In useEffect, change of [props.match.params.id] or [props.object_id]"); 
-        if (props.object_id) {
-            loadImage(props.object_id);
+        console.log("In useEffect, change of [props.new, props.object_id, or props.match.params.id]"); 
+        if (props.new) {
+            load(null);
+        } else if (props.object_id) {
+            load(props.object_id);
         } else if (props.match.params.id) {
-            loadImage(props.match.params.id);
+            load(props.match.params.id);
         }
-    }, [props.match.params.id, props.object_id]);
+    }, [props.new, props.object_id, props.match.params.id]);
 
     // If props.filter is provided, try to pre-fill fields (i.e. when used as popup)
     React.useEffect(() => {
@@ -153,13 +147,13 @@ const ImageEdit = (props) => {
                 }
             });
             console.log('overriding values from props.filter', override);
-            setCurrentImage(prev => ({...prev, ...override}));
+            setModel(prev => ({...prev, ...override}));
         }
     }, [props.filter]);
 
 
     // Save the record back to the database
-    async function saveImage(data) {
+    async function save(data) {
         // TODO: need to filter anything out of 'data'?
         setLoading(true);
 
@@ -186,15 +180,15 @@ const ImageEdit = (props) => {
         .then((response) => {
 
             if (response.error) {
-                setErrorResponse ({
-                    code: response.status,
-                    details: response.data.error,
-                });
+
+                // TODO: handle some kinds of errors (e.g. unauthorized?)
+                setAlert({severity: 'error', message: `Error: Received status ${response.status} from backend (${response.data.error})`});
                 setLoading(false);
                 return false;
 
             } else {
-                setAlert({severity: 'success', message: "yay, success"});
+
+                setAlert({severity: 'success', message: "Save successful"});
 //            console.log('data received after image/save:', response.data);
 
                 // Convert from date strings to objects
@@ -206,12 +200,11 @@ const ImageEdit = (props) => {
 
 //            console.log('data converted after image/save:', response.data);
 
-                setCurrentImage(response.data);
-    //            reset(currentImage); // does this work?
+                setModel(response.data);
                 setLoading(false);
 
                 // Call callback 'onSave' if successfully saved image?
-                // NOTE: doesn't work if put 'currentImage' instead of response.data...
+                // NOTE: doesn't work if put 'model' instead of response.data...
                 if (props.onSave) {
                     props.onSave({...response.data,
                         id: response.data.image_id,
@@ -224,27 +217,18 @@ const ImageEdit = (props) => {
             }
 
         });
-/*
-        .catch((e) => {
-            console.log("POST /image/save: " + e);
-            setErrorResponse({
-                code: 500,
-                message: "ImageEdit.saveImage. POST /image/save/" + data['image_id'] + " returned error: " + e,
-            });
-            setLoading(false);
-        });
-*/
+
     }
 
     // NOT YET FUNCTIONAL AND BACKEND NOT IMPLEMENTED (add a status message when implement this)
     const deleteImage = () => {
-        callAPI('POST', 'image/delete/' + currentImage.id)
+        callAPI('POST', 'image/delete/' + model.id)
         .then((response) => {
             console.log(response.data);
             props.history.push('/image/search');  // Does this make sense to go here after? Or go to previous page?
         })
         .catch((e) => {
-            console.log("POST /image/delete/" + currentImage.id + ": " + e);
+            console.log("POST /image/delete/" + model.id + ": " + e);
         });
     }    
 
@@ -372,7 +356,7 @@ const ImageEdit = (props) => {
               schema={bridge}
               onSubmit={onSubmit}
               ref={ref => (formRef = ref)}
-              model={currentImage}
+              model={model}
               onValidate={onValidate}
             >
 
@@ -383,7 +367,7 @@ const ImageEdit = (props) => {
               </Box>
               <Box width='80%' pl={2} /* TODO: width not working? */>
                 <AutoField name="file" component={FileInputField}
-                  wibuttonLabel={currentImage.image_path ? 'Replace Image' : 'Select Image'}
+                  wibuttonLabel={model.image_path ? 'Replace Image' : 'Select Image'}
                   filenameField='name'
                 />
                 <ErrorField name="file" />
@@ -452,7 +436,7 @@ const ImageEdit = (props) => {
                 <ErrorField name="modified" />
                 </Box>
               </Box>
-              <AutoField name="owner_id" component={IDInputField} objectType='user' disabled={true} />
+              <AutoField name="owner_id" component={IDInputField} objectType='user' /*disabled={true}*/ />
               <ErrorField name="owner_id" />
               </Box>
 

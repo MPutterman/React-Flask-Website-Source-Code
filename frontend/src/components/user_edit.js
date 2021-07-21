@@ -1,9 +1,8 @@
 // TODO:
 // * Check backend, make sure when run user/save that it is properly updating the session data
+// * In backend, make sure to redo all validation checks (e.g. unique email, etc...)
 // * I want to hide password (if not on registration), 
 //    But then there is a validation error... even if the fields are omitted from being displayed
-// * When save profile, need to check email doesn't match any other user_id...
-// * Rename as 'model, setModel' so all forms more alike?
 // * Divide into toplevel form (exported with withRouter), and a modal form
 // * Temporarily added a props.admin to show/edit the password.  Need to make sure user_save behaves properly
 //    without the password field showing.  The 'props.admin' will later be replaced by a
@@ -26,6 +25,7 @@ import { callAPI } from './api';
 import { withRouter } from "react-router";
 import Button from "@material-ui/core/Button";
 import { useAuthState, useAuthDispatch, authRefreshSession } from "../contexts/auth";
+import { useErrorResponse } from '../contexts/error';
 import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField,} from 'uniforms-material';
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
@@ -36,7 +36,7 @@ import NotFound from '../components/notfound';
 // User Edit form
 // Special props:
 // - register - any value if desire to render as a new user registration form
-// - id       - user id (if empty, create a new user)
+// - object_id - user id (if empty, create a new user)
 // - new      - force to create a new user (ignore any props.match.params.id) // temporary fix with multiple components loaded
 // - onSave   - callback function called with model as argument after ID becomes valid
 //                (sends back 'id' and 'name' keys)
@@ -47,8 +47,9 @@ const UserEdit = (props) => {
     const session = useAuthState();
     const dispatch = useAuthDispatch();
     const setAlert = useAlerts();
+    const setErrorResponse = useErrorResponse();
     
-    const initialUserState = {
+    const initialModel = {
         user_id: '',
         first_name: '',
         last_name: '',
@@ -58,8 +59,8 @@ const UserEdit = (props) => {
         org_list: [],
     };
 
-    const [loading, setLoading] = React.useState('false');
-    const [currentUser, setCurrentUser] = React.useState(initialUserState);
+    const [loading, setLoading] = React.useState(false);
+    const [model, setModel] = React.useState(initialModel);
     const [availableOrganizations, setAvailableOrganizations] = React.useState([]);
 
     // Actions when form is submitted
@@ -70,63 +71,71 @@ const UserEdit = (props) => {
     
     // Retrieve user with specified id from the database
     // TODO: Error handling if user is not found... need to redirect to not found page
-    async function loadUser(id) {
-        setLoading(true);
+    async function load(id) {
         if (id) {
+            setLoading(true);
             callAPI('GET', 'user/load/' + id)
             .then((response) => {
-                setCurrentUser(response.data);
+
+              if (response.error) {
+
+                // TODO: handle some specific errors (e.g. unauthorized) or add error details?
+                setErrorResponse({code: response.status, details: response.data.error ? response.data.error : '' });
                 setLoading(false);
-            })
-            .catch((e) => {
-                console.error("GET /user/edit/" + id + ": " + e);
-                // TODO: replace this with an error 404 message
-                setAlert({severity: 'error', message: "Could not load user with id: " + id});
+                return false;
+
+              } else {
+
+                setModel(response.data);
                 setLoading(false);
-                return(<NotFound/>); // TODO: this doesn't work... how to return it
-                // Doesn't work. How to show this component (and not change URL in address bar)?
-                // https://stackoverflow.com/questions/41773406/react-router-not-found-404-for-dynamic-content
+                return true;
+              
+              }
 
             });
-        } else {
-            setLoading(false);
         }
+        return true;
     }
 
     // Retrieve list of available organizations (for now all organizations)
-    async function getOrganizations() {
+    // TODO: add error handling...
+    async function loadOrganizations() {
         callAPI('GET', 'organization/search')
         .then((response) => {
             setAvailableOrganizations(response.data);
-            console.log("in getOrganizations: response data => ", response.data);
+            console.log("in loadOrganizations: response data => ", response.data);
         })
         .catch((e) => {
             console.error("GET /organization/search: " + e);
         });
     }
 
-    // Call this upon first value of props.match.params.id (should only run once)
     React.useEffect(() => {
-        console.log("In useEffect #1"); // currentUser and availableOrganizations are updated asynchronously
-        // if props.new is set, force this to be a fresh user
-        loadUser(props.new ? null : props.match.params.id);
-        getOrganizations();
-    }, [props.match.params.id]);
+        console.log("In useEffect, change of [props.new, props.object_id, or props.match.params.id]");
+        if (props.new) {
+          load(null);
+        } else if (props.object_id) {
+          load(props.object_id);
+        } else if (props.match.params.id) {
+          load(props.match.params.id);
+        }
+        loadOrganizations();
+    }, [props.new, props.object_id, props.match.params.id]);
 
     // TODO: improve this... this is used in IDInputField to feedback 'name' in addition to the ID
     //   for newly created items.  Need a uniform way of doing this across all objects, both for 'edit' and 'select' forms...
     // Hack to implement an 'onSave'
     React.useEffect(() => {
-        if (currentUser.user_id && props.onSave) {
-          props.onSave({...currentUser,
-            id: currentUser.user_id,
-            name: currentUser.first_name + ' ' + currentUser.last_name,
+        if (model.user_id && props.onSave) {
+          props.onSave({...model,
+            id: model.user_id,
+            name: model.first_name + ' ' + model.last_name,
           });
-        } else if (currentUser.user_id) {
-          props.history.replace('/user/edit/' + currentUser.user_id);
+        } else if (model.user_id) {
+          props.history.replace('/user/edit/' + model.user_id);
         }
 
-    }, [currentUser.user_id])
+    }, [model.user_id])
 
     // Save the user information back to the database
     async function saveUser(data) {
@@ -136,7 +145,7 @@ const UserEdit = (props) => {
         .then((response) => {
             console.log(response.data);
             setAlert({severity: 'success', message: 'User saved successfully'});
-            setCurrentUser(response.data);
+            setModel(response.data);
             setLoading(false);
         })
         .then(() => {
@@ -153,13 +162,13 @@ const UserEdit = (props) => {
     // NOT YET FUNCTIONAL AND BACKEND NOT IMPLEMENTED (add a status message when implement this)
     const deleteUser= () => {
         setAlert({severity: 'error', message: 'Delete function not yet implemented'});
-        callAPI('POST', 'user/delete/' + currentUser.id)
+        callAPI('POST', 'user/delete/' + model.id)
         .then((response) => {
             console.log(response.data);
             props.history.push('/user/search');  // Does this make sense to go here after?
         })
         .catch((e) => {
-            console.log("POST /user/delete/" + currentUser.id + ": " + e);
+            console.log("POST /user/delete/" + model.id + ": " + e);
         });
     }    
 
@@ -286,7 +295,7 @@ const UserEdit = (props) => {
               schema={bridge}
               onSubmit={onSubmit}
               ref={ref => (formRef = ref)}
-              model={currentUser}
+              model={model}
               onValidate={onValidate}
             >
               <AutoField name="user_id" disabled={true} />
