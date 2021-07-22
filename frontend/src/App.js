@@ -3,6 +3,9 @@
 // * Add protection of routes for logged in users
 // * Move the 'snackbar' component here to allow for global message updating... there is a good example
 //   here: https://browntreelabs.com/snackbars-in-react-redux-and-material-ui/
+//
+// References:
+// https://www.npmjs.com/package/material-ui-confirm (confirm provider documentation)
 
 import React from 'react';
 
@@ -18,6 +21,9 @@ import { AuthProvider } from './contexts/auth';
 
 // Import error handler
 import { ErrorHandler } from './contexts/error';
+
+// Import confirm provider
+import { ConfirmProvider } from 'material-ui-confirm';
 
 // Import alert list
 import { AlertList } from './contexts/alerts';
@@ -110,6 +116,7 @@ const App = (props) => {
       <MuiPickersUtilsProvider utils={DateFnsUtils}>
       <AuthProvider>
         <ThemeProvider theme={darkMode}>
+        <ConfirmProvider defaultOptions={{confirmationButtonProps: { autoFocus: true }}}>
         <CssBaseline />
         <Router>
         <Layout>
@@ -155,6 +162,7 @@ const App = (props) => {
           </AlertList>
         </Layout>
         </Router>
+        </ConfirmProvider>
         </ThemeProvider>
       </AuthProvider>
       </MuiPickersUtilsProvider>
