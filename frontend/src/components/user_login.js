@@ -1,13 +1,13 @@
 // TODO:
 // * Add show/hide password
 // * <GoogleLogin> is triggering onLoginerror at first render. Why?
-// * Need to properly do error handling and messages, and properly use 'then' construct
+// * Add exception handling on login/logout errors
 
 import React from "react";
 import { authLogin, authLogout,authGoogleLogin, useAuthState, useAuthDispatch } from '../contexts/auth';
 import { useConfigState } from '../contexts/config';
 import { withRouter } from "react-router";
-import { useHistory } from 'react-router-dom';
+import { useHistory, useLocation } from 'react-router-dom';
 import Button from "@material-ui/core/Button";
 import GoogleLogin from 'react-google-login'
 
@@ -26,6 +26,7 @@ const UserLogin = (props) => {
     let formRef; // use to access reset() and submit() methods...
 
     const history = useHistory();
+    const { state } = useLocation(); // state.from contains referrer if applicable
     const setAlert = useAlerts();
 
     const [defaults, setDefaults] = React.useState( {email: '', password: '', remember: false} );
@@ -77,7 +78,7 @@ const UserLogin = (props) => {
         .then( (response) => {
             if (response) {
                 const url = session.prefs['general']['redirect_after_login'];    
-                history.push(url); 
+                history.push(state?.from || url);
             }
             setLoginPending(false);
         });
@@ -92,8 +93,8 @@ const UserLogin = (props) => {
         return await authLogin(authDispatch, data)
         .then( (response) => {
             if (response) {
-                const url = session.prefs['general']['redirect_after_login'];    
-                history.push(url); 
+                const url = session.prefs['general']['redirect_after_login'];
+                history.push(state?.from || url);
             } else {
                 setAlert({severity:'error', message:'Incorrect username and/or password'});
             }
