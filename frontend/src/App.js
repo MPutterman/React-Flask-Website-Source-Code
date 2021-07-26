@@ -1,6 +1,7 @@
 // TODO:
 // * Consider creating a config file to store routes. This could then also be used for menu generation.
 // * Add protection of routes for logged in users
+// * Upgrade to router v6 syntax: https://reacttraining.com/blog/react-router-v6-pre/
 // * Move the 'snackbar' component here to allow for global message updating... there is a good example
 //   here: https://browntreelabs.com/snackbars-in-react-redux-and-material-ui/
 //
@@ -12,12 +13,10 @@ import React from 'react';
 // Import theme and styles
 import CssBaseline from '@material-ui/core/CssBaseline';
 import "./App.css";
-import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
-import { blueGrey } from '@material-ui/core/colors';
 
-// Import configuration, authentication, preferences
+// Import configuration, authentication/preferences
 import { ConfigProvider } from './contexts/config';
-import { AuthProvider } from './contexts/auth';
+import { AuthContext } from './contexts/auth';
 
 // Import error handler
 import { ErrorHandler } from './contexts/error';
@@ -33,11 +32,14 @@ import { MuiPickersUtilsProvider } from '@material-ui/pickers';
 //import LuxonUtils from '@date-io/luxon';
 import DateFnsUtils from '@date-io/date-fns';
 
-// Import main interface components
+// Import main interface components and themes
 import Layout from './components/layout';
+import { ThemeProvider } from '@material-ui/core/styles';
+import { darkMode, lightMode } from './config/themes';
 
 // Import Router and pages
-import {BrowserRouter as Router, Switch, Route, Redirect } from "react-router-dom";
+import {BrowserRouter as Router, Switch, Route, Routes, Redirect } from "react-router-dom";
+import { PrivateRoute } from './components/private_route';
 import Home from './components/home';
 import About from './components/about';
 import Contact from './components/contact';
@@ -58,63 +60,22 @@ import ImageEdit from './components/image_edit';
 import EquipSearch from './components/equip_search';
 
 
-
+// Wrap a portion of the app so we can access the needed contexts (i.e. Auth)
 const App = (props) => {
-  
-    // Create theme(s)
-    // TODO: this can later go into a separate file
-    const darkMode = createMuiTheme({
-      palette: {
-        type: "dark",
-        primary: {
-          light: blueGrey[500],
-          main: blueGrey[800],
-          dark: blueGrey[900],
-          contrastText: "#fff",
-        },
-        secondary: {
-          light: "#ff7961",
-          main: blueGrey[700],
-          dark: "#002884",
-          contrastText: "#000",
-        },
-        background: {
-          paper: '#222222',
-          default: '#111111',
-        }
-      },
-    });
+    return (
+        <ConfigProvider>
+          <MuiPickersUtilsProvider utils={DateFnsUtils}>
+            <AuthContext>
+              <AppWrapped />
+            </AuthContext>
+          </MuiPickersUtilsProvider>
+        </ConfigProvider>        
+    )
+}
 
-    // How to reveal the auth context to get theme preference?
-    const lightMode = createMuiTheme({
-      palette: {
-        type: "light",
-/*        primary: {
-          light: blueGrey[500],
-          main: blueGrey[800],
-          dark: blueGrey[900],
-          contrastText: "#fff",
-        },
-        secondary: {
-          light: "#ff7961",
-          main: blueGrey[700],
-          dark: "#002884",
-          contrastText: "#000",
-        },
-        background: {
-          paper: '#222222',
-          default: '#111111',
-        }
-*/
-      },
-    });
-
+const AppWrapped = (props) => {
 
     return (
-      <>
-      <ConfigProvider>
-      <MuiPickersUtilsProvider utils={DateFnsUtils}>
-      <AuthProvider>
         <ThemeProvider theme={darkMode}>
         <ConfirmProvider defaultOptions={{confirmationButtonProps: { autoFocus: true }}}>
         <CssBaseline />
@@ -127,28 +88,28 @@ const App = (props) => {
 {/*                <Route path='/start' component={Start}/> */}
 {/* TODO: Need to find a way to force a refresh for /analysis/new... or create a new component? 
       currently if in /analysis/edit/<id>, then go to /analysis/new, all the data/state is still there */}
-                <Route path='/analysis/new' component={Analysis}/>
-                <Route path='/analysis/edit/:id' component={Analysis}/>
-                <Route path='/analysis/search' component={AnalysisSearch}/>
-                <Route path='/analysis/:analysis_id' component={Analysis}/>
-                <Route path='/image/search' component={ImageSearch} />
-                <Route path='/image/new' render={(props)=> (<ImageEdit {...props} new={true}/>)} /> 
-                <Route path='/image/edit/:id' component={ImageEdit} />
-                <Route path='/equip/search' component={EquipSearch} />
+                <PrivateRoute path='/analysis/new'><Analysis new={true} /></PrivateRoute>
+                <PrivateRoute path='/analysis/edit/:id'><Analysis /></PrivateRoute>
+                <Route path='/analysis/search'><AnalysisSearch /></Route>
+                <PrivateRoute path='/analysis/:analysis_id'><Analysis /></PrivateRoute>
+                <Route path='/image/search'><ImageSearch /></Route>
+                <PrivateRoute path='/image/new'><ImageEdit new={true} /></PrivateRoute>
+                <PrivateRoute path='/image/edit/:id'><ImageEdit /></PrivateRoute>
+                <Route path='/equip/search'><EquipSearch /></Route>
                 {/*
-                <Route path='equip/new' render={(props) => (<EquipEdit {...props} new={true}/>)}
-                <Route path='equip/edit/:id' component={EquipEdit} />
+                <PrivateRoute path='equip/new'><EquipEdit new={true} /></PrivateRoute>
+                <PrivateRoute path='equip/edit/:id'><EquipEdit /></PrivateRoute>
                 */}
-                <Route exact path='/' component={Home} />
-                <Route exact path='/home' component={Home} />
-                <Route exact path='/contact' component={Contact} />
-                <Route exact path='/about' component={About} />
-                <Route exact path='/user/edit/:id' component={UserEdit} />
-                <Route exact path='/user/register' render={(props)=> (<UserEdit {...props} register={true}/>)} /> 
-                <Route exact path='/user/change_password/:id' render={(props)=> (<UserEdit {...props} change_password={true}/>)} /> 
-                <Route exact path='/user/login' component={UserLogin} />
-                <Route path='/user/search' component={UserSearch} />
-                <Route exact path='/user/prefs' component={UserPrefs} />
+                <Route exact path='/'><Home /></Route>
+                <Route exact path='/home'><Home /></Route>
+                <Route exact path='/contact'><Contact /></Route>
+                <PrivateRoute exact path='/about'><About /></PrivateRoute>
+                <PrivateRoute exact path='/user/edit/:id'><UserEdit /></PrivateRoute>
+                <Route exact path='/user/register'><UserEdit register={true} /></Route> 
+                <PrivateRoute exact path='/user/change_password/:id'><UserEdit change_password={true} /></PrivateRoute>
+                <Route exact path='/user/login'><UserLogin /></Route>
+                <Route path='/user/search'><UserSearch /></Route>
+                <PrivateRoute exact path='/user/prefs'><UserPrefs /></PrivateRoute>
 
                 {/*
                 <Route exact path='/user/:action' component={User} /> 
@@ -164,10 +125,7 @@ const App = (props) => {
         </Router>
         </ConfirmProvider>
         </ThemeProvider>
-      </AuthProvider>
-      </MuiPickersUtilsProvider>
-      </ConfigProvider>
-      </>
+
     );
 
 }
