@@ -29,7 +29,7 @@ const AuthDispatchContext = React.createContext();
 export function useAuthState() {
   const context = React.useContext(AuthStateContext);
   if (context === undefined) {
-    throw new Error("useAuthState must be used within a AuthProvider");
+    throw new Error("useAuthState must be used within a AuthStateContext");
   }
   return context;
 }
@@ -37,14 +37,14 @@ export function useAuthState() {
 export function useAuthDispatch() {
   const context = React.useContext(AuthDispatchContext);
   if (context === undefined) {
-    throw new Error("useAuthDispatch must be used within a AuthProvider");
+    throw new Error("useAuthDispatch must be used within a AuthDispatchContext");
   }
   return context;
 }
 
 // Provider component
 
-export const AuthProvider = ({ children }) => {
+export const AuthContext = ({ children }) => {
 
     const [session, dispatch] = useReducer(AuthReducer, initialState);
 
@@ -105,6 +105,9 @@ export const defaultUserRoles = [
     'cover:view',
     //'user:create',
     //'user:view',
+    //'user:view-profile',
+    //'admin',
+
 ];
 
 
@@ -222,7 +225,7 @@ export const AuthReducer = (initialState, action) => {
 
 // Reducer actions
 
-async function loadSessionFromServer(dispatch) { // This one is not exported and only called internally by AuthProvider
+async function loadSessionFromServer(dispatch) { // This one is not exported and only called internally by AuthContext
 
     dispatch({ type: 'REQUEST_SESSION' });
     return callAPI('GET', 'api/session/load')
