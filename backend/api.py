@@ -68,6 +68,9 @@ from database import (
     retrieve_image_path,retrieve_initial_analysis,db_analysis_save,db_analysis_save_initial,db_analysis_edit
 )
 
+from permissions import check_permission
+
+
 class analysis():
     """Input: ROIs, n_l, origins, filename, doUV, doRF, autoLane, names"""
     def __init__(self,ROIs,n_l,origins,filename,doUV,doRF,autoLane,names=['Sample','Sample','Sample','','','',''],name='',description=''):
@@ -990,6 +993,12 @@ def generic_lookup_name(objectType, id):
                 'message': 'Invalid objectType',
             }
 
+# API call to check permission
+@app.route('/permission/<object_type>/<object_id>/<permission>', methods = ['GET'])
+@cross_origin(supports_credentials=True)
+def api_permission(object_type, object_id, permission):
+    return { 'authorized': has_permission(object_type, object_id, permission) }
+
 
 # -------------------
 # USER-related routes
@@ -1025,6 +1034,7 @@ def autoselect(filename):
 # TODO: add error checking if not found
 @app.route('/user/load/<id>', methods = ['GET'])
 @cross_origin(supports_credentials=True)
+@check_permission('user', id, 'view')
 def user_load(id):
     from database import db_user_load
     user = db_user_load(id)
