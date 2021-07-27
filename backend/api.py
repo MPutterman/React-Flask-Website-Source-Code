@@ -68,7 +68,7 @@ from database import (
     retrieve_image_path,retrieve_initial_analysis,db_analysis_save,db_analysis_save_initial,db_analysis_edit
 )
 
-from permissions import check_permission
+from permissions import check_permission, has_permission
 
 
 class analysis():
@@ -829,14 +829,30 @@ CORS(app,
     support_credentials=True
 )
 
+HTTPStatus = {
+    'OK': 200,
+    'CREATED': 201,
+    'UNAUTHORIZED': 401,
+    'FORBIDDEN': 403,
+    'NOT_FOUND': 404,
+}
+
+def api_error_response(code, details=''):
+    return flask.Response({'error': details}, code, mimetype='application/json')
+
 def login_view():
-    return "<p>ERROR: backend intercepted request intended only for logged in users. This should be prevented from the front end.</p>"
+    return api_error_response(HTTPStatus.UNAUTHORIZED)
 
 login_manager = LoginManager(app)
 #login_manager.session_protection = 'strong'
 login_manager.login_view = 'login_view'
 login_manager.login_message = 'You need to be logged in to perform this request.'
 #login_manager.unauthorized = .....   ## HOW TO USE THIS?
+
+@login_manager.unauthorized_handler
+def unauthorized():
+    return api_error_response(HTTPStatus.UNAUTHORIZED)
+
 
 app.config['session_timeout'] = 10 # minutes
 app.permanent_session_lifetime = timedelta(minutes=app.config['session_timeout'])
@@ -994,7 +1010,7 @@ def generic_lookup_name(objectType, id):
             }
 
 # API call to check permission
-@app.route('/permission/<object_type>/<object_id>/<permission>', methods = ['GET'])
+@app.route('/api/permission/<object_type>/<object_id>/<permission>', methods = ['GET'])
 @cross_origin(supports_credentials=True)
 def api_permission(object_type, object_id, permission):
     return { 'authorized': has_permission(object_type, object_id, permission) }
@@ -1031,10 +1047,11 @@ def autoselect(filename):
     analysis_retrieve.predict_ROIs(img,imgR)
 
     return {'selected_ROIs':[analysis_retrieve.ROIs]}
+
 # TODO: add error checking if not found
 @app.route('/user/load/<id>', methods = ['GET'])
 @cross_origin(supports_credentials=True)
-@check_permission('user', id, 'view')
+#@check_permission('user', id, 'view')
 def user_load(id):
     from database import db_user_load
     user = db_user_load(id)

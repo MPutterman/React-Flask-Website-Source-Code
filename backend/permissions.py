@@ -11,6 +11,7 @@ from database import db_user_load, db_image_load
 # from database import db_analysis_load, db_plate_load, db_cover_load
 
 # Define decorator for checking permissions for API calls
+# TODO: decorator not yet working since the 'id' has to be captured somehow from @app.route
 def check_permission (object_type, object_id, permission):
     def decorator_check_permission(func):
         @functools.wraps(func)
@@ -24,9 +25,11 @@ def check_permission (object_type, object_id, permission):
 
 
 # Determine if user has role
+# TODO: implement roles
 def has_role (role, user=flask_login.current_user):
-    roles = user.roles
-    return role in roles
+    #roles = user.roles
+    #return role in roles
+    return False
 
 
 # Determine if user is owner of object
@@ -44,7 +47,7 @@ def is_owner (object_type, object_id, user=flask_login.current_user):
 
 # Check permission
 def has_permission (object_type, object_id, permission, user=flask_login.current_user):
-
+    print (f"Permission check ({permission} {object_type}:{object_id}) by user:{user.user_id}")
     if (permission == 'view'):
         return True
     elif (permission == 'view-deleted'):
@@ -64,20 +67,24 @@ def has_permission (object_type, object_id, permission, user=flask_login.current
 
 # Wrapper to load generic object
 def object_load(object_type, object_id):
-    if (object_type == 'user'):
-        return db_user_load(object_id)
-    elif (object_type == 'image'):
-        return db_image_load(object_id)
-    elif (object_type == 'analysis'):
-        return db_analysis_load(object_id)
-    elif (object_type == 'plate'):
-        return db_plate_load(object_id)
-    elif (object_type == 'cover'):
-        return db_cover_load(object_id)
-    else:
-        return {}
-        # TODO: error handling?
 
-# TODO: wrapper for deleting and saving
+    if (not has_permission(object_type, object_id, 'view')):
+        return api_error_response(HTTPStatus.FORBIDDEN, 'Not Authorized')
+    else:
+        if (object_type == 'user'):
+            return db_user_load(object_id)
+        elif (object_type == 'image'):
+            return db_image_load(object_id)
+        elif (object_type == 'analysis'):
+            return db_analysis_load(object_id)
+        elif (object_type == 'plate'):
+            return db_plate_load(object_id)
+        elif (object_type == 'cover'):
+            return db_cover_load(object_id)
+        else:
+            return {}
+            # TODO: error handling?
+
+# TODO: wrappers for saving (editing), deleting, and purging
 
 
