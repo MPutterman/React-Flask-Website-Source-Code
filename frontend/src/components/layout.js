@@ -130,9 +130,9 @@ const Layout = (props) => {
     setOpenUserMenu(true);
   };
 
-  const handleUserAccount = (event) => {
+  const handleUserProfile = (event) => {
     handleCloseUserMenu(event);
-    history.push('/user/edit/' + session['authUser']['user_id']); 
+    history.push('/user/view/' + session['authUser']['user_id']); 
   }
 
   const handleChangePassword = (event) => {
@@ -223,7 +223,7 @@ const Layout = (props) => {
                 open={openUserMenu}
                 onClose={handleCloseUserMenu}
               >
-                <MenuItem onClick={handleUserAccount}>My account</MenuItem>
+                <MenuItem onClick={handleUserProfile}>Profile</MenuItem>
                 <MenuItem onClick={handleChangePassword}>Change password</MenuItem>
                 <MenuItem onClick={handleChangePrefs}>Preferences</MenuItem>
                 <MenuItem onClick={handleUserLogout}>Logout</MenuItem>
