@@ -19,18 +19,22 @@
 //   otherwise omit these fields... and have a special change password form....
 // * There is a bug... after successful save, it shows validation error (email already exists)... as soon as
 //    edit another field, it's fine... somehow need to trigger validate to clear it?
+// * DISABLE DELETE if id not yet defined....
 
 import React from "react";
 import { callAPI } from './api';
 import { withRouter } from "react-router";
 import Button from "@material-ui/core/Button";
+import Box from '@material-ui/core/Box';
 import { useAuthState, useAuthDispatch, authRefreshSession } from "../contexts/auth";
 import { useErrorResponse } from '../contexts/error';
+import { StatusCodes } from 'http-status-codes';
+import { useAlerts } from '../contexts/alerts';
+import { useConfirm } from 'material-ui-confirm';
 import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField,} from 'uniforms-material';
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import Busy from '../components/busy';
-import { useAlerts } from '../contexts/alerts';
 import NotFound from '../components/notfound';
 
 // User Edit form
@@ -43,12 +47,15 @@ import NotFound from '../components/notfound';
 const UserEdit = (props) => {
 
     let formRef;
+    const object_type = 'user';
 
     const session = useAuthState();
     const dispatch = useAuthDispatch();
     const setAlert = useAlerts();
     const setErrorResponse = useErrorResponse();
     
+    const confirm = useConfirm();
+
     const initialModel = {
         user_id: '',
         first_name: '',
@@ -63,10 +70,27 @@ const UserEdit = (props) => {
     const [model, setModel] = React.useState(initialModel);
     const [availableOrganizations, setAvailableOrganizations] = React.useState([]);
 
+    const hasPermissionView = () => {
+        return true;
+    }
+
+    const hasPermissionEdit = () => {
+        // TODO: include admin as well...
+        return true;// session.authUser.user_id == model.owner_id || props.new;
+    }
+
+    const hasPermissionDelete = () => {
+        return true; // session.authUser.user_id == model.owner_id;
+    }
+
+    const enableDelete = () => {
+        return !!model.user_id;
+    }
+
     // Actions when form is submitted
     // TODO: need to handle other types of submit, e.g. delete?
     async function onSubmit(data, e)  {
-      saveUser(data);
+      save(data);
     }
     
     // Retrieve user with specified id from the database
@@ -112,14 +136,24 @@ const UserEdit = (props) => {
 
     React.useEffect(() => {
         console.log("In useEffect, change of [props.new, props.object_id, or props.match.params.id]");
+        var id = null;
         if (props.new) {
-          load(null);
+          id = null;
         } else if (props.object_id) {
-          load(props.object_id);
+          id = props.object_id;
         } else if (props.match.params.id) {
-          load(props.match.params.id);
+          id = props.match.params.id;
         }
-        loadOrganizations();
+        // Check permission
+        callAPI('GET', `api/permission/edit/user/${id}`)
+        .then((response) => {
+            if (response.data.authorized === true) {
+                load(id);
+                loadOrganizations();
+            } else {
+                setErrorResponse({code: StatusCodes.FORBIDDEN, details: 'Not Authorized' });
+            }
+        }); // TODO: catch exception?
     }, [props.new, props.object_id, props.match.params.id]);
 
     // TODO: improve this... this is used in IDInputField to feedback 'name' in addition to the ID
@@ -132,13 +166,14 @@ const UserEdit = (props) => {
             name: model.first_name + ' ' + model.last_name,
           });
         } else if (model.user_id) {
+          setAlert({severity:'error', message:'TO FIX: dont change URL when changing password'});
           props.history.replace('/user/edit/' + model.user_id);
         }
 
     }, [model.user_id])
 
     // Save the user information back to the database
-    async function saveUser(data) {
+    async function save(data) {
         // TODO: need to filter anything out of 'data'?
         setBusy(true);
         return callAPI('POST', 'user/save', data)
@@ -160,16 +195,20 @@ const UserEdit = (props) => {
 
     // Delete the user matching the user-id
     // NOT YET FUNCTIONAL AND BACKEND NOT IMPLEMENTED (add a status message when implement this)
-    const deleteUser= () => {
+    const remove = () => {
         setAlert({severity: 'error', message: 'Delete function not yet implemented'});
-        callAPI('POST', 'user/delete/' + model.id)
-        .then((response) => {
-            console.log(response.data);
-            props.history.push('/user/search');  // Does this make sense to go here after?
+        confirm ({/*title:<title>, description:<description>*/})
+        .then(() => {
+            callAPI('POST', 'user/delete/' + model.id)
+            .then((response) => {
+                console.log(response.data);
+                props.history.push('/user/search');  // Does this make sense to go here after?
+            })
+            .catch((e) => {
+                console.log("POST /user/delete/" + model.id + ": " + e);
+            });
         })
-        .catch((e) => {
-            console.log("POST /user/delete/" + model.id + ": " + e);
-        });
+        .catch(() => {});
     }    
 
     // Schema for form
@@ -321,10 +360,18 @@ const UserEdit = (props) => {
 */}
               <AutoField name="org_list" />
               <ErrorField name="org_list" />
-              <SubmitField>Save Changes</SubmitField>
 
-              <Button fullWidth variant='outlined' type='reset' onClick={() => formRef.reset()}>Cancel</Button>
-              <Button fullWidth variant='outlined' type="delete" >Delete (not yet working)</Button>
+              <Box py={2} display="flex" flexDirection="row" justifyContent="flex-end">
+                  <Box pr={1}>
+                  <SubmitField variant='contained'>Save Changes</SubmitField>
+                  </Box>
+                  <Box pl={1} pr={1}>
+                  <Button variant='contained' type="reset" onClick={() => formRef.reset()}>Cancel</Button>
+                  </Box>
+                  <Box pl={1}>
+                  <Button disabled={!(enableDelete() && hasPermissionDelete())} variant='contained' type="delete" onClick={remove}>Delete (not working)</Button>
+                  </Box>
+              </Box>
 
             </AutoForm>
 
