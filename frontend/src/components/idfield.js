@@ -59,9 +59,9 @@ import EditIcon from '@material-ui/icons/Edit';
 import InputAdornment from '@material-ui/core/InputAdornment';
 
 // Object-specific imports
-import ImageSelect from '../components/image_search'; // renaming default component
-import UserSelect from '../components/user_search'; // renaming default component
-import EquipSelect from '../components/equip_search'; // renaming default component
+import { ImageSearch as ImageSelect } from '../components/object_search'; 
+import { UserSearch as UserSelect } from '../components/object_search'; 
+import { EquipSearch as EquipSelect } from '../components/object_search'; 
 import ImageCreate from '../components/image_edit'; // renaming default component
 import UserCreate from '../components/user_edit'; // renaming default component
 // import EquipCreate from '../components/equip_edit'; // renaming default component
@@ -227,16 +227,16 @@ function IDInput({ name, error, onChange, value, label, ref, ...props }: IDInput
             endAdornment:(
             <InputAdornment position="end">
                 <IconButton size='small' onClick={handleOpenEdit} disabled={!allowEdit()}>
-                    <EditIcon />
+                    <EditIcon color={!!error ? 'error' : 'inherit'} />
                 </IconButton>
                 <IconButton size='small' onClick={handleOpenSelect} disabled={!allowSelect()}>
-                    <SelectIcon />
+                    <SelectIcon color={!!error ? 'error' : 'inherit'} />
                 </IconButton>
                 <IconButton size='small' onClick={handleOpenCreate} disabled={!allowCreate()}>
-                    <CreateIcon />
+                    <CreateIcon color={!!error ? 'error' : 'inherit'} />
                 </IconButton>
                 <IconButton size='small' onClick={handleClear}>
-                    <ClearIcon />
+                    <ClearIcon color={!!error ? 'error' : 'inherit'} />
                 </IconButton>
 
               </InputAdornment>
