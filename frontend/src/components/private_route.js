@@ -11,11 +11,13 @@
 import React from 'react';
 import { Route } from 'react-router';
 import { useAuthState } from '../contexts/auth';
+import { useAlerts } from '../contexts/alerts';
 import { Redirect } from 'react-router-dom';
 
 export function PrivateRoute({ children, component, ...rest }) {
 
     const session = useAuthState();
+    const setAlert = useAlerts();
 
     return (
         <>
@@ -24,10 +26,12 @@ export function PrivateRoute({ children, component, ...rest }) {
             <Route {...rest} render={({ location }) => {
                 return session.auth === true
                 ? children
-                : <Redirect to={{
+                : <><Redirect to={{
                     pathname: '/user/login',
                     state: { from: location }
                     }}/>
+                    {setAlert({severity: 'warning', message: 'You must be logged in to access this page. Redirecting to login form.'})}
+                    </>
             }} /> )
         : ( <></> )
         }
