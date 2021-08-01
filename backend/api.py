@@ -1010,10 +1010,12 @@ def generic_lookup_name(objectType, id):
             }
 
 # API call to check permission
-@app.route('/api/permission/<object_type>/<object_id>/<permission>', methods = ['GET'])
+@app.route('/api/permission/<permission>/<object_type>', methods = ['GET'])
+@app.route('/api/permission/<permission>/<object_type>/<object_id>', methods = ['GET'])
 @cross_origin(supports_credentials=True)
-def api_permission(object_type, object_id, permission):
-    return { 'authorized': has_permission(object_type, object_id, permission) }
+def api_permission(object_type, permission, object_id=None):
+    print(permission, ' ', has_permission(object_type, permission, object_id))
+    return { 'authorized': has_permission(object_type, permission, object_id) }
 
 
 # -------------------
