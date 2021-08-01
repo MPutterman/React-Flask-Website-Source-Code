@@ -4,19 +4,18 @@
 // TODO:
 // * After saving preferences we trigger a session reload. Would be more efficient just to mark prefs 
 //     as dirty.
-// * Add preference: list of favorite plate_types
-// * Add preference: list of favorite cover_types
+// * Add preference?: list of favorite plate_types
+// * Add preference?: list of favorite cover_types
 // * Add option to reset preferences to site defaults?  (I -think- form reset will return to state of model (from database))
 // * Should tie into the backend session and be retrieved when load sesion.
-// * In the IDInputField, need more control over button labels... e.g. for images, we might like 'Choose' and 'Upload', rather
-//   than 'Choose and 'Create'....?
 // * How do we handle the case when an equipment or image, etc.. refered in someone's preference is deleted?
-// * Prevent showing preferences when no user is logged in
 // * Maybe null/undefined values should not be sent to the database...? There may be an option in simplschema
 //    to clean-up the values before validate/submit
 // * useEffect seems to get called twice after Submit. Why?
 // * Implement some checking on the server, e.g. see if selected images equip and image ids are valid,
 //     and that Images are of the correct 'type' (dark/flat).
+// * Implement 'reset defaults' button -- either delete prefs entry from profile, and/or load
+//     current site defaults...  Need to ask for confirmation
 
 import React from "react";
 import { withRouter } from "react-router";
@@ -139,8 +138,8 @@ const UserPrefs = (props) => {
         },
         //default_bright_image_exposure_time: '',   // OMIT FOR NOW
         //default_bright_image_exposure_temp: '',   // OMIT FOR NOW
-        //favorite_plate_type: [],                  // list of plate_ids
-        //favorite_cover_type: [],                  // list of cover_ids
+        //favorite_plate_types: [],                  // list of plate_ids
+        //favorite_cover_types: [],                  // list of cover_ids
     }, {
         requiredByDefault: false,
     });
@@ -312,6 +311,7 @@ const UserPrefs = (props) => {
                 <ButtonGroup variant='contained'>
                     <SubmitField>Save Changes</SubmitField>
                     <Button onClick={() => formRef.reset()}>Cancel</Button>
+                    <Button>Reset Defaults</Button>
                 </ButtonGroup>
 
             </AutoForm>
