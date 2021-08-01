@@ -21,7 +21,7 @@
 //     Obviously, the file error should update independently of other field status the errors.
 
 import React from "react";
-import { callAPI } from './api.js';
+import { callAPI } from '../helpers/api';
 import { withRouter } from "react-router";
 import { useAuthState, useAuthDispatch, defaultUserPrefs, authRefreshSession } from '../contexts/auth';
 import { useErrorResponse } from '../contexts/error';

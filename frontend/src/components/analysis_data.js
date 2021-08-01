@@ -70,7 +70,7 @@ https://blog.bitsrc.io/build-a-full-featured-modal-dialog-form-with-react-651dce
 import React from "react"; 
 import axios from "axios";
 import { withRouter } from "react-router";
-import { backend_url } from './config';
+import { backend_url } from '../helpers/api';
 
 import LinearProgress from "@material-ui/core/LinearProgress";
 

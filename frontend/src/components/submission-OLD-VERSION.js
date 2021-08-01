@@ -7,7 +7,7 @@ import blueGrey from "@material-ui/core/colors/blueGrey";
 import CssBaseline from "@material-ui/core/CssBaseline";
 import {withRouter} from "react-router";
 import {Link} from 'react-router-dom';
-import { backend_url } from './config';
+import { backend_url } from '../helpers/api';
 import Grid from "@material-ui/core/Grid";
 import Divider from "@material-ui/core/Divider";
 

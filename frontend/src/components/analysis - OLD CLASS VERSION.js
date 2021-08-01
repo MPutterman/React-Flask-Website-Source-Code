@@ -19,7 +19,7 @@ import React from "react";
 import "../App.css";
 import axios from "axios";
 import { withRouter } from "react-router";
-import { backend_url } from './config.js';
+import { backend_url } from '../helpers/api';
 
 import Button from "@material-ui/core/Button";
 import Slider from "@material-ui/core/Slider";

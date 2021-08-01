@@ -26,7 +26,7 @@
 import React, {useState, useEffect } from "react";
 import { useConfigState } from "../contexts/config";
 import { useHistory } from 'react-router-dom';
-import { callAPI } from '../components/api';
+import { callAPI } from '../helpers/api';
 import { withRouter } from "react-router";
 import { DataGrid, GridLinkOperator } from "@material-ui/data-grid";
 import { createFilterModel } from "../helpers/search_utils";

@@ -1,4 +1,4 @@
-import { callAPI } from '../components/api';
+import { callAPI } from '../helpers/api';
 
 // Check if object with the specified ID exists
 // TODO: need to add handling for error response or no response

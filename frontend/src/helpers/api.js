@@ -15,7 +15,7 @@
 // * Axios has a concept of 'interceptors'.  Use this for all the Date types.
 // * GLOBAL TODO: add a 'deleted' flag to database -- needed to maintain integrity
 //     if any objects are deleted
-
+//
 // RESOURCES:
 // * https://zetcode.com/javascript/axios/ (good description of commands and request/response content)
 // * https://github.com/axios/axios#handling-errors (good description of error handling)
@@ -85,7 +85,7 @@ export function callAPI(method, route, data={}) {
                         error: true,
                         status: 500,
                         statusText: 'Internal Server Error',
-                        data: {error: 'Server did not respond'},
+                        data: {error: 'Server did not respond. API call may not be recognized or server may be down.'},
                     }
                 } else { 
                     // Something happened in setting up the request that triggered an Error
@@ -169,6 +169,3 @@ export function callAPI(method, route, data={}) {
             };
     }
 }
-
-
-

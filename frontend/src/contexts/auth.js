@@ -18,7 +18,7 @@
 // * Add 'roles' to authUser
 
 import React, { useReducer, useEffect } from "react";
-import { callAPI } from '../components/api';
+import { callAPI } from '../helpers/api';
 import _ from 'lodash';
 
 // Create contexts and hooks

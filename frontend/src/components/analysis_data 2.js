@@ -11,7 +11,7 @@
 
 import React from "react"; 
 import { withRouter } from "react-router";
-import { callAPI } from '../components/api';
+import { callAPI } from '../helpers/api';
 import { useAuthState, useAuthDispatch, defaultUserPrefs, authRefreshSession } from '../contexts/auth';
 
 // Imports for form display components

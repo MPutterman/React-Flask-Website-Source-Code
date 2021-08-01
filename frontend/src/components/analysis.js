@@ -23,7 +23,7 @@
 import React from "react";
 import axios from "axios";
 import { withRouter } from "react-router";
-import { backend_url } from './config.js';
+import { backend_url } from '../helpers/api';
 import { fixDateFromFrontend, fixDateFromBackend } from '../helpers/datetime_utils';
 
 import Button from "@material-ui/core/Button";

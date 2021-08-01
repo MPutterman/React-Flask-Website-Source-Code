@@ -31,7 +31,7 @@ import { useAuthState, useAuthDispatch, defaultUserPrefs, authRefreshSession } f
 import { useConfigState } from '../contexts/config';
 import Busy from '../components/busy';
 import { useAlerts } from '../contexts/alerts';
-import { callAPI } from '../components/api';
+import { callAPI } from '../helpers/api';
 import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField,} from 'uniforms-material';
 import { id_exists } from '../helpers/validation_utils';
 import SimpleSchema from 'simpl-schema';
