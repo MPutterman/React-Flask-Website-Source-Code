@@ -29,6 +29,7 @@ import { useErrorResponse } from '../contexts/error';
 import Button from "@material-ui/core/Button";
 import ButtonGroup from "@material-ui/core/ButtonGroup";
 import Box from '@material-ui/core/Box';
+import Grid from '@material-ui/core/Grid';
 import { spacing } from '@material-ui/system'
 import IconButton from "@material-ui/core/IconButton";
 import ClearIcon from "@material-ui/icons/Clear";
@@ -54,6 +55,7 @@ import { useAlerts } from '../contexts/alerts';
 const ImageEdit = (props) => {
 
     let formRef;
+    const objectType = 'image';
     
     const session = useAuthState();
     const dispatch = useAuthDispatch();
@@ -443,12 +445,16 @@ const ImageEdit = (props) => {
             </AccordionDetails>
             </Accordion>
 
-              <Box py={2}>
-              <ButtonGroup variant='contained' >
-                  <SubmitField>Save/Upload</SubmitField>
-                  <Button type="reset" onClick={() => formRef.reset()}>Cancel</Button>
-                  <Button type="delete" >Delete (not working)</Button>
-              </ButtonGroup>
+              <Box py={2} display="flex" flexDirection="row" justifyContent="flex-end">
+                  <Box pr={1}>
+                  <SubmitField variant='contained'>Save/Upload</SubmitField>
+                  </Box>
+                  <Box pl={1} pr={1}>
+                  <Button variant='contained' type="reset" onClick={() => formRef.reset()}>Cancel</Button>
+                  </Box>
+                  <Box pl={1}>
+                  <Button variant='contained' type="delete" >Delete (not working)</Button>
+                  </Box>
               </Box>
 
             </AutoForm>
