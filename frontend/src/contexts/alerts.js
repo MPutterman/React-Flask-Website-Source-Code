@@ -1,19 +1,15 @@
 // Implements a context for showing alerts in a 'Snackbar'
-
-// TODO:
-// * Implemented for image_edit.js.  Next switch all other components to use context instead of
-//     inline elements
-
-
+//
 // Usage in child component:
 //      import { useAlerts } from './contexts/alerts';
 //      const setAlert = useAlerts();
 //      ...
 //      setAlert ({ severity:<severity>, message:<message> });
 // Allowed values for severity: 'error', 'warning', 'info', 'success'
-
+//
 // REFERENCES:
 // * https://material-ui.com/components/snackbars/ (search SnackPack for multiple alert handing)
+// * https://browntreelabs.com/snackbars-in-react-redux-and-material-ui/ (single snackbar for whole app)
 
 
 import React from 'react';
