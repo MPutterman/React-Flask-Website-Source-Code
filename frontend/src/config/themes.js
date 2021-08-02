@@ -1,9 +1,9 @@
 // Define site themes
 
-import { createMuiTheme, ThemeProvider } from '@material-ui/core/styles';
+import { createTheme, ThemeProvider } from '@material-ui/core/styles';
 import { blueGrey } from '@material-ui/core/colors';
 
-export const darkMode = createMuiTheme({
+export const darkMode = createTheme({
     palette: {
     type: "dark",
     primary: {
@@ -25,7 +25,7 @@ export const darkMode = createMuiTheme({
     },
 });
 
-export const lightMode = createMuiTheme({
+export const lightMode = createTheme({
     palette: {
     type: "light",
 /*        primary: {
