@@ -2,9 +2,10 @@
 // * Why does the field display just slightly above others?
 // * Provide a way to specify the upload type, or get it directly from files[0]. I'm just leaving as
 //     image/png since that was previously in the submission.js file...
-// * Show a prorgress bar when uploading large files
+// * Show a progress bar when uploading large files
 // * Add a way to view/download existing file?  Also provide a way to delete the current file?
 // * When we have an error state... make sure underlying components render in error state
+// * How to handle 'required'? Generally after file is uploaded and we edit record, we don't require a new file pick
 
 // Usage:
 // <FileInputField buttonLabel=<String> filenameField=<String> />
@@ -24,7 +25,7 @@ import { useForm } from 'uniforms';
 
 export type FileInputFieldProps = HTMLFieldProps<string, HTMLDivElement>;
 
-function FileInput({ onChange, name, value, label, error, ref, ...props }: FileInputFieldProps) {
+function FileInput({ onChange, name, value, label, error, ref, required, ...props }: FileInputFieldProps) {
 
   const form = useForm();
   const [filename, setFilename] = React.useState('');
@@ -33,6 +34,7 @@ function FileInput({ onChange, name, value, label, error, ref, ...props }: FileI
     <>
       <label htmlFor={name}>
             <TextField disabled value={filename ? filename : 'No file chosen'} error={!!(error)}
+              required={required}
               label='File to upload'
               InputProps={{
                 startAdornment:(
