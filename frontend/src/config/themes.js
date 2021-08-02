@@ -23,6 +23,9 @@ export const darkMode = createTheme({
         default: '#111111',
     }
     },
+    typography: {
+        fontSize: 13,
+    }
 });
 
 export const lightMode = createTheme({
@@ -46,5 +49,8 @@ export const lightMode = createTheme({
     }
 */
     },
+    typography: {
+        fontSize: 13,
+    }
 });
 
