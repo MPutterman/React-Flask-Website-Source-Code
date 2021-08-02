@@ -27,8 +27,6 @@
 //      (Also, right now after choosing/creating new object, and setting ID automatically,
 //       the id field becomes uneditable.)
 // * Add some intelligent behavior if the objectType doesn't exist, e.g. remove the button altogether?
-// * Figure out how to add a * next to label when field is required
-// * When we have an error state... make sure underlying components render in error state'
 // * There is a risk of polluting the database a bit.  If a user creates a new record, it gets saved
 //     immediately.  If user then creates again... it will create a whole new object and the oriignal
 //     one is hanging (not part of any analysis/object).  Should 'clear' delete the object
@@ -71,7 +69,7 @@ import UserEdit from '../components/user_edit'; // renaming default component
 
 export type IDInputFieldProps = HTMLFieldProps<string, HTMLDivElement>;
 
-function IDInput({ name, error, onChange, value, label, ref, ...props }: IDInputFieldProps) {
+function IDInput({ name, error, onChange, value, label, ref, required, ...props }: IDInputFieldProps) {
 
   const [temporaryModel, setTemporaryModel] = React.useState({});
   const [nameField, setNameField] = React.useState('');
@@ -222,7 +220,7 @@ function IDInput({ name, error, onChange, value, label, ref, ...props }: IDInput
     <div className="IDInputField">
       <Box display="flex" flexDirection="row" fullWidth>
       <Box width={280}>
-      <TextField size="small" id={name} value={value ? value : ''} error={!!(error)} label={label} 
+      <TextField size="small" id={name} value={value ? value : ''} error={!!(error)} label={label} required={required}
             InputProps={{
             endAdornment:(
             <InputAdornment position="end">
