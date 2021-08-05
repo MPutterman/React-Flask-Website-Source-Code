@@ -4,6 +4,15 @@ import { createTheme, ThemeProvider } from '@material-ui/core/styles';
 import { blueGrey } from '@material-ui/core/colors';
 
 export const darkMode = createTheme({
+//    props: {
+//        MuiTextField: {
+//            // The properties to apply
+//            variant: 'filled'
+//        },
+//        MuiCheckbox: {
+//            variant: 'outlined'
+//        },
+//    },    
     palette: {
     type: "dark",
     primary: {
