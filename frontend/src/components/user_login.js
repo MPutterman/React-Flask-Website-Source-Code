@@ -123,6 +123,10 @@ const UserLogin = (props) => {
         history.push('/user/register');      
     }
 
+    const onPasswordReset = () => {
+        // TODO: implement (use confirmation)
+    }
+
     return (
         <>
         {session['auth'] ? (  // If logged in:
@@ -146,6 +150,7 @@ const UserLogin = (props) => {
               <SubmitField fullWidth variant='contained'>Login</SubmitField>
 
               <Button fullWidth variant="contained" onClick={onRegister}>Register for Account</Button>
+              <Button fullWidth variant="contained" onClick={onPasswordReset}>Forgot Password</Button>
 
             </AutoForm>
 
