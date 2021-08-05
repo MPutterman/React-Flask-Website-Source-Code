@@ -28,7 +28,6 @@ import { useForm } from 'uniforms';
 import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField, LongTextField } from 'uniforms-material';
 import FileInputField from './filefield';
 import IDInputField from './idfield';
-import { fixDateFromFrontend, fixDateFromBackend } from '../helpers/datetime_utils';
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 
@@ -52,6 +51,8 @@ const AnalysisData = (props) => {
         created: null,
         modified: null,
         equip_id: session.prefs['analysis']['default_equip'],
+        plate_id: session.prefs['analysis']['default_plate'],
+        cover_id: session.prefs['analysis']['default_cover'],
         radio_image_id: null,
         bright_image_id: null,
         correct_dark: session.prefs['analysis']['default_use_dark_correction'],
@@ -109,6 +110,16 @@ const AnalysisData = (props) => {
       },
       equip_id: {
         label: 'Equipment ID',
+        type: String, 
+        required: false, // true
+      },
+      plate_id: {
+        label: 'Plate ID',
+        type: String, 
+        required: false, // true
+      },
+      cover_id: {
+        label: 'Cover ID',
         type: String, 
         required: false, // true
       },
@@ -197,13 +208,7 @@ const AnalysisData = (props) => {
         
         setBusy(true);
 
-        let dataCopy = {expt_datetime: null, modified: null, created: null, ...data};
-        if (data['expt_datetime']) {
-            let dateString = fixDateFromFrontend(data['expt_datetime']).toISOString();
-            dataCopy['expt_datetime'] = dateString;
-        }
-
-        return callAPI('POST', 'analysis_save', dataCopy)
+        return callAPI('POST', 'analysis_save', data)
         .then((response) => {
             // If don't currently have an id, set it and redirect to fix the URL
             if (!currentAnalysis.id) {
@@ -246,6 +251,12 @@ const AnalysisData = (props) => {
 
               <AutoField name="equip_id" component={IDInputField} objectType='equip' />
               <ErrorField name="equip_id" />
+
+              <AutoField name="plate_id" component={IDInputField} objectType='plate' />
+              <ErrorField name="plate_id" />
+
+              <AutoField name="cover_id" component={IDInputField} objectType='cover' />
+              <ErrorField name="cover_id" />
 
               <AutoField name="expt_date" type="date" />
               <ErrorField name="expt_date" />
