@@ -57,21 +57,22 @@ import EditIcon from '@material-ui/icons/Edit';
 import InputAdornment from '@material-ui/core/InputAdornment';
 
 // Object-specific imports
-import { ImageSearch as ImageSelect } from '../components/object_search'; 
-import { UserSearch as UserSelect } from '../components/object_search'; 
-import { EquipSearch as EquipSelect } from '../components/object_search'; 
-import ImageCreate from '../components/image_edit'; // renaming default component
-import UserCreate from '../components/user_edit'; // renaming default component
-// import EquipCreate from '../components/equip_edit'; // renaming default component
-import ImageEdit from '../components/image_edit'; // renaming default component
-import UserEdit from '../components/user_edit'; // renaming default component
-// import EquipEdit from '../components/equip_edit'; // renaming default component
+import { UserSearch as UserSelect, OrgSearch as OrgSelect, EquipSearch as EquipSelect,
+    PlateSearch as PlateSelect, CoverSearch as CoverSelect, ImageSearch as ImageSelect,
+    AnalysisSearch as AnalysisSelect } from '../components/object_search'; 
+import { UserRegister as UserCreate, UserEdit } from '../components/object_edit';
+import { OrgEdit as OrgCreate, OrgEdit } from '../components/object_edit';
+import { EquipEdit as EquipCreate, EquipEdit } from '../components/object_edit';
+import { PlateEdit as PlateCreate, PlateEdit } from '../components/object_edit';
+import { CoverEdit as CoverCreate, CoverEdit } from '../components/object_edit';
+import { ImageEdit as ImageCreate, ImageEdit } from '../components/object_edit';
+//import { AnalysisEdit as AnalysisCreate, AnalysisEdit } from '../components/object_edit';
 
 export type IDInputFieldProps = HTMLFieldProps<string, HTMLDivElement>;
 
-function IDInput({ name, error, onChange, value, label, ref, required, ...props }: IDInputFieldProps) {
+function IDInput({ name, error, onChange, value, label, ref, required, readOnly, disabled, ...props }: IDInputFieldProps) {
 
-  const [temporaryModel, setTemporaryModel] = React.useState({});
+  const [pendingModel, setPendingModel] = React.useState({});
   const [nameField, setNameField] = React.useState('');
   const [openSelect, setOpenSelect] = React.useState(false);
   const [openCreate, setOpenCreate] = React.useState(false);
@@ -80,8 +81,8 @@ function IDInput({ name, error, onChange, value, label, ref, required, ...props 
   const [filter, setFilter] = React.useState([]); // filter rewriter (will use useEffect to capture initial value)
 
   React.useEffect(() => {
-    console.log ('In useEffect [temporaryModel], received new value: ', temporaryModel);
-  }, [temporaryModel])
+    console.log ('In useEffect [pendingModel], received new value: ', pendingModel);
+  }, [pendingModel])
 
   const form = useForm();
 
@@ -162,7 +163,7 @@ function IDInput({ name, error, onChange, value, label, ref, required, ...props 
   const onOKSelect = () => {
     // TODO: if multi-select, set value to new selection(s)
     setOpenSelect(false);
-    onChange(temporaryModel.id); // Set the value of the ID field
+    onChange(pendingModel.id); // Set the value of the ID field
   };
 
   const onCancelSelect = () => {
@@ -181,7 +182,7 @@ function IDInput({ name, error, onChange, value, label, ref, required, ...props 
     // TODO: if multi-select, APPEND new item to currently selected item(s)
     //  Or just replace?
     setOpenCreate(false);
-    onChange(temporaryModel.id);  // Set the value of the ID field
+    onChange(pendingModel.id);  // Set the value of the ID field
   };
 
   const onCancelCreate = () => {
@@ -208,9 +209,6 @@ function IDInput({ name, error, onChange, value, label, ref, required, ...props 
     setRefresh(true);
   };
 
-
-
-
   const handleClear = () => {
       setNameField('');
       onChange('');
@@ -218,36 +216,61 @@ function IDInput({ name, error, onChange, value, label, ref, required, ...props 
 
   return (
     <div className="IDInputField">
-      <Box display="flex" flexDirection="row" fullWidth>
-      <Box width={280}>
-      <TextField size="small" id={name} value={value ? value : ''} error={!!(error)} label={label} required={required}
-            InputProps={{
-            endAdornment:(
-            <InputAdornment position="end">
-                <IconButton size='small' onClick={handleOpenEdit} disabled={!allowEdit()}>
-                    <EditIcon color={!!error ? 'error' : 'inherit'} />
-                </IconButton>
-                <IconButton size='small' onClick={handleOpenSelect} disabled={!allowSelect()}>
-                    <SelectIcon color={!!error ? 'error' : 'inherit'} />
-                </IconButton>
-                <IconButton size='small' onClick={handleOpenCreate} disabled={!allowCreate()}>
-                    <CreateIcon color={!!error ? 'error' : 'inherit'} />
-                </IconButton>
-                <IconButton size='small' onClick={handleClear}>
-                    <ClearIcon color={!!error ? 'error' : 'inherit'} />
-                </IconButton>
-
-              </InputAdornment>
-            ),}}
+{/*
+      <Box display="flex" flexDirection="row">
+      <Box
+          width={readOnly || disabled ? 75 : 280}
       />
+*/}
+      <TextField 
+          size="small"
+          id={name + '-name'}
+          value={nameField}
+          //id={name}
+          //value={value ? value : ''}
+          error={!!(error)}
+          label={label}
+          required={required}
+          disabled={disabled}
+          readOnly={readOnly}
+          InputProps={readOnly || disabled ? {} : {
+          endAdornment:(
+          <InputAdornment position="end">
+              {/*{value ? ( <>{`(ID=${value})`}</> ) : ( <></> )}*/}
+              <IconButton size='small' onClick={handleOpenEdit} disabled={!allowEdit()}>
+                  <EditIcon color={!!error ? 'error' : 'inherit'} />
+              </IconButton>
+              <IconButton size='small' onClick={handleOpenSelect} disabled={!allowSelect()}>
+                  <SelectIcon color={!!error ? 'error' : 'inherit'} />
+              </IconButton>
+              <IconButton size='small' onClick={handleOpenCreate} disabled={!allowCreate()}>
+                  <CreateIcon color={!!error ? 'error' : 'inherit'} />
+              </IconButton>
+              <IconButton size='small' onClick={handleClear}>
+                  <ClearIcon color={!!error ? 'error' : 'inherit'} />
+              </IconButton>
+
+          </InputAdornment>
+          ),}}
+      />
+{/*
       </Box>
       <Box pl={2}>
       <label htmlFor={name}>
-         <TextField size='small' id={name + '-name'} disabled value={nameField} error={!!(error)} label={'Name'}/>
+         <TextField
+            size='small'
+            id={name}
+            value={value || ''}
+            //id={name + '-name'}
+            //value={nameField}
+            disabled
+            error={!!(error)}
+            label={'Name'}
+          />
       </label>
       </Box>
       </Box>
-      
+*/}      
       <Dialog fullWidth open={openEdit} onClose={handleCloseEdit} >
         <DialogTitle id="dialog-edit">
             {props.editTitle ? ( <span>{props.editTitle}</span> ) : ( <span>Edit record</span> )}
@@ -255,9 +278,13 @@ function IDInput({ name, error, onChange, value, label, ref, required, ...props 
         <DialogContent>
             <ErrorHandler>
             {{
-                'user': <UserEdit object_id={value} onSave={setTemporaryModel} {...props} />,
-                'image': <ImageEdit object_id={value} onSave={setTemporaryModel} {...props} />,
-                //'equip': <EquipEdit object_id={value} onSave={setTemporaryModel} {...props} />,
+                'user': <UserEdit objectID={value} onSave={setPendingModel} {...props} />,
+                'org': <OrgEdit objectID={value} onSave={setPendingModel} {...props} />,
+                'equip': <EquipEdit objectID={value} onSave={setPendingModel} {...props} />,
+                'plate': <PlateEdit objectID={value} onSave={setPendingModel} {...props} />,
+                'cover': <CoverEdit objectID={value} onSave={setPendingModel} {...props} />,
+                'image': <ImageEdit objectID={value} onSave={setPendingModel} {...props} />,
+                //'analysis': <AnalysisEdit objectID={value} onSave={setPendingModel} {...props} />,
                 'default': <></>,
             } [props.objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
             </ErrorHandler>
@@ -280,16 +307,20 @@ function IDInput({ name, error, onChange, value, label, ref, required, ...props 
         <DialogContent>
             <ErrorHandler>
             {{
-                'user': <UserSelect onSelect={setTemporaryModel} {...props} filter={filter} />,
-                'image': <ImageSelect onSelect={setTemporaryModel} {...props} filter={filter} />,
-                'equip': <EquipSelect onSelect={setTemporaryModel} {...props} filter={filter} />,
+                'user': <UserSelect onSelect={setPendingModel} {...props} filter={filter} />,
+                'org': <OrgSelect onSelect={setPendingModel} {...props} filter={filter} />,
+                'equip': <EquipSelect onSelect={setPendingModel} {...props} filter={filter} />,
+                'plate': <PlateSelect onSelect={setPendingModel} {...props} filter={filter} />,
+                'cover': <CoverSelect onSelect={setPendingModel} {...props} filter={filter} />,
+                'image': <ImageSelect onSelect={setPendingModel} {...props} filter={filter} />,
+                //'analysis': <AnalysisSelect onSelect={setPendingModel} {...props} filter={filter} />,
                 'default': <></>,
             } [props.objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
             </ErrorHandler>
         </DialogContent>
         <DialogActions>
           <Button variant="contained" color="primary"
-                  disabled={temporaryModel ? !temporaryModel.id : true} // Only show 'OK' button if a row is selected
+                  disabled={pendingModel ? !pendingModel.id : true} // Only show 'OK' button if a row is selected
                   onClick={onOKSelect}
           >
             OK
@@ -307,16 +338,20 @@ function IDInput({ name, error, onChange, value, label, ref, required, ...props 
         <DialogContent>
             <ErrorHandler>
             {{
-                'user': <UserCreate new={true} onSave={setTemporaryModel} {...props} filter={filter} />,
-                'image': <ImageCreate new={true} onSave={setTemporaryModel} {...props} filter={filter} />,
-                //'equip': <EquipCreate new={true} onSave={setTemporaryModel} {...props} filter={filter} />,
+                'user': <UserCreate create={true} onSave={setPendingModel} {...props} filter={filter} />,
+                'org': <OrgCreate create={true} onSave={setPendingModel} {...props} filter={filter} />,
+                'equip': <EquipCreate create={true} onSave={setPendingModel} {...props} filter={filter} />,
+                'plate': <PlateCreate create={true} onSave={setPendingModel} {...props} filter={filter} />,
+                'cover': <CoverCreate create={true} onSave={setPendingModel} {...props} filter={filter} />,
+                'image': <ImageCreate create={true} onSave={setPendingModel} {...props} filter={filter} />,
+                //'analysis': <AnalysisCreate create={true} onSave={setPendingModel} {...props} filter={filter} />,
                 'default': <></>,
             } [props.objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
             </ErrorHandler>
         </DialogContent>
         <DialogActions>
           <Button variant="contained" color="primary"
-                  disabled={temporaryModel ? !temporaryModel.id : true} // Only show 'OK' button if ID is set (i.e. record saved)
+                  disabled={pendingModel ? !pendingModel.id : true} // Only show 'OK' button if ID is set (i.e. record saved)
                   onClick={onOKCreate}
           >
             OK
