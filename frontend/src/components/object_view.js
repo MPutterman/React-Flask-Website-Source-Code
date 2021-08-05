@@ -11,6 +11,12 @@
 //     functions into a helper file (e.g. support for deletions, etc...)
 // * Useful to have separate components for modal form vs a withRouter wrapped one?
 // * Implement 'types' for each field to improve the display in GenericObjectView. Add an 'ID' type.
+// * Do we really a need a separate view and edit page?  They are very similar. Edit can be made into view
+//     by wrapping all form elements in <fieldset disabled=true readOnly=true>. But the Material-UI elements
+//     still show things like '*' for required fields.  Also a few cases where the public should not
+//     see all the fields, e.g. a user profile.  Hmm... Maybe MOST objects can be the same but UserProfile
+//     is a different view?
+// * TODO: need to set all fields to '' if not existing from the database so labels appear at consistent size/position
 
 import React from "react";
 import { callAPI } from '../helpers/api';
@@ -23,6 +29,7 @@ import Card from '@material-ui/core/Card';
 import CardHeader from '@material-ui/core/CardHeader';
 import CardContent from '@material-ui/core/CardContent';
 import CardActions from '@material-ui/core/CardActions';
+import Avatar from '@material-ui/core/Avatar';
 import Grid from '@material-ui/core/Grid';
 import TextField from '@material-ui/core/TextField';
 import IDIcon from '@material-ui/icons/Fingerprint';
@@ -32,6 +39,9 @@ import { useAlerts } from '../contexts/alerts';
 import { useConfirm } from 'material-ui-confirm';
 import Busy from '../components/busy';
 import { ObjectEditButton, ObjectDeleteButton, ObjectRestoreButton, ObjectPurgeButton } from '../helpers/object_utils';
+import { hasPermission, listPermissions } from '../helpers/object_utils';
+import { objectIcon, objectTitle } from '../helpers/object_utils';
+
 
 // Object type icons
 import UserIcon from '@material-ui/icons/Person';
@@ -47,7 +57,7 @@ import EmailIcon from '@material-ui/icons/Email';
 import LocationIcon from '@material-ui/icons/LocationOn';
 import ImageSizeIcon from '@material-ui/icons/SquareFoot';
 import ExposureTimeIcon from '@material-ui/icons/Timer';
-//import ExposureTempIcon from '@material-ui/icons/DeviceThermostat';
+//import ExposureTempIcon from '@material-ui/icons/Thermostat';
 import DateTimeIcon from '@material-ui/icons/Today';
 
 
@@ -82,34 +92,20 @@ return (props) => {
     const [name, setName] = React.useState('');
 
     // Permissions
-    const [canEdit, setCanEdit] = React.useState(false);
-    const [canDelete, setCanDelete] = React.useState(false);
-    const [canPurge, setCanPurge] = React.useState(false);
-    const [canRestore, setCanRestore] = React.useState(false);
     const [permissions, setPermissions] = React.useState([]);
 
-    // Cache permissions
-    // TODO: streamline by new API function (get all permissions), or fire async calls together
+    // When id is set, check permissions (cache them in state) and load object
     React.useEffect(() => {
         if (id) {
-            hasPermission('edit').then((response) => {setCanEdit(response); console.log('canEdit', response);})
-            hasPermission('delete').then((response) => {setCanDelete(response);})
-            hasPermission('restore').then((response) => {setCanRestore(response);})
-            hasPermission('purge').then((response) => {setCanPurge(response);})
-        }
-    },[id])
-
-    // TODO: error checking (error response, and also exception of callAPI)
-    React.useEffect(() => {
-        if (id) {
-            callAPI('GET', `api/permission/view/${object_type}/${id}`)
-            .then((response) => {
-                if (response.data.authorized === true) {
+            listPermissions(object_type, id)
+            .then((list) => {
+                setPermissions(list);
+                if (list.includes('view')) {
                     objectLoad(id);
                 } else {
-                    setErrorResponse({code: StatusCodes.FORBIDDEN, details: 'Not 123 Authorized' });
+                    setErrorResponse({code: StatusCodes.FORBIDDEN, details: 'Not Authorized' });
                 }
-            })
+            });
         }
     }, [id])
 
@@ -127,50 +123,6 @@ return (props) => {
         }
     }, [model])
 */
-
-    const icon = () => {
-        switch(object_type) {
-            case 'user': return UserIcon;
-            case 'org': return OrganizationIcon;
-            case 'image': return ImageIcon;
-            case 'analysis': return AnalysisIcon;
-            case 'equip': return EquipmentIcon;
-            case 'plate': return PlateIcon;
-            case 'cover': return CoverIcon;
-            default:
-                console.error('Invalid object_type');
-                return null;
-        }
-    }
-
-    const title = () => {
-        switch(object_type) {
-            case 'user': return 'User';
-            case 'org': return 'Organization';
-            case 'image': return 'Image';
-            case 'analysis': return 'Analysis';
-            case 'equip': return 'Equipment type';
-            case 'plate': return 'Plate type';
-            case 'cover': return 'Cover type';
-            default:
-                console.error('Invalid object_type');
-                return '';
-        }
-    }
-
-    // TODO: cache these in the session? Or here? Store in state and only change when model changes?
-    // TODO: swap the id and permission?
-    async function hasPermission(permission) {
-        return callAPI('GET', `api/permission/${permission}/${object_type}/${id}`)
-        .then((response) => {
-            console.log('response', response);
-            return response.data.authorized;
-        })
-        .catch((error) => {
-            console.warn('Exception in /api/permission call: ', error);
-            return false;
-        });
-    }
 
     // Retrieve user with specified id from the database
     function objectLoad(id) {
@@ -204,8 +156,17 @@ return (props) => {
         <Busy busy={!loaded} />
 
         <Card>
-        
-            <CardHeader /*avatar={/`${icon()}`}*/ title={`${title()}: ${model.name} (ID=${id})`} /*avatar actions title subheader*/ />
+            <CardHeader
+                avatar={
+                    <Avatar variant="square">
+                        {React.createElement(objectIcon(object_type), {fontSize:'large'})}
+                    </Avatar>
+                }
+                title={`VIEW ${objectTitle(object_type).toUpperCase()}`}
+                subheader={`${model.name || ''}`}
+                action={<>
+                </>}
+            />
             <CardContent>
 
                 <WrappedView id={id} model={model} />
@@ -213,7 +174,7 @@ return (props) => {
                 <Divider />
                 Metadata:
                 <Grid fullWidth container direction='row' justifyContent='space-between'>
-                    <TextField label="ID" value={id || ''} />
+                    <TextField label={`${objectTitle(object_type)} ID`} value={id || ''} />
                     <TextField label="Owner ID" value={model.owner_id || ''} />
                     <TextField label="Created" value={model.created} />
                     <TextField label="Last modified" value={model.modified} />
@@ -224,10 +185,10 @@ return (props) => {
 
             <CardActions disableSpacing>
 
-                {canEdit ? (<ObjectEditButton objectType={object_type} objectID={id} />) : ( <></> )}
-                {(canDelete && !model.is_deleted) ? (<ObjectDeleteButton objectType={object_type} objectID={id} />) : ( <></> )}
-                {(canRestore && model.is_deleted) ? (<ObjectRestoreButton objectType={object_type} objectID={id} />) : ( <></> )}
-                {canPurge ? (<ObjectPurgeButton objectType={object_type} objectID={id} />) : ( <></> )}
+                {permissions.includes('edit') ? (<ObjectEditButton objectType={object_type} objectID={id} />) : ( <></> )}
+                {(permissions.includes('delete') && !model.is_deleted) ? (<ObjectDeleteButton objectType={object_type} objectID={id} />) : ( <></> )}
+                {(permissions.includes('restore') && model.is_deleted) ? (<ObjectRestoreButton objectType={object_type} objectID={id} />) : ( <></> )}
+                {permissions.includes('purge') ? (<ObjectPurgeButton objectType={object_type} objectID={id} />) : ( <></> )}
 
             </CardActions>
 
@@ -246,6 +207,8 @@ return (props) => {
 //   - model is the data model
 //   - fields is an array of {label, field, type='string'}
 //   - actions is an array of {label, callback}
+//   - permissions is an array of string with permission names
+// Pass-through props: objectType
 
 const GenericObjectView = (props) => {
 
@@ -294,7 +257,8 @@ const WrappedUserView = (props) => {
     const fields = [
         {icon: UserIcon, label: 'Name', value: `${props.model.first_name} ${props.model.last_name}`},
         {icon: EmailIcon, label: 'Email', value: props.model.email },
-        {icon: OrganizationIcon, label: 'Organization', value: props.model.org_list },
+        {icon: OrganizationIcon, label: 'Organization', value: props.model.org_id },
+        {icon: null, label: 'Is active?', value: props.model.is_active },
     ];
     const actions = [
         {icon: null, label: 'Follow', callback: () => handleFollow()}, // just putting 'handleFollow' does not work
@@ -331,16 +295,78 @@ const WrappedEquipView = (props) => {
     return (
         <GenericObjectView id={props.objectID} fields={fields} actions={actions} model={props.model} />
     )
-
 }
 
+const WrappedOrgView = (props) => {
+    const fields = [
+        { label: 'Name', value: props.model.name },
+        { label: 'Description', value: props.model.description },
+        { label: 'Location', value: props.model.address },
+        // TODO: support photo(s) upload?
+    ];
+    const actions = [];
+    return (
+        <GenericObjectView id={props.objectID} fields={fields} actions={actions} model={props.model} />
+    )
+}
+
+const WrappedPlateView = (props) => {
+    const fields = [
+        { label: 'Name', value: props.model.name },
+        { label: 'Description', value: props.model.description },
+        { label: 'Manufacturer', value: props.model.manufacturer },
+        { label: 'Part number', value: props.model.catalog },
+        // TODO: support photo(s) upload?
+    ];
+    const actions = [];
+    return (
+        <GenericObjectView id={props.objectID} fields={fields} actions={actions} model={props.model} />
+    )
+}
+
+const WrappedCoverView = (props) => {
+    const fields = [
+        { label: 'Name', value: props.model.name },
+        { label: 'Description', value: props.model.description },
+        { label: 'Manufacturer', value: props.model.manufacturer },
+        { label: 'Part number', value: props.model.catalog },
+        // TODO: support photo(s) upload?
+    ];
+    const actions = [];
+    return (
+        <GenericObjectView id={props.objectID} fields={fields} actions={actions} model={props.model} />
+    )
+}
+
+const WrappedAnalysisView = (props) => {
+    const fields = [
+        { label: 'Name', value: props.model.name },
+        { label: 'Description', value: props.model.description },
+        // TODO: support all analysis properties, and images...
+        // TODO: show the image with ROIs and results table
+    ];
+    const actions = [];
+    return (
+        <GenericObjectView id={props.objectID} fields={fields} actions={actions} model={props.model} />
+    )
+}
+
+
 const UserView = withRouter(connectView(WrappedUserView, 'user'));
+const OrgView = withRouter(connectView(WrappedOrgView, 'org'));
 const EquipView = withRouter(connectView(WrappedEquipView, 'equip'));
 const ImageView = withRouter(connectView(WrappedImageView, 'image'));
+const AnalysisView = withRouter(connectView(WrappedAnalysisView, 'analysis'));
+const PlateView = withRouter(connectView(WrappedPlateView, 'plate'));
+const CoverView = withRouter(connectView(WrappedCoverView, 'cover'));
 
 export {
     UserView,
+    OrgView,
     EquipView,
+    PlateView,
+    CoverView,
     ImageView,
+    AnalysisView,
 }
 

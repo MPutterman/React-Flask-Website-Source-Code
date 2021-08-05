@@ -1,6 +1,9 @@
 // Implement some utilities for handling objects, especially linking to backend.
 // Right now, implemented as button components with an onClick handler. Later may
 // factor out the handler to improve code re-use.
+//
+// TODO: 
+// * Clicking a button would cause loss of any edits... give a warning?
 
 import React from 'react';
 import { callAPI } from '../helpers/api.js'; 
@@ -16,12 +19,68 @@ import EditIcon from '@material-ui/icons/Edit';
 import DeleteIcon from '@material-ui/icons/Delete';
 import RestoreIcon from '@material-ui/icons/RestoreFromTrash';
 import PurgeIcon from '@material-ui/icons/DeleteForever';
+import SearchIcon from '@material-ui/icons/Search';
 import IDInputField from '../components/idfield';
 
 import Grid from '@material-ui/core/Grid';
 import Box from '@material-ui/core/Box';
 import Paper from '@material-ui/core/Paper';
 import TextField from '@material-ui/core/TextField';
+
+// Object type icons
+import UserIcon from '@material-ui/icons/Person';
+import ImageIcon from '@material-ui/icons/Image';
+import AnalysisIcon from '@material-ui/icons/Assessment';
+import OrganizationIcon from '@material-ui/icons/Business'; // or People?
+import PlateIcon from '@material-ui/icons/Note'; // TODO: need something better
+import CoverIcon from '@material-ui/icons/Note'; // TODO: need something better
+import EquipmentIcon from '@material-ui/icons/Camera'; // or CameraAlt
+
+// Return action-type icon
+const actionIcon = (action) => {
+    switch(action) {
+        case 'view': return ViewIcon;
+        case 'edit': return EditIcon;
+        case 'delete': return DeleteIcon;
+        case 'restore': return RestoreIcon;
+        case 'purge': return PurgeIcon;
+        case 'search': return SearchIcon;
+    }
+}
+
+// Return object-type icon
+const objectIcon = (objectType) => {
+    switch(objectType) {
+        case 'user': return UserIcon;
+        case 'org': return OrganizationIcon;
+        case 'image': return ImageIcon;
+        case 'analysis': return AnalysisIcon;
+        case 'equip': return EquipmentIcon;
+        case 'plate': return PlateIcon;
+        case 'cover': return CoverIcon;
+        default:
+            console.error('Invalid object type');
+            return <></>;
+    }
+}
+
+// Return object-type name
+const objectTitle = (objectType) => {
+    switch(objectType) {
+        case 'user': return 'User';
+        case 'org': return 'Organization';
+        case 'image': return 'Image';
+        case 'analysis': return 'Analysis';
+        case 'equip': return 'Equipment';
+        case 'plate': return 'Plate';
+        case 'cover': return 'Cover';
+        default:
+            console.error('Invalid object type');
+            return '';
+    }
+}
+
+
 
 
 // Show a delete button and handle actions
@@ -37,12 +96,10 @@ const ObjectDeleteButton = (props) => {
 
     const handleClick = (event) => {
 
-        setAlert({severity: 'warning', message: 'Delete not yet implemented in backend'});
-        setBusy(true);
-
         confirm ({/*title:<title>, description:<description>*/})
         .then(() => {
 
+            setBusy(true);
             callAPI('POST', `api/${object_type}/delete/${id}`)
             .then((response) => {
 
@@ -90,11 +147,10 @@ const ObjectRestoreButton = (props) => {
 
     const handleClick = (event) => {
 
-        setAlert({severity: 'warning', message: 'Restore not yet implemented in backend'});
-        setBusy(true);
-
         confirm ({/*title:<title>, description:<description>*/})
         .then(() => {
+
+            setBusy(true);
 
             callAPI('POST', `api/${object_type}/restore/${id}`)
             .then((response) => {
@@ -130,6 +186,23 @@ const ObjectRestoreButton = (props) => {
     );
 };   
 
+// Show an object view button and handle actions (redirect to preview)
+function ObjectViewButton(props) {
+
+    const object_type = props.objectType;
+    const id = props.objectID;
+
+    const history = useHistory();
+
+    const handleClick = (event) => {
+        history.push(`/${object_type}/view/${id}`);
+    }
+
+    return (
+        <Button size='small' onClick={handleClick}><ViewIcon/>View</Button>
+    ); 
+};
+
 // Show an object edit button and handle actions (redirect to edit view)
 function ObjectEditButton(props) {
 
@@ -160,11 +233,10 @@ const ObjectPurgeButton = (props) => {
 
     const handleClick = (event) => {
 
-        setAlert({severity: 'warning', message: 'Purge not yet implemented in backend'});
-        setBusy(true);
-
         confirm ({/*title:<title>, description:<description>*/})
         .then(() => {
+
+            setBusy(true);
 
             callAPI('POST', `api/${object_type}/purge/${id}`)
             .then((response) => {
@@ -195,15 +267,65 @@ const ObjectPurgeButton = (props) => {
     return (
         <>
             {/*<Busy busy={busy}/>*/}
-            <Button size='small' onClick={handleClick}><PurgeIcon />Delete</Button>
+            <Button size='small' onClick={handleClick}><PurgeIcon />Purge</Button>
         </>
     );
 };   
 
+async function hasPermission(permission, object_type, id) {
+    return callAPI('GET', `api/check_permission/${object_type}/${permission}/${id}`)
+    .then((response) => {
+        if (response.error) {
+            console.warn(`Error ${response.status} from /api/check_permission call: ${response.data.error}`);
+            return false; // Return false if any error
+        } else {
+            return response.data.authorized === true;
+        }
+    })
+    .catch((error) => {
+        console.warn('Exception in /api/check_permission call: ', error);
+        return false; // Return false if any exception
+    });
+}
+
+async function listPermissions(object_type, id) {
+    return callAPI('GET', `api/list_permissions/${object_type}/${id}`)
+    .then((response) => {
+        if (response.error) {
+            console.warn(`Error ${response.status} from /api/list_permissions call: ${response.data.error}`);
+            return []; // Return empty list if any errors
+        } else {
+            return response.data.authorized;
+        }
+    })
+    .catch((error) => {
+        console.warn('Exception in /api/list_permissions call: ', error);
+        return []; // Return empty list if any exception
+    });
+}
+
+
+const ObjectIcon = ({objectType, children, ...props}) => {
+    return React.createElement(objectIcon(objectType), props, children);
+}
+
+const ActionIcon = ({action, children, ...props}) => {
+    return React.createElement(actionIcon(action), props, children);
+}
+
+
 export {
+    ObjectViewButton,
     ObjectEditButton,
     ObjectDeleteButton,
     ObjectRestoreButton,
     ObjectPurgeButton,
+    hasPermission,
+    listPermissions,
+    actionIcon,
+    objectIcon,
+    objectTitle,
+    ObjectIcon,
+    ActionIcon,
 };
 
