@@ -38,6 +38,7 @@ import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import IDInputField from '../components/idfield';
 import TimezoneSelect, { i18nTimezones } from 'react-timezone-select';
+import InputAdornment from '@material-ui/core/InputAdornment';
 
 const UserPrefs = (props) => {
 
@@ -91,15 +92,15 @@ const UserPrefs = (props) => {
             type: String, // cover_id
         },
         "analysis.default_equip": {
-            label: 'Default equipment ID',
+            label: 'Default equipment',
             type: String, // equip_id
         },
         "analysis.default_exposure_time": {
-            label: 'Default exposure time (s)',
+            label: 'Default exposure time',
             type: Number,
         },
         "analysis.default_exposure_temp": {
-            label: 'Default exposure temperature (C)',
+            label: 'Default exposure temperature',
             type: Number, // TODO: somehow warn if equipment doesn't support cooling?
         },
         "analysis.default_use_flat_correction": {
@@ -274,13 +275,17 @@ const UserPrefs = (props) => {
                         <Grid container direction="column">
                             <AutoField name="analysis.default_equip" component={IDInputField} objectType="equip" />
                             <ErrorField name="analysis.default_equip" />
-                            <AutoField name="analysis.default_plate" />
+                            <AutoField name="analysis.default_plate" component={IDInputField} objectType="plate" />
                             <ErrorField name="analysis.default_plate" />
-                            <AutoField name="analysis.default_cover" />
+                            <AutoField name="analysis.default_cover" component={IDInputField} objectType="cover" />
                             <ErrorField name="analysis.default_cover" />
-                            <AutoField name="analysis.default_exposure_time" />
+                            <AutoField name="analysis.default_exposure_time"
+                                InputProps={{endAdornment:(<InputAdornment position="end">s</InputAdornment>)}}
+                            />
                             <ErrorField name="analysis.default_exposure_time" />
-                            <AutoField name="analysis.default_exposure_temp" />
+                            <AutoField name="analysis.default_exposure_temp"
+                                InputProps={{endAdornment:(<InputAdornment position="end">&deg;C</InputAdornment>)}}
+                            />
                             <ErrorField name="analysis.default_exposure_temp" />
                             <AutoField name="analysis.default_use_dark_correction" />
                             <ErrorField name="analysis.default_use_dark_correction" />
