@@ -1,9 +1,18 @@
 # TODO:
-# * Currently images are in different formats... this should be reconsidered in the future
+# * Currently images (radio, dark, bright) are in different formats... this should be reconsidered in the future
+# * Perhaps can use a mixin to share code of common fields (owner_id, modified, created, deleted)
+# * Check saving methods to make sure immune to SQL injection. (SQLAlchemy handles a lot automatically with the ORM)
+# * Changing naming of main 'id' field to 'id' for all objects?
+# * Add some convenience methods, e.g. get_id(), get_name()?
+# * An alternative design strategy would be to put owner_id, modified, created, deleted into a separate table
+#     to basically track ownership/permissions, deletion status, and edit history
+# * Be careful of string versus number IDs!!!
+# * Convert all DateTime database types to 'TZDateTime'
+# * I am getting rid of 'org_list' from User (instead using org_id).  But haven't yet finished removing the old code.
+# * Store image_type as string instead of enum?
 
-# NOTE: need to run: pip3 install mysql-connector-python
-# NOTE: need to run: pip3 install SQLAlchemy
-# NOTE: need to run: pip3 install flask-login
+# Package dependencies:
+# mysql-connector-python, SQLAlchemy, flask-login
 
 # REFERENCES and CREDITS:
 # * https://variable-scope.com/posts/storing-and-verifying-passwords-with-sqlalchemy (more sophisticated handling of password hashes)
@@ -17,6 +26,7 @@ from flask import current_app as app
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy import Table, Column, ForeignKey
 from sqlalchemy import Integer, String, Float, Text, DateTime, LargeBinary, Enum, Boolean, PickleType, BigInteger
+from sqlalchemy import TypeDecorator
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.orm import Session, sessionmaker, scoped_session
 from sqlalchemy.orm import joinedload, selectinload
@@ -35,7 +45,7 @@ import numpy as np
 from io import BytesIO
 import flask_login
 from datetime import datetime, timezone # TODO: probably should move time handling to API
-from dateutil.parser import parse
+from dateutil.parser.isoparser import isoparse
 
 # TODO: how to do this setup and instantiation once and register with FLASK globals?
 
@@ -69,6 +79,35 @@ def db_cleanup():
     db_session.close()
     #db_engine.dispose()
 
+# Timezone-aware DateTime datatype for SQLAlchemy. Basically it
+# converts to UTC timezone before storage to database (which doesn't
+# store TZ info), and then adds on a UTC timezone description when
+# retrieving values from database.
+# Also will accept incoming ISO strings (not just datetime objects)
+# in case of using ISO string rather than JSON encoded datetime to
+# receive data from the frontend.
+# CREDIT:
+# https://docs.sqlalchemy.org/en/14/core/custom_types.html#store-timezone-aware-timestamps-as-timezone-naive-utc
+
+class TZDateTime(TypeDecorator):
+    impl = DateTime
+    cache_ok = True
+
+    def process_bind_param(self, value, dialect):
+        if value is not None:
+            if isinstance(value,str):
+                if (value == ''):  # empty string
+                    return None
+                value = isoparse(value)
+            if not value.tzinfo:
+                raise TypeError("tzinfo is required")
+            value = value.astimezone(timezone.utc).replace(tzinfo=None)
+        return value
+
+    def process_result_value(self, value, dialect):
+        if value is not None:
+            value = value.replace(tzinfo=timezone.utc)
+        return value
 
 # Define association tables
 
@@ -123,6 +162,8 @@ class User(UserMixin, Base):
     password_hash = Column(Text) # TODO: can be limited to length 60, but need correct type (String doesn't work)
     is_active = Column(Boolean, default=True, nullable=False)
     is_deleted = Column(Boolean, default=False, nullable=False)
+    created = Column(TZDateTime) 
+    modified = Column(TZDateTime)
     prefs = Column(PickleType)
     org_list = relationship("Organization", secondary=user_org_map) 
     analysis_list=relationship("Analysis",secondary=user_analysis_map)
@@ -168,6 +209,10 @@ class Organization(Base):
     equip_list = relationship("Equipment", secondary=org_equip_map)
     plate_list = relationship("Plate", secondary=org_plate_map)
     cover_list = relationship("Cover", secondary=org_cover_map)
+    owner_id = Column(Integer, ForeignKey('user.user_id'))
+    created = Column(TZDateTime) 
+    modified = Column(TZDateTime)
+    is_deleted = Column(Boolean, default=False, nullable=False)
 
     ## TODO: can this be defined as a mixin??
     def as_dict(self):
@@ -183,7 +228,9 @@ class Equipment(Base):
     equip_id = Column(Integer, primary_key=True)
     name = Column(String(128), nullable=False)
     description = Column(Text)
-    camera = Column(String(128), nullable=False)
+    manufacturer = Column(String(256))
+    catalog = Column(String(128))
+    camera = Column(String(128)) # Remove this field?
     has_temp_control = Column(Boolean, nullable=False)
     has_metadata = Column(Boolean)  # Do the files/images have metadata we can read? (Date, temp, etc..)?  If so we can skip things on the image_edit form
     pixels_x = Column(Integer, nullable=False)
@@ -192,6 +239,10 @@ class Equipment(Base):
     fov_y = Column(Float) # size in mm
     bpp = Column(Integer, nullable=False) # Assumes images are monochrome
     file_format = Column(String(128), nullable=False) # Each type will map to an 'importer' function
+    owner_id = Column(Integer, ForeignKey('user.user_id')) 
+    created = Column(TZDateTime) 
+    modified = Column(TZDateTime)
+    is_deleted = Column(Boolean, default=False, nullable=False)
 
     def as_dict(self):
         # Returns full represenation of model.
@@ -243,7 +294,6 @@ class Analysis(Base):
     description = Column(Text)
     experiment_datetime = Column(DateTime(timezone=True)) # Date of experiment
     analysis_datetime = Column(DateTime(timezone=True)) # Date of analysis (last change)
-    owner_id = Column(Integer, ForeignKey('user.user_id')) # User who performed the analysis
     plate_id = Column(Integer, ForeignKey('plate.plate_id'))
     cover_id = Column(Integer, ForeignKey('cover.cover_id'))
     #user=relationship("User",secondary=user_analysis_map)
@@ -252,6 +302,10 @@ class Analysis(Base):
     origin_list = relationship('Origin',back_populates='analysis')
     lane_list = relationship("Lane", back_populates="analysis")
     images= relationship('Image',secondary=analysis_image_map)
+    owner_id = Column(Integer, ForeignKey('user.user_id'))
+    created = Column(TZDateTime) 
+    modified = Column(TZDateTime)
+    is_deleted = Column(Boolean, default=False, nullable=False)
 
     def as_dict(self):
         # Returns full represenation of model.
@@ -336,15 +390,16 @@ class Image(Base):
     image_id = Column(Integer, primary_key=True)
     equip_id = Column(Integer, ForeignKey('equipment.equip_id'))
     image_type = Column(Enum(ImageType), nullable=False)
-    captured = Column(DateTime(timezone=True)) # Image creation date (support timezone?)
+    captured = Column(TZDateTime) # Image creation date
     exp_time = Column(Float) # Exposure time (seconds)
     exp_temp = Column(Float) # Exposure temp (deg C)
     name = Column(String(128), nullable=False)
     description = Column(Text) # Maybe can get rid of this...?
     image_path = Column(String(256)) #, nullable=False) # Full path of file on server (for file system DB)
     owner_id = Column(Integer, ForeignKey('user.user_id')) # User-ID of user that uploaded the file
-    created = Column(DateTime(timezone=True)) 
-    modified = Column(DateTime(timezone=True))
+    created = Column(TZDateTime) 
+    modified = Column(TZDateTime)
+    is_deleted = Column(Boolean, default=False, nullable=False)
 
     def as_dict(self):
         # Returns full represenation of model.
@@ -360,12 +415,40 @@ class Plate(Base):
     plate_id = Column(Integer, primary_key=True)
     name = Column(String(128), nullable=False)
     description = Column(Text)
-    
+    manufacturer = Column(String(256))
+    catalog = Column(String(128))
+    owner_id = Column(Integer, ForeignKey('user.user_id'))
+    created = Column(TZDateTime) 
+    modified = Column(TZDateTime)
+    is_deleted = Column(Boolean, default=False, nullable=False)
+
+    def as_dict(self):
+        # Returns full represenation of model.
+        columns = class_mapper(self.__class__).mapped_table.c
+        return {
+            col.name: getattr(self, col.name)
+                for col in columns
+        }
+
 class Cover(Base):
     __tablename__ = 'cover'
     cover_id = Column(Integer, primary_key=True)
     name = Column(String(128), nullable=False)
     description = Column(Text)
+    manufacturer = Column(String(256))
+    catalog = Column(String(128))
+    owner_id = Column(Integer, ForeignKey('user.user_id'))
+    created = Column(TZDateTime) 
+    modified = Column(TZDateTime)
+    is_deleted = Column(Boolean, default=False, nullable=False)
+
+    def as_dict(self):
+        # Returns full represenation of model.
+        columns = class_mapper(self.__class__).mapped_table.c
+        return {
+            col.name: getattr(self, col.name)
+                for col in columns
+        }
 
 
 def db_create_tables():
@@ -420,10 +503,215 @@ def db_add_test_data():
 # --- roi: lane_id, <geometry description>
 # --- QUESTION... would we store the results inside the ROIs?, e.g. fields 'result_radio, 'result_rf'
 
+
+# -----------------------
+# Generic object handlers
+# -----------------------
+
+# Check if object type is valid
+def object_type_valid(object_type):
+    allowed_types = ['user', 'org', 'equip', 'plate', 'cover', 'image', 'analysis']
+    return object_type in allowed_types
+
+# Build function name
+def object_action_function(object_type, action):
+    return f"db_{object_type}_{action}"
+
+# Load classname from object_type
+def object_class(object_type):
+    if (object_type=='user'): return 'User'
+    if (object_type=='org'): return 'Organization'
+    if (object_type=='equip'): return 'Equipment'
+    if (object_type=='plate'): return 'Plate'
+    if (object_type=='cover'): return 'Cover'
+    if (object_type=='image'): return 'Image'
+    if (object_type=='analysis'): return 'Analysis'
+    # TODO: else raise invalid object type error
+
+def object_idfield(object_type):
+    return f"{object_type}_id"
+
+# Load an object by id. Will call object-specific function if it exists.
+# Returns the object or None if any error
+def db_object_load(object_type, object_id):
+
+    # If object-specific function exists, call it
+    function_name = object_action_function(object_type, 'load')
+    try:
+        eval(function_name)
+    except NameError:
+        pass
+    else:
+        return eval(function_name + f"({object_id})")
+
+    # Otherwise load the object
+    class_name = object_class(object_type)
+    id_field = object_idfield(object_type)
+    # 'scalar' returns one object or 'None' if not found
+    record = getattr(eval(class_name), 'query').filter(getattr(eval(class_name),id_field)==object_id).scalar()
+    db_session.commit()
+    return record
+
+# Save an object. Will call object-specific save (or create or update) functions if they exist.
+# Returns the object or None if any error
+def db_object_save(object_type, data):
+
+    # If object-specific function exists, call it
+    function_name = object_action_function(object_type, 'save')
+    try:
+        eval(function_name)
+    except NameError:
+        pass
+    else:
+        return eval(function_name + f"({data})")
+
+    # Otherwise, find the id value and determine if this is a 'insert' or 'update' operation    
+    id_field = object_idfield(object_type)
+    object_id = data.get(id_field)
+    if (object_id is None):
+        # Create mode (insert operation)
+        return db_object_create(object_type, data)
+    else:
+        # Edit mode (update operation)
+        return db_object_update(object_type, object_id, data)
+
+# Create an object in database. Will call object-specific function if it exists.
+# Returns the full object or None if any error
+def db_object_create(object_type, data):
+    # If object-specific function exists, call it
+    function_name = object_action_function(object_type, 'create')
+    try:
+        eval(function_name)
+    except NameError:
+        pass
+    else:
+        return eval(function_name + f"({data})")
+
+    # Otherwise create the object
+    class_name = object_class(object_type)
+    now = datetime.now(timezone.utc) # Current timestamp
+    data['owner_id'] = flask_login.current_user.get_id()
+    data['created'] = now
+    data['modified'] = now
+    data['is_deleted'] = False
+    record = eval(class_name)(**data) # Need to unpack dictionary
+    db_session.add(record)
+    db_session.commit()
+    # TODO: add error checking
+    return record
+
+# Create an object in database. Will call object-specific function if it exists.
+# Returns the full object or None if any error
+def db_object_update(object_type, object_id, data):
+    # If object-specific function exists, call it
+    function_name = object_action_function(object_type, 'update')
+    try:
+        eval(function_name)
+    except NameError:
+        pass
+    else:
+        return eval(function_name + f"({object_id},{data})")
+
+    # Otherwise update the object
+    class_name = object_class(object_type)
+    id_field = object_idfield(object_type)
+    now = datetime.now(timezone.utc) # Current timestamp
+    data['modified'] = now
+    record = getattr(eval(class_name), 'query').filter(getattr(eval(class_name),id_field)==object_id).scalar()
+    if (record is None): return None
+    # Update attributes contained in 'data'
+    for key, value in data.items():
+        setattr(record, key, value)
+    db_session.commit()
+    # TODO: add error checking
+    return record
+
+# Delete an object with specified id from database. Call object-specific function it it exists
+# Return true if succesful, false if any error
+# TODO: add error checking
+def db_object_delete(object_type, object_id):
+    # If object-specific function exists, call it
+    function_name = object_action_function(object_type, 'delete')
+    try:
+        eval(function_name)
+    except NameError:
+        pass
+    else:
+        return eval(function_name + f"({object_id})")
+
+    # Otherwise delete the record
+    record = db_object_load(object_type, object_id)
+    if (record is None):
+        return False
+    else:
+        record.is_deleted = True
+        db_session.commit()
+        return True
+
+# Restore an object with specified id from database. Call object-specific function it it exists
+# Return true if successful, false if any error
+# TODO: add error checking
+def db_object_restore(object_type, object_id):
+    # If object-specific function exists, call it
+    function_name = object_action_function(object_type, 'restore')
+    try:
+        eval(function_name)
+    except NameError:
+        pass
+    else:
+        return eval(function_name + f"({object_id})")
+
+    # Otherwise delete the record
+    record = db_object_load(object_type, object_id)
+    if (record is None):
+        return False
+    else:
+        record.is_deleted = False
+        db_session.commit()
+        return True
+
+# Purge an object with specified id from database. Call object-specific function it it exists
+# Return true if successful, false if any error
+# TODO: add error checking
+# TODO: implement this. What to do with all dependencies if delete?  Maybe keep object but delete all the non-ID fields?
+def db_object_purge(object_type, object_id):
+    # If object-specific function exists, call it
+    function_name = object_action_function(object_type, 'purge')
+    try:
+        eval(function_name)
+    except NameError:
+        pass
+    else:
+        return eval(function_name + f"({object_id})")
+
+    # TODO: implement
+
+# Search objects meeting the filter criteria. Call object-specific function if it exists
+# Return a list of object, or empty list if not found. Return None if any error encountered.
+# TODO: add error checking
+def db_object_search(object_type, object_filter=None):
+    # If object-specific function exists, call it
+    function_name = object_action_function(object_type, 'search')
+    try:
+        eval(function_name)
+    except NameError:
+        pass
+    else:
+        return eval(function_name + f"({object_filter})")
+
+    # Otherwise search and return the results
+    class_name = object_class(object_type)
+    record_list = getattr(eval(class_name),'query').all() # TODO: add filtering and pagination/sorting here
+    db_session.commit()
+    return record_list
+
+# ------------------------
+# Object-specific handlers
+# TODO: likely to be merged into generic ones
+# ------------------------
+
 # Load a user from id. Also load the list of associated organization ids.
 # Return as a user object.
-# NOTE: 'scalar' method returns 'None' if no entry is found, or one object. Raises exception of more than 1 result found.
-# TODO: Figure out handling of ID-not found
 def db_user_load(id):
     #db_session.begin()
     user = User.query.options(selectinload(User.org_list)).filter_by(user_id=id).scalar() # scalar returns a single record or 'None'; raises exception if >1 found
@@ -432,7 +720,7 @@ def db_user_load(id):
     return user
 
 def db_user_load_by_email(email):
-    db_session.begin()
+    #db_session.begin()
     #users = (User.query.all())
     #print(users)
     #for user in users:
@@ -460,120 +748,52 @@ def db_prefs_load(user_id):
 def db_user_save(data):
     #print("incoming data:")
     #print(data)
-    db_session.begin()
+    #db_session.begin()
 
     # If user_id exists, load user, replace data, then update
     # If user_id is empty, add a new user
-    if (data['user_id'] is not None):
+    if (data.get('user_id') is not None):
         user = User.query.filter_by(user_id=data['user_id']).one()
         user.first_name = data['first_name']
         user.last_name = data['last_name']
-        user.email = data['email']
-        user.password_hash = User.hash(data['password'])
+        user.email = data['email'] # not changeable via
+        user.modified = datetime.now(timezone.utc)
+        #user.password_hash = User.hash(data['password'])
         # Following is not yet supported in this version of python
         #if data.has_key('preferences'):
         #    user.preferences = user.preferences | data['preferences']
-        orgs = Organization.query.filter(Organization.org_id.in_(data['org_list'])).all() 
-        user.org_list = orgs
+        if data.get('org_list'):
+            orgs = Organization.query.filter(Organization.org_id.in_(data['org_list'])).all() 
+            user.org_list = orgs
     else:
-        user = User(first_name = data['first_name'], last_name = data['last_name'], email = data['email'], password_hash = User.hash(data['password']))
-        orgs = Organization.query.filter(Organization.org_id.in_(data['org_list'])).all() 
-        user.org_list = orgs
+        user = User(
+                first_name = data['first_name'],
+                last_name = data['last_name'],
+                email = data['email'],
+                password_hash = User.hash(data['password']),
+                modified = datetime.now(timezone.utc),
+                created = datetime.now(timezone.utc),)
+        ####orgs = Organization.query.filter(Organization.org_id.in_(data['org_list'])).all() 
+        ####user.org_list = orgs
         db_session.add(user)
     db_session.commit()
-    newdata = user.as_dict()
-    newdata['org_list'] = [org.org_id for org in user.org_list]
-    #db_session.close()
-    #print ("data_after:")
-    #print(newdata)
-    return newdata
+    return user
 
-# Return a list of users.  Currently gets a list of all users.
-# In future will accept filters (e.g. match part of name, filter by organization, etc...) and sort options.
-def db_user_search():
-    user_list = User.query.all()
-    db_session.commit()
-    data = []
-    for user in user_list:
-        current_user = user.as_dict()
-        current_user['org_list'] = [org.org_id for org in user.org_list]
-        data.append(current_user)
-    #db_session.close()
-    return dumps(data)
-
-# Return a list of organizations
-# TODO: in future add filtering, ordering, pagination, etc...
-def db_organization_search():
-    results = Organization.query.all()
-    db_session.commit()
-    data = [org.as_dict() for org in results]
-    return dumps(data) # Can directly return a list...  This returns just the list.  Use jsonify(keyname=data) if want to return with a key
-
-# Return a list of analyses.  Currently gets a list of all of them.
-# In future will accept filters (e.g. match part of name or description, filter by date,
-# filter by user, filter by organization, filter by equip_id, plate_id, cover_id, etc...
-# and sort options.
-def db_analysis_search():
-    analysis_list = Analysis.query.all()
-    db_session.commit()
-    data = []
-    for analysis in analysis_list:
-        current_analysis = analysis.as_dict()
-        data.append(current_analysis)
-    #db_session.close()
-    return dumps(data)
-
-# Return an equipment
-def db_equip_load(id):
-    #db_session.begin()
-    record = Equipment.query.filter_by(equip_id=id).scalar() # scalar returns a single record or 'None'; raises exception if >1 found
-    db_session.commit()
-    #db_session.close()
-    return record
-
-def db_equip_search():
-    equip_list = Equipment.query.all()
-    db_session.commit()
-    data = []
-    for equip in equip_list:
-        data.append(equip.as_dict())
-    return dumps(data)
-
-# TODO: also add the following: options(selectinload(Image.equip_id))
-# Return an image
-def db_image_load(id):
-    db_session.begin()
-    image = Image.query.filter_by(image_id=id).scalar() # scalar returns a single record or 'None'; raises exception if >1 found
-    db_session.commit()
-    #db_session.close()
-    if (image):
-        image.image_type = convert_image_type_to_string(image.image_type)
-    return image
-
-# TODO: also add the following: options(selectinload(Image.equip_id))
-# TODO: add owner_id handling
 # Save an image
 def db_image_save(data):
     print("incoming data:")
     print(data)
-    # Find equipment id record
-    ####equip = None
-    ####if (data['equip_id'] != 'undefined' and data['equip_id'] is not None):
-    ####    equip = db_equip_load(data['equip_id'])
-    # If id exists, load record, replace data, then update
-    # If id is empty, add a new record
     if (data['image_id'] is not None):
-        # Currently can't update owner_id, modified, created
+        # TODO: Currently can't update owner_id, modified, created
         image = Image.query.filter_by(image_id=data['image_id']).one()
         image.name = data['name']
         image.description = data['description']
-        ####image.equip_id = equip
         image.equip_id = data['equip_id']
         image.modified = datetime.now(timezone.utc)
         image.image_type = find_image_type(data['image_type'])
-        image.captured = data['captured'] # Provided in ISO format by frontend
-        image.exp_time = data['exp_time'] # Provided in ISO format by frontend
-        image.exp_temp = data['exp_temp'] # Provided in ISO format by frontend
+        image.captured = data['captured'] 
+        image.exp_time = data['exp_time'] 
+        image.exp_temp = data['exp_temp'] 
     else:
         print ('image_captured before convert')
         print (data['captured'])
@@ -589,7 +809,6 @@ def db_image_save(data):
             exp_time = data['exp_time'],
             exp_temp = data['exp_temp'],
         )
-        ####image.equip = equip
         print (image.captured)
     db_session.add(image)
     db_session.commit()  # or flush?
@@ -604,19 +823,7 @@ def db_image_save(data):
         makeFileArray(newfile, data['file'])  # TODO: fix so we don't need to pass twice
         newfile.save(image.image_path)
         db_session.commit()
-    # TODO: in future just return image_id?
-    # For now, reconvert image_type to string
-    image.image_type = convert_image_type_to_string(image.image_type)
-    # Also convert all datetime to string
-    # TODO: this is a hack... TZ info is being lost by SQLAlchemy, so we add it back.
-    #    (With current settings it is saving the UTC time.)
-    if (image.modified):
-        image.modified = image.modified.isoformat() + '+00:00'
-    if (image.created):
-        image.created = image.created.isoformat() + '+00:00'
-    if (image.captured):
-        image.captured = image.captured.isoformat() + '+00:00'
-    return image.as_dict()
+    return image
 
 
 # TODO: later remove duplicate code. COPIED FROM api.py
@@ -639,30 +846,7 @@ def makeFileArray(fileN,fileN1):
     return fileN
 
 
-# Return a list of images.
-# In future will accept filters (e.g. match part of name, search type,
-# filter by owner / organization / date... filter by equip_id, exposure time, exposure temp
-def db_image_search():
-    image_list = Image.query.all()
-    db_session.commit()
-    data = []
-    for image in image_list:
-        current_image = image.as_dict()
-        print (current_image)
-        current_image['image_type'] = convert_image_type_to_string(current_image['image_type'])
-
-        # TODO: the folowing is a hack... TZ info is being lost by SQLAlchemy, so we add it back.
-        #    (With current settings it is saving the UTC time.)
-        if (current_image['created']):
-            current_image['created'] = current_image['created'].isoformat() + '+00:00'
-        if (current_image['modified']):
-            current_image['modified'] = current_image['modified'].isoformat() + '+00:00'
-        if (current_image['captured']):
-            current_image['captured'] = current_image['captured'].isoformat() + '+00:00'
-        print(current_image)
-        data.append(current_image)
-    return dumps(data)
-
+# Analysis-related utility functions
 
 def find_image_type(image_type):
     if image_type == 'dark':

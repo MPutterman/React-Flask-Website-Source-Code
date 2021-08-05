@@ -1,7 +1,7 @@
 
 # RESOURCES and CREDITS:
 #
-# * https://flask.palletsprojects.com/en/1.1.x/api/ (main Flask api documentation)
+# * https://flask.palletsprojects.com/en/2.0.x/api/ (main Flask api documentation)
 # * https://flask.palletsprojects.com/en/2.0.x/config/ (how to handle app configuration)
 # * https://pythonise.com/series/learning-flask/python-before-after-request (how to use before/after request handlers)
 # * https://flask-login.readthedocs.io/en/latest/#flask_login (flask_login documentation)
@@ -14,22 +14,26 @@
 
 
 # TODO:
+# * Avoid use of 'id' as variable due to overlap with python 'id' built-in
+# * Simplify error handling wth @errorhandler (can capture certain types of exceptions for global response)
+
+# * Be careful when doing multiple DB calls in response to a single request...
+#      If any objects are mutated, then can end up with a 'transaction already started' error...
 # * We should move all the analysis-specific stuff out of here and into separate files that are just loaded in particular
 #   API calls when needed
-# * The front end is the main place to restrict access to routes, and display 'not authorized'. Probably we should not use
-#   @flask_login.login_required in the backend. Part of this issue is it is not clear how to set up flask_login.login_view
-#   to execute a FRONTEND redirect
+# * Incorporate Flask Mail to do email verification. Maybe also subscriptions? https://pythonhosted.org/Flask-Mail/
+# * Re-insert the @flask_login.login_required now that permissions are somewhat sorted out
 #   an extra layer of protection in backend using @flask_login.login_required
 # * A few sites have recommended using '/api' at the beginning of all backend to help better separate frontend and backend
 # * A lot of flask_session files get created per request (for Mike). Does this happen for others too?
 # * Need to look up how to split initialization activities between (if __name__ == '__main__':) section and @app.before_first_request
 # * Need to prevent saving of empty password to user profile (e.g. when create account from google login, or when update account
-#   after Google login)
+#   after Google login).  Backend should be careful of which fields are sent to database.
 # * Need to look at difference between DB session versus connection... maybe not using correctly
 # * Need to test whether session timeout is working properly, and remember-me feature
 
 import time
-from json import dumps, loads
+import json
 from scipy.cluster.vq import vq, kmeans,whiten
 from flask import Flask, request,Response,send_file,send_from_directory,make_response,Response,session
 from skimage import io, morphology, filters,transform, segmentation,exposure
@@ -55,20 +59,24 @@ from skimage import measure
 from flask_cors import CORS,cross_origin
 import flask_login
 from flask_login import LoginManager
+import urllib
 
 import ast
-from datetime import timedelta
 import datetime
+from dateutil import parser
+
 
 
 # Include database layer
 from database import (
     db_create_tables, db_add_test_data,db_cleanup,
     db_user_load, db_user_load_by_email,
-    retrieve_image_path,retrieve_initial_analysis,db_analysis_save,db_analysis_save_initial,db_analysis_edit
+    retrieve_image_path,retrieve_initial_analysis,db_analysis_save,db_analysis_save_initial,db_analysis_edit,
+    object_type_valid
+
 )
 
-from permissions import check_permission, has_permission
+from permissions import check_permission, has_permission, list_permissions
 
 
 class analysis():
@@ -835,13 +843,16 @@ HTTPStatus = {
     'UNAUTHORIZED': 401,
     'FORBIDDEN': 403,
     'NOT_FOUND': 404,
+    'INTERNAL_SERVER_ERROR': 500,
 }
 
+
+
 def api_error_response(code, details=''):
-    return flask.Response({'error': details}, code, mimetype='application/json')
+    return Response({'error': details}, code, mimetype='application/json')
 
 def login_view():
-    return api_error_response(HTTPStatus.UNAUTHORIZED)
+    return api_error_response(HTTPStatus['UNAUTHORIZED'])
 
 login_manager = LoginManager(app)
 #login_manager.session_protection = 'strong'
@@ -851,11 +862,11 @@ login_manager.login_message = 'You need to be logged in to perform this request.
 
 @login_manager.unauthorized_handler
 def unauthorized():
-    return api_error_response(HTTPStatus.UNAUTHORIZED)
+    return api_error_response(HTTPStatus['UNAUTHORIZED'])
 
 
 app.config['session_timeout'] = 10 # minutes
-app.permanent_session_lifetime = timedelta(minutes=app.config['session_timeout'])
+app.permanent_session_lifetime = datetime.timedelta(minutes=app.config['session_timeout'])
 app.config['anonymous_user_name'] = 'Anonymous'
 app.config['IMAGE_UPLOAD_PATH'] = './UPLOADS' 
 app.config['IMAGE_CACHE_PATH'] = './CACHE'
@@ -869,6 +880,34 @@ def session_load_user(user_id):
 # Global handlers
 # ---------------
 
+# Modify JSON encoder to use ISO format for datetimes. Otherwise outputs long format
+# datetimes which cannot be parsed in the frontend.
+from flask.json import JSONEncoder, JSONDecoder
+from contextlib import suppress
+class CustomJSONEncoder(JSONEncoder):
+    def default(self, obj):
+        # Convert datetime objects to ISO format
+        with suppress(AttributeError):
+            return obj.isoformat()
+        return dict(obj)
+app.json_encoder = CustomJSONEncoder
+
+class CustomJSONDecoder(JSONDecoder):
+    def __init__(self, *args, **kwargs):
+        json.JSONDecoder.__init__(self, object_hook=self.object_hook, *args, **kwargs)
+
+    def object_hook(self, source):
+        print ('here')
+        for k, v in source.items():
+            if isinstance(v, str):
+                try:
+                    source[k] = parser.isoparser.isoparse(v)
+                except:
+                    pass
+        return source
+app.json_decode=CustomJSONDecoder
+
+
 # TODO: this is only for testing purposes.  We won't clear the file storage
 # and database when the app is more mature
 @app.before_first_request
@@ -880,8 +919,10 @@ def initialize():
     # Add initial testing data
     db_add_test_data() 
 
+
 #@app.before_request
 #def initialize_request():
+#    # Do nothing
 
 @app.teardown_request
 def teardown(exception):
@@ -927,99 +968,31 @@ def get_image_upload_pathname(image_id):
 def get_image_cache_pathname(analysis_id, filename):
     return os.path.join(app.config['IMAGE_CACHE_PATH'], analysis_id, filename) # already a string
 
-# ----------------------
-# General-purpose routes
-# ----------------------
 
-# Determine whether a record of specified type with specified id exists in database.
-# Returns {exists: <Boolean>}
-@app.route('/api/<objectType>/exists/<id>', methods=['GET'])
-@cross_origin(supports_credentials=True)
-def generic_exists(objectType, id):
-    if objectType=='image':
-            from database import db_image_load
-            record = db_image_load(id)
-            return { 'exists': record is not None }
-    elif objectType=='equip':
-            from database import db_equip_load
-            record = db_equip_load(id)
-            return { 'exists': record is not None }
-    elif objectType=='user':
-            from database import db_user_load
-            record = db_user_load(id)
-            return { 'exists': record is not None }
-    elif objectType=='plate':
-            from database import db_plate_load
-            record = db_plate_load(id)
-            return { 'exists': record is not None }
-    elif objectType=='cover':
-            from database import db_cover_load
-            record = db_cover_load(id)
-            return { 'exists': record is not None }
-    elif objectType=='analysis':
-            from database import db_analysis_load
-            record = db_analysis_load(id)
-            return { 'exists': record is not None }
-    elif objectType=='org':
-            from database import db_org_load
-            record = db_org_load(id)
-            return { 'exists': record is not None }
-    else:
-            return {
-                'error': True,
-                'message': 'Invalid objectType',
-            }
-
-# Lookup the name of the record of specified object type with specified ie
-# Returns {name: <String>}
-@app.route('/api/<objectType>/name/<id>', methods=['GET'])
-@cross_origin(supports_credentials=True)
-def generic_lookup_name(objectType, id):
-    if objectType=='image':
-            from database import db_image_load
-            record = db_image_load(id)
-            return { 'name': record.name }
-    elif objectType=='equip':
-            from database import db_equip_load
-            record = db_equip_load(id)
-            return { 'name': record.name }
-    elif objectType=='user':
-            from database import db_user_load
-            record = db_user_load(id)
-            return { 'name': record.name }
-    elif objectType=='plate':
-            from database import db_plate_load
-            record = db_plate_load(id)
-            return { 'name': record.name }
-    elif objectType=='cover':
-            from database import db_cover_load
-            record = db_cover_load(id)
-            return { 'name': record.name }
-    elif objectType=='analysis':
-            from database import db_analysis_load
-            record = db_analysis_load(id)
-            return { 'exists': record is not None }
-    elif objectType=='org':
-            from database import db_org_load
-            record = db_org_load(id)
-            return { 'exists': record is not None }
-    else:
-            return {
-                'error': True,
-                'message': 'Invalid objectType',
-            }
+# -------------------------
+# Permission related routes
+# -------------------------
 
 # API call to check permission
-@app.route('/api/permission/<permission>/<object_type>', methods = ['GET'])
-@app.route('/api/permission/<permission>/<object_type>/<object_id>', methods = ['GET'])
+# TODO: check for invalid object types or permissions?
+@app.route('/api/check_permission/<object_type>/<permission>', methods = ['GET'])
+@app.route('/api/check_permission/<object_type>/<permission>/<object_id>', methods = ['GET'])
 @cross_origin(supports_credentials=True)
-def api_permission(object_type, permission, object_id=None):
+def api_check_permission(object_type, permission, object_id=None):
     print(permission, ' ', has_permission(object_type, permission, object_id))
     return { 'authorized': has_permission(object_type, permission, object_id) }
 
+# API call to list permissions
+# TODO: check for invalid object types?
+@app.route('/api/list_permissions/<object_type>', methods = ['GET'])
+@app.route('/api/list_permissions/<object_type>/<object_id>', methods = ['GET'])
+@cross_origin(supports_credentials=True)
+def api_list_permissions(object_type, object_id=None):
+    return { 'authorized': list_permissions(object_type, object_id) }
+
 
 # -------------------
-# USER-related routes
+# User-related routes
 # -------------------
 
 @app.route('/api/session/load', methods = ['GET'])
@@ -1039,205 +1012,203 @@ def session_load():
         #print("GET /api/session/load, not logged in\n")
         return ({ 'current_user': None, 'prefs': {} })
 
-@app.route('/autoselect/<filename>',methods=['POST','GET'])
-@cross_origin(supports_credentials=True)
-def autoselect(filename):
-    analysis_data = retrieve_initial_analysis(filename)
-    analysis_retrieve = analysis(analysis_data['ROIs'],None,analysis_data['origins'],filename,'UVName' in analysis_data, analysis_data['doRF'],False)
-    img = session['cerenkovcalc']
-    imgR=session['cerenkovradii']
-    analysis_retrieve.predict_ROIs(img,imgR)
-
-    return {'selected_ROIs':[analysis_retrieve.ROIs]}
-
-# TODO: add error checking if not found
-@app.route('/user/load/<id>', methods = ['GET'])
-@cross_origin(supports_credentials=True)
-#@check_permission('user', id, 'view')
-def user_load(id):
-    from database import db_user_load
-    user = db_user_load(id)
-    data = user.as_dict()
-    data['org_list'] = [org.org_id for org in user.org_list]
-    return data
-
-# Return a list of users (array of dict)
-# TODO: read in parameter strings from request for filtering, pagination, order, etc.
-@app.route('/user/search', methods = ['GET', 'POST']) # QUESTION: need GET and POST?
-@cross_origin(supports_credentials=True)
-def user_search():
-    from database import db_user_search
-    user_list = db_user_search()
-    return user_list
-
 # TODO: Need to trigger update prefs in the session!!!
 # Save the submitted user preferences
 @app.route('/api/prefs/save', methods = ['POST'])
 @cross_origin(supports_credentials=True)
 def prefs_save():
-    prefs = loads(request.form.get('prefs'))
+    prefs = json.loads(request.form.get('prefs'))
     print(prefs)
     user_id = flask_login.current_user.get_id()
     from database import db_prefs_save
     db_prefs_save(user_id, prefs)
     return ''
 
-
-# Save the submitted user information
-@app.route('/user/save', methods = ['POST'])
-#@flask_login.login_required
+# Check if user email address exists
+@app.route('/api/user/email_exists/<email>', methods = ['GET'])
 @cross_origin(supports_credentials=True)
-def user_save():
-    #print(request.form)
+def user_exists(email):
+    email = urllib.parse.unquote(email) 
+    from database import db_user_load_by_email
+    user = db_user_load_by_email(email)
+    return { 'exists': (user is not None) }
 
-    data = {
-        'user_id': request.form.get('user_id') or None,
-        'first_name': request.form.get('first_name'),
-        'last_name': request.form.get('last_name'),
-        'email': request.form.get('email'),
-        'password': request.form.get('password'),
-        'org_list': [int(org_id) for org_id in request.form.get('org_list').split(',') if org_id.strip()],
-    }
-    # TODO: somehow missing value is coming in as text 'null' if missing... maybe from front-end
-    if (data['user_id'] == 'null'):
-        data['user_id'] = None
-    # org_list arrives as a string with commas... need to split to generate an array
-    from database import db_user_save
-    user = db_user_save(data)
-    data['user_id'] = user['user_id']
-    return data
 
-# ---------------------------
-# ORGANIZATION-related routes
-# ---------------------------
+# -----------------------------
+# Generic object route handlers
+# -----------------------------
 
-# Return a list of organizations (array of dict)
-# TODO: read in parameter strings from request for filtering, pagination, order, etc...
-@app.route('/organization/search', methods = ['GET'])
+# Determine whether a record of specified type with specified id exists in database.
+# Returns {exists: <Boolean>}
+# Note this bypasses permission checking deliberately
+# TODO: make sure 'user' works properly since there is also a lookup by email...
+@app.route('/api/<object_type>/exists/<object_id>', methods=['GET'])
 @cross_origin(supports_credentials=True)
-def organization_search():
-    from database import db_organization_search
-    org_list = db_organization_search()
-    return org_list
+def object_exists(object_type, object_id):
+    if not object_type_valid(object_type):
+        return api_error_response(HTTPStatus['NOT_FOUND'], 'Unsupported object type')
+    from database import db_object_load
+    record = db_object_load(object_type, object_id)
+    return { 'exists': record is not None }
 
-
-# TODO: add error checking if not found
-@app.route('/equip/load/<id>', methods = ['GET'])
+# Lookup the name of the record of specified object type with specified ie
+# Returns {name: <String>}
+# Note this bypasses permission checking deliberately
+# TODO: a 'getName' helper would be mildly useful on the objects from DB
+@app.route('/api/<object_type>/name/<object_id>', methods=['GET'])
 @cross_origin(supports_credentials=True)
-def equip_load(id):
-    from database import db_equip_load
-    equip = db_equip_load(id)
-    data = equip.as_dict()
-    return data
+def object_name_lookup(object_type, object_id):
+    if not object_type_valid(object_type):
+        return api_error_response(HTTPStatus['NOT_FOUND'], 'Unsupported object type')
+    from database import db_object_load
+    record = db_object_load(object_type, object_id)
+    if (object_type == 'user'):
+        return { 'name': record.first_name + ' ' + record.last_name }
+    else:
+        return { 'name': record.name }
 
-# Return a list of images (array of dict)
-# TODO: read in parameter strings from request for filtering, pagination, order, etc.
-@app.route('/equip/search', methods = ['GET', 'POST']) # QUESTION: need GET and POST?
+# Generic handler to load object not caught by ealier routes
+# Return dict of fields
+@app.route('/<object_type>/load/<id>', methods = ['GET'])
 @cross_origin(supports_credentials=True)
-def equip_search():
-    from database import db_equip_search
-    equip_list = db_equip_search() # TODO: switch so DB method returns objects... here we convert via dumps
-    return equip_list
+def object_load(object_type, id):
+    if not object_type_valid(object_type):
+        return api_error_response(HTTPStatus['NOT_FOUND'], 'Unsupported object type')
+    if (not has_permission(object_type, 'view', id)):
+        return api_error_response(HTTPStatus['FORBIDDEN'], 'Not Authorized')
+    from database import db_object_load
+    record = db_object_load(object_type, id)
+    if (record is None):
+        return api_error_response(HTTPStatus['NOT_FOUND'], f"No {object_type} with this id")
+    else:
+        # TODO: fix this exception
+        if (object_type == 'image'):
+            from database import convert_image_type_to_string
+            record.image_type = convert_image_type_to_string(record.image_type)
+        return record.as_dict()
 
-
-# TODO: add error checking if not found
-@app.route('/image/load/<id>', methods = ['GET'])
+# Generic handler to save object not caught by earlier routes
+# Return { id:<ID> }
+# TODO: for now front-end only has 'save' option, not 'create' and 'update'
+@app.route('/<object_type>/save', methods = ['POST'])
 @cross_origin(supports_credentials=True)
-def image_load(id):
-    from database import db_image_load
-    image = db_image_load(id)
-    data = image.as_dict()
-    return data
+def object_save(object_type):
+    if not object_type_valid(object_type):
+        return api_error_response(HTTPStatus['NOT_FOUND'], 'Unsupported object type')
+    # Create a dict from form fields
+    # NOTE: to get around limitations of formData, we JSON encode all non-file fields 
+    # into a single form key
+    data = json.loads(request.form.get('JSON_data'))
+    #data = request.form.items()
+    #data = {}
+    #for key, value in request.form.items():
+    #    data[key] = value
+    from database import object_idfield
+    id_field = object_idfield(object_type)
+    object_id = data.get(id_field)
+    if (object_id is None):
+        if not has_permission(object_type, 'create'):
+            return api_error_response(HTTPStatus['FORBIDDEN'], 'Not Authorized')
+    else:
+        if not has_permission(object_type, 'edit', object_id):
+            return api_error_response(HTTPStatus['FORBIDDEN'], 'Not Authorized')
+    from database import db_object_save
+    record = db_object_save(object_type, data)
+    if (record is None):
+        return api_error_response(HTTPStatus['INTERNAL_SERVER_ERROR'], 'Save failed')
+    else:
+        return { 'id': getattr(record,id_field) } # eval('record.' + id_field) }
 
+
+# Generic handler to delete object not caught by earlier routes
+# TODO: add 'DELETE' method?
+@app.route('/api/<object_type>/delete/<object_id>', methods = ['POST'])
+@cross_origin(supports_credentials=True)
+def object_delete(object_type, object_id):
+    if not object_type_valid(object_type):
+        return api_error_response(HTTPStatus['NOT_FOUND'], 'Unsupported object type')
+    if (not has_permission(object_type, 'delete', object_id)):
+        return api_error_response(HTTPStatus['FORBIDDEN'], 'Not Authorized')
+    from database import db_object_delete
+    return { 'success': db_object_delete(object_type, object_id) }
+
+# Generic handler to restore object not caught by earlier routes
+@app.route('/api/<object_type>/restore/<object_id>', methods = ['POST'])
+@cross_origin(supports_credentials=True)
+def object_restore(object_type, object_id):
+    if not object_type_valid(object_type):
+        return api_error_response(HTTPStatus['NOT_FOUND'], 'Unsupported object type')
+    if (not has_permission(object_type, 'restore', object_id)):
+        return api_error_response(HTTPStatus['FORBIDDEN'], 'Not Authorized')
+    from database import db_object_restore
+    return { 'success': db_object_restore(object_type, object_id) }
+
+# Generic handler to purge object not caught by earlier routes
+@app.route('/api/<object_type>/purge/<object_id>', methods = ['POST'])
+@cross_origin(supports_credentials=True)
+def object_purge(object_type, object_id):
+    if not object_type_valid(object_type):
+        return api_error_response(HTTPStatus['NOT_FOUND'], 'Unsupported object type')
+    if (not has_permission(object_type, 'purge', object_id)):
+        return api_error_response(HTTPStatus['FORBIDDEN'], 'Not Authorized')
+    from database import db_object_purge
+    return { 'success': db_object_purge(object_type, object_id) }
+
+# Generic handler to search objects not caught by earlier routes
+# Filters and pagination passed as URL arguments    TODO: implement this
+# Return { results: [Array of dict] }
+@app.route('/<object_type>/search', methods = ['GET'])
+@cross_origin(supports_credentials=True)
+def object_search(object_type):
+    if not object_type_valid(object_type):
+        return api_error_response(HTTPStatus['NOT_FOUND'], 'Unsupported object type')
+    if (not has_permission(object_type, 'search')):
+        return api_error_response(HTTPStatus['FORBIDDEN'], 'Not Authorized')
+    from database import db_object_search
+    object_filter = None # TODO: implement this
+    record_list = db_object_search(object_type, object_filter)
+    if (record_list is None):
+        return api_error_response(HTTPStatus['INTERNAL_SERVER_ERROR'], 'Database error')
+    # TODO: TEMP: remove the need for this hack for 'image' type
+    if (object_type == 'image'):
+        from database import convert_image_type_to_string
+        for index, value in enumerate(record_list):
+            record_list[index].image_type = convert_image_type_to_string(value.image_type)
+    return { 'results': [record.as_dict() for record in record_list] }
+
+#
+# TODO: LEGACY METHODS -- NEED TO INTEGRATE WITH GENERIC HANDLERS
+#
 
 @app.route('/image/save', methods = ['POST'])
 @cross_origin(supports_credentials=True)
 def image_save():
-    print(request.form)
-    print(request.files)
     data = {
         'image_id': request.form.get('image_id') or None,
         'name': request.form.get('name'),
         'description': request.form.get('description'),
         'image_type': request.form.get('image_type'),
         'equip_id': request.form.get('equip_id'),
-        #'owner_id': request.form.get('owner_id'),          # auto-generated field
-        # 'created': request.form.get('created'),           # auto-generated field
-        # 'modified': request.form.get('modified'),         # auto-generated field
-        'captured': request.form.get('captured'),           # TODO: get from image if new file uploaded
+        'captured': request.form.get('captured'), # TODO: try to get from image / file?
         'exp_time': request.form.get('exp_time'),
         'exp_temp': request.form.get('exp_temp'),
-        #'image_path': request.form.get('path'),            # auto-generated field
+        # Ignore owner_id
+        # Ignore created
+        # Ignore modified
+        # Ignore image_path
     }
+
     if (request.files):
         data['file'] = request.files['file']
         
-    # TODO: somehow missing value is coming in as text 'null' if missing... maybe from front-end
-    # TODO: other cleanup needed?
-    # TODO: maybe have frontend API call omit field keys that are undefined?
-    if (data['image_id'] == 'undefined'): 
-        data['image_id'] = None
-    
     from database import db_image_save
-    return db_image_save(data)
-    ##id = db_image_save(data)
-    ##return {'id' : id }
-
-# Check if user exists
-# Can check by user_id or by email
-@app.route('/api/user/exists', methods = ['POST'])
-@cross_origin(supports_credentials=True)
-def user_exists():
-    user_id = request.form.get('user_id')
-    email = request.form.get('email')
-    if (user_id):
-        from database import db_user_load
-        user = db_user_load(user_id);
-        return { 'exists': (user is not None) }
-    if (email):
-        from database import db_user_load_by_email
-        user = db_user_load_by_email(request.form.get('email'))
-        return { 'exists': (user is not None) }
-
-# Check if image exists
-@app.route('/api/image/exists', methods = ['POST'])
-@cross_origin(supports_credentials=True)
-def image_exists():
-    image_id = request.form.get('image_id')
-    if (image_id):
-        from database import db_image_load
-        image = db_image_load(image_id)
-        return { 'exists': (image is not None) }
-
-# Check if equip exists
-@app.route('/api/equip/exists', methods = ['POST'])
-@cross_origin(supports_credentials=True)
-def equip_exists():
-    equip_id = request.form.get('equip_id')
-    if (equip_id):
-        from database import db_equip_load
-        equip = db_equip_load(equip_id);
-        return { 'exists': (equip is not None) }
+    record = db_image_save(data)
+    if (record is None):
+        return api_error_response(HTTPStatus['INTERNAL_SERVER_ERROR'], 'Save failed')
+    else:
+        return { 'id': record.image_id }
 
 
-# TODO: move the list formatting out of database.py and into here instead.
-# Return a list of images (array of dict)
-# TODO: read in parameter strings from request for filtering, pagination, order, etc.
-@app.route('/image/search', methods = ['GET', 'POST']) # QUESTION: need GET and POST?
-@cross_origin(supports_credentials=True)
-def image_search():
-    from database import db_image_search
-    image_list = db_image_search()
-    return image_list
-
-# Return a list of analyses (array of dict)
-# TODO: read in parameter strings from request for filtering, pagination, order, etc.
-@app.route('/analysis/search', methods = ['GET', 'POST']) # QUESTION: need GET and POST?
-@cross_origin(supports_credentials=True)
-def analysis_search():
-    from database import db_analysis_search
-    analysis_list = db_analysis_search()
-    return analysis_list
 
 
 
@@ -1451,6 +1422,19 @@ def sign_in():
     session['based_arr'] = arr
     print(session.get('email'))
     return 'kk'
+
+
+@app.route('/autoselect/<filename>',methods=['POST','GET'])
+@cross_origin(supports_credentials=True)
+def autoselect(filename):
+    analysis_data = retrieve_initial_analysis(filename)
+    analysis_retrieve = analysis(analysis_data['ROIs'],None,analysis_data['origins'],filename,'UVName' in analysis_data, analysis_data['doRF'],False)
+    img = session['cerenkovcalc']
+    imgR=session['cerenkovradii']
+    analysis_retrieve.predict_ROIs(img,imgR)
+
+    return {'selected_ROIs':[analysis_retrieve.ROIs]}
+
 
 @app.route('/analysis_edit/<filename>',methods = ['POST'])
 @cross_origin(supports_credentials=True)
