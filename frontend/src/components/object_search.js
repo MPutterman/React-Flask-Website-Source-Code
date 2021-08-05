@@ -8,7 +8,7 @@
 //     Users: org_id
 //     Images: owner_id, org_id, created date or range
 //     Analyses: owner_id, org_id, created date or range
-//     Equipment: org_id
+//     Equipment, Plate, Cover: org_id
 // * Add some options to update preferences (i.e. set default dark or flat)
 //     to the selected ones in an Analysis (if differ from prefs)?  Or add to
 //     favorites. Or does this feature belong in the analysis_edit component?
@@ -31,6 +31,12 @@ import { withRouter } from "react-router";
 import { DataGrid, GridLinkOperator } from "@material-ui/data-grid";
 import { createFilterModel } from "../helpers/search_utils";
 import Busy from '../components/busy';
+import { ObjectIcon, objectTitle } from "../helpers/object_utils";
+import Card from '@material-ui/core/Card';
+import CardHeader from '@material-ui/core/CardHeader';
+import CardContent from '@material-ui/core/CardContent';
+import CardActions from '@material-ui/core/CardActions';
+import Avatar from '@material-ui/core/Avatar';
 
 const ObjectSearch = (props) => {
 
@@ -41,11 +47,7 @@ const ObjectSearch = (props) => {
     const columns = props.columns;
 
     const id_column = () => {
-        switch (object_type) {
-            case 'analysis': return 'id';
-            default:
-                return `${object_type}_id`;
-        }
+        return `${object_type}_id`;
     }
 
     // State
@@ -57,10 +59,10 @@ const ObjectSearch = (props) => {
         return callAPI('GET', `${object_type}/search`)
         .then((response) => {
             // Reformat... return as array indexed by ID... but DataGrid wants list of dicts
-            response.data.map((element, index) => {
+            response.data.results.map((element, index) => {
                 element['id'] = element[id_column()];
             });
-            setObjectList(response.data);
+            setObjectList(response.data.results);
             setLoaded(true);
         })
         .catch((e) => {
@@ -93,27 +95,44 @@ const ObjectSearch = (props) => {
     }
 
     return (
-      <>
-      <Busy busy={!loaded} />
-      <div >     
-          {objectList.length > 0 ? (
-              <DataGrid
-                  rows={objectList}
-                  columns={columns}
-                  pageSize={10} // default page size
-                  autoHeight
-                  loading={!loaded}
-                  density="compact"
-                  rowsPerPageOptions={config.general.searchresult_pagesize_options}
-                  paginationMode="client" // for now client (and return all rows)... later use database pagination
-                  sortingMode="client" // later server (if pagination server)
-                  //checkboxSelection
-                  onRowClick={onRowClick}
-                  filterModel={createFilterModel(props.filter)}
-                  
-              />
-          ) : ( <p>No results found</p>)}
-          
+        <>
+        <Busy busy={!loaded} />
+            <div >
+                <Card>
+                <CardHeader
+                    avatar={
+                        <Avatar variant="square">
+                            <ObjectIcon objectType={object_type} fontSize='large' />
+                        </Avatar>
+                    }
+                    title={`SEARCH ${objectTitle(object_type).toUpperCase()}`}
+                    //subheader={`${model.name || ''}`}
+                />
+                <CardContent>
+
+{/*                {objectList.length > 0 ? (
+*/}
+                    <DataGrid
+                        rows={objectList}
+                        columns={columns}
+                        pageSize={10} // default page size
+                        autoHeight
+                        loading={!loaded}
+                        density="compact"
+                        rowsPerPageOptions={config.general.searchresult_pagesize_options}
+                        paginationMode="client" // for now client (and return all rows)... later use database pagination
+                        sortingMode="client" // later server (if pagination server)
+                        //checkboxSelection
+                        onRowClick={onRowClick}
+                        filterModel={createFilterModel(props.filter)}
+                        
+                    />
+{/*
+                ) : ( <p>No results found</p>)}
+*/}
+                </CardContent>
+            </Card>
+
         </div>
         </>
       );
@@ -130,6 +149,11 @@ const XUserSearch = (props) => {
       { field: 'first_name', headerName: 'First name', flex: 0.2},
       { field: 'last_name', headerName: 'Last name', flex: 0.2},
       { field: 'email', headerName: 'Email address', flex: 0.4},
+      { field: 'org_id', headerName: 'Org ID', hide: true, flex: 0.1},
+      { field: 'is_active', headerName: 'Active?', hide: true, flex: 1},
+      { field: 'created', headerName: 'Created', hide: true, flex: 1},
+      { field: 'modified', headerName: 'Modified', hide: true, flex: 1},
+      { field: 'is_deleted', headerName: 'Deleted?', hide: true, flex: 1},
     ];
 
     return (
@@ -144,13 +168,14 @@ const XImageSearch = (props) => {
       { field: 'image_type', headerName: 'Type', flex: 1},
       { field: 'name', headerName: 'Name', flex: 2},
       { field: 'equip_id', headerName: 'Equipment ID', flex: 1},
-      { field: 'owner_id', headerName: 'Owner ID', flex: 1},
       { field: 'captured', headerName: 'Captured', flex: 1},
-      { field: 'created', headerName: 'created', hide: true, flex: 1},
-      { field: 'modified', headerName: 'modified', hide: true, flex: 1},
       { field: 'exp_time', headerName: 'Exposure time', hide: true, flex: 1},
       { field: 'exp_temp', headerName: 'Exposure temp', hide: true, flex: 1},
       { field: 'image_path', headerName: 'Image path', hide: true, flex: 2},
+      { field: 'owner_id', headerName: 'Owner ID', hide: true, flex: 1},
+      { field: 'created', headerName: 'Created', hide: true, flex: 1},
+      { field: 'modified', headerName: 'Modified', hide: true, flex: 1},
+      { field: 'is_deleted', headerName: 'Deleted?', hide: true, flex: 1},
     ];
 
     return (
@@ -158,17 +183,18 @@ const XImageSearch = (props) => {
     )
 }
 
+// TODO: other analysis options, image IDs, equip_id, plate_id, cover_id, etc...
 const XAnalysisSearch = (props) => {
 
     const columns = [
       { field: 'analysis_id', headerName: 'Analysis ID', flex: 0.1},
       { field: 'name', headerName: 'Name', flex: 0.3},
       { field: 'description', headerName: 'Description', flex: 0.5},
-      { field: 'owner_id', headerName: 'Owner ID', flex: 0.1},
       { field: 'expt_datetime', headerName: 'Experiment date', flex: 0.2},
-      { field: 'modified', headerName: 'Modified', hidden: true, flex: 0.1},
-      { field: 'created', headerName: 'Created', hidden: true, flex: 0.1},
-      // TODO: other analysis options, image IDs, equip_id, plate_id, cover_id, etc...
+      { field: 'owner_id', headerName: 'Owner ID', hide: true, flex: 1},
+      { field: 'created', headerName: 'Created', hide: true, flex: 1},
+      { field: 'modified', headerName: 'Modified', hide: true, flex: 1},
+      { field: 'is_deleted', headerName: 'Deleted?', hide: true, flex: 1},
     ];    
 
     return (
@@ -182,8 +208,10 @@ const XEquipSearch = (props) => {
     const columns = [
       { field: 'equip_id', headerName: 'ID', flex: 1},
       { field: 'name', headerName: 'Name', flex: 3},
+      { field: 'description', headerName: 'Description', hide: true, flex: 3},
+      { field: 'manufacturer', headerName: 'Manufacturer', flex: 3},
+      { field: 'catalog', headerName: 'Catalog #', flex: 3},
       { field: 'camera', headerName: 'Camera', hide: true, flex: 3},
-      { field: 'description', headerName: 'Description', flex: 3},
       { field: 'has_temp_control', headerName: 'Temp Control?', hide: true, flex: 1},
       { field: 'pixels_x', headerName: 'Image size - X (px)',  hide: true,  flex: 1},
       { field: 'pixels_y', headerName: 'Image size - Y (px)', hide: true,  flex: 1},
@@ -191,22 +219,84 @@ const XEquipSearch = (props) => {
       { field: 'fov_y', headerName: 'FOV - Y (mm)', hide: true, flex: 1},
       { field: 'bpp', headerName: 'Bits per px', hide: true, flex: 1},
       { field: 'file_format', headerName: 'File Format', flex: 2},
+      { field: 'owner_id', headerName: 'Owner ID', hide: true, flex: 1},
+      { field: 'created', headerName: 'Created', hide: true, flex: 1},
+      { field: 'modified', headerName: 'Modified', hide: true, flex: 1},
+      { field: 'is_deleted', headerName: 'Deleted?', hide: true, flex: 1},
     ];
 
     return (
         <ObjectSearch {...props} objectType='equip' columns={columns} />
     )
+}
 
+const XPlateSearch = (props) => {
+
+    const columns = [
+      { field: 'plate_id', headerName: 'ID', flex: 1},
+      { field: 'name', headerName: 'Name', flex: 3},
+      { field: 'description', headerName: 'Description', hide: true, flex: 3},
+      { field: 'manufacturer', headerName: 'Manufacturer', flex: 3},
+      { field: 'catalog', headerName: 'Catalog #', flex: 3},
+      { field: 'owner_id', headerName: 'Owner ID', hide: true, flex: 1},
+      { field: 'created', headerName: 'Created', hide: true, flex: 1},
+      { field: 'modified', headerName: 'Modified', hide: true, flex: 1},
+      { field: 'is_deleted', headerName: 'Deleted?', hide: true, flex: 1},
+    ];
+    return (
+        <ObjectSearch {...props} objectType='plate' columns={columns} />
+    )
+}
+
+const XCoverSearch = (props) => {
+
+    const columns = [
+      { field: 'cover_id', headerName: 'ID', flex: 1},
+      { field: 'name', headerName: 'Name', flex: 3},
+      { field: 'description', headerName: 'Description', hide: true, flex: 3},
+      { field: 'manufacturer', headerName: 'Manufacturer', flex: 3},
+      { field: 'catalog', headerName: 'Catalog #', flex: 3},
+      { field: 'owner_id', headerName: 'Owner ID', hide: true, flex: 1},
+      { field: 'created', headerName: 'Created', hide: true, flex: 1},
+      { field: 'modified', headerName: 'Modified', hide: true, flex: 1},
+      { field: 'is_deleted', headerName: 'Deleted?', hide: true, flex: 1},
+    ];
+    return (
+        <ObjectSearch {...props} objectType='cover' columns={columns} />
+    )
+}
+
+const XOrgSearch = (props) => {
+
+    const columns = [
+      { field: 'org_id', headerName: 'ID', flex: 1},
+      { field: 'name', headerName: 'Name', flex: 3},
+      { field: 'description', headerName: 'Description', hide: true, flex: 3},
+      { field: 'location', headerName: 'Address', flex: 3},
+      { field: 'owner_id', headerName: 'Owner ID', hide: true, flex: 1},
+      { field: 'created', headerName: 'Created', hide: true, flex: 1},
+      { field: 'modified', headerName: 'Modified', hide: true, flex: 1},
+      { field: 'is_deleted', headerName: 'Deleted?', hide: true, flex: 1},
+    ];
+    return (
+        <ObjectSearch {...props} objectType='org' columns={columns} />
+    )
 }
 
 const UserSearch = withRouter(XUserSearch);
-const ImageSearch = withRouter(XImageSearch);
+const OrgSearch = withRouter(XOrgSearch);
 const EquipSearch = withRouter(XEquipSearch);
+const PlateSearch = withRouter(XPlateSearch);
+const CoverSearch = withRouter(XCoverSearch);
+const ImageSearch = withRouter(XImageSearch);
 const AnalysisSearch = withRouter(XAnalysisSearch);
 
 export {
-    ImageSearch,
-    EquipSearch,
     UserSearch,
+    OrgSearch,
+    EquipSearch,
+    PlateSearch,
+    CoverSearch,
+    ImageSearch,
     AnalysisSearch,
 };
