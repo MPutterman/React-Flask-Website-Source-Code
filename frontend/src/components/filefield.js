@@ -1,10 +1,11 @@
 // TODO:
 // * Why does the field display just slightly above others?
+// * Add a clear (X) icon to remove the curently selected file...
 // * Provide a way to specify the upload type, or get it directly from files[0]. I'm just leaving as
 //     image/png since that was previously in the submission.js file...
 // * Show a progress bar when uploading large files
 // * Add a way to view/download existing file?  Also provide a way to delete the current file?
-// * When we have an error state... make sure underlying components render in error state
+// * When we have an error state... make sure underlying components render in error state (doesn't seem to be working)
 // * How to handle 'required'? Generally after file is uploaded and we edit record, we don't require a new file pick
 
 // Usage:
