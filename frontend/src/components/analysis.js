@@ -24,7 +24,6 @@ import React from "react";
 import axios from "axios";
 import { withRouter } from "react-router";
 import { backend_url } from '../helpers/api';
-import { fixDateFromFrontend, fixDateFromBackend } from '../helpers/datetime_utils';
 
 import Button from "@material-ui/core/Button";
 import Slider from "@material-ui/core/Slider";
@@ -157,9 +156,6 @@ export const Analysis = (props) => {
       return axios
           .get(backend_url('retrieve_analysis/' + id)) // TODO: change to /api/analysis/load
           .then((res) => {
-            res.data.created = fixDateFromBackend(res.data.created);
-            res.data.modified = fixDateFromBackend(res.data.modified);
-            res.data.expt_datetime = fixDateFromBackend(res.data.expt_datetime);
 
             console.log ('response =>', res);
             setLegacyState(prev => ({...prev,
