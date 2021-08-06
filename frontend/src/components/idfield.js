@@ -32,6 +32,7 @@
 //     one is hanging (not part of any analysis/object).  Should 'clear' delete the object
 //     (if it is not used anywhere else), and maybe disable 'create' if ID is already defined?
 // * Add a 'disabled' or 'readOnly' mode that disabled/removes buttons when only want to show the ID and Name
+// * Figure out how to make width adjustable
 
 // Main imports
 import React from 'react';
