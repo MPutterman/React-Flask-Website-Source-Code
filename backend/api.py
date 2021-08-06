@@ -31,6 +31,8 @@
 #   after Google login).  Backend should be careful of which fields are sent to database.
 # * Need to look at difference between DB session versus connection... maybe not using correctly
 # * Need to test whether session timeout is working properly, and remember-me feature
+# * A few API calls return 'success'. Change instead to 'error' (false), and give message
+#      if there was any problem
 
 import time
 import json
@@ -1033,6 +1035,25 @@ def user_exists(email):
     user = db_user_load_by_email(email)
     return { 'exists': (user is not None) }
 
+# Change password for current user
+@app.route('/api/user/password_change', methods = ['POST'])
+@flask_login.login_required
+@cross_origin(supports_credentials=True)
+def user_password_change():
+    password = request.form.get('password')
+    new_password = request.form.get('new_password')
+    # Check current password
+    import bcrypt
+    user = flask_login.current_user
+    if (user is None):
+        return { error: 'Must be logged in' }
+    if (not bcrypt.checkpw(password.encode('utf8'), user.password_hash.encode('utf8'))):
+        return { 'error': 'Password incorrect' }
+    # Successful match
+    from database import db_user_password_change
+    if db_user_password_change(user.get_id(),new_password):
+        return { 'error': False }
+    return { 'error': 'Password could not be updated' }
 
 # -----------------------------
 # Generic object route handlers
@@ -1593,6 +1614,7 @@ def createFile():
         res = tim
         return {"res":res}
 
+# TODO: add something similar for thumbnails of the image objects
 @app.route('/img/<filename>',methods = ['GET'])
 @cross_origin(supports_credentials=True)
 def give(filename):

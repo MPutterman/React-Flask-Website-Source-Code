@@ -39,6 +39,7 @@ import ButtonGroup from "@material-ui/core/ButtonGroup";
 import Box from '@material-ui/core/Box';
 import Grid from '@material-ui/core/Grid';
 import { spacing } from '@material-ui/system'
+import Divider from '@material-ui/core/Divider';
 import IconButton from "@material-ui/core/IconButton";
 import ClearIcon from "@material-ui/icons/Clear";
 import { KeyboardDateTimePicker } from '@material-ui/pickers'
@@ -62,6 +63,7 @@ import CardActions from '@material-ui/core/CardActions';
 import Card from '@material-ui/core/Card';
 import CardHeader from '@material-ui/core/CardHeader';
 import CardContent from '@material-ui/core/CardContent';
+import CardMedia from '@material-ui/core/CardMedia';
 import Avatar from '@material-ui/core/Avatar';
 import { hasPermission, listPermissions } from '../helpers/object_utils';
 import InputAdornment from '@material-ui/core/InputAdornment';
@@ -249,6 +251,7 @@ return (props) => {
 
     }
 
+
     // Build schema and bridge
     const schema = schemaFunction(config,session);
     const bridge = new SimpleSchema2Bridge(schema);
@@ -336,7 +339,7 @@ return (props) => {
         </CardActions>
         </Card>
 
-{/*</fieldset>*/}
+        {/*</fieldset>*/}
         </AutoForm>
 
     </div>
@@ -534,6 +537,12 @@ const WrappedUserRegistration = ({model, ...props}) => {
 
 const WrappedUserEdit = ({model, ...props}) => {
 
+    const handlePasswordChange = (event) => {
+        props.history.push('/user/password_change')
+
+    }
+
+
     return (
 
         <>
@@ -546,7 +555,7 @@ const WrappedUserEdit = ({model, ...props}) => {
                 <AutoField name="first_name" />
                 <ErrorField name="first_name" />
             </Box>
-            <Box width='25%' pl={1}>
+            <Box width='25%' px={1}>
                 <AutoField name="last_name" />
                 <ErrorField name="last_name" />
             </Box>
@@ -555,13 +564,17 @@ const WrappedUserEdit = ({model, ...props}) => {
                 <ErrorField name="email" />
             </Box>
         </Box>
+
         <AutoField name="org_id" component={IDInputField} objectType='org' />
         <ErrorField name="org_id" />
 
-        <AutoField name="org_list" />
-        <ErrorField name="org_list" />
+        <Divider />
 
-        Button: Change password
+        <Box pt={3} width='100%'>
+            <Button onClick={handlePasswordChange}>Change password</Button>
+        </Box>
+
+
         Button: Change email
         Button: preferences
         Button: roles
@@ -571,27 +584,54 @@ const WrappedUserEdit = ({model, ...props}) => {
     )
 }
 
+// TODO: tweak layout
 const WrappedImageEdit = ({model, ...props}) => {
   
+    const setAlert = useAlerts();
+
+    const handleDownload = (event) => {
+        setAlert({severity: 'error', message: 'Download not yet implemented'});
+    }
+
     return (
         <>
-        <Box display="flex" flexDirection="row">
-            <Box width='20%' pr={2}>
-                <AutoField name="image_type" />
-                <ErrorField name="image_type" />
-            </Box>
-            <Box width='80%' pl={2} /* TODO: width not working? */ >
-                <AutoField name="file" component={FileInputField}
-                  buttonLabel={model.image_path ? 'Replace Image' : 'Select Image'}
-                  filenameField='name'
+        <Grid s={1} container direction='row'>
+            <Grid item xs={9}>
+                <Box display="flex" flexDirection="row">
+                    <Box style={{width:'30%'}} width='30%' pr={1}>
+                        <AutoField name="image_type" />
+                        <ErrorField name="image_type" />
+                    </Box>
+                    <Box width='70%' style={{width: '70%'}} pl={1} pr={1} /* TODO: width not working? */ >
+                        <AutoField name="file" component={FileInputField}
+                        buttonLabel={model.image_path ? 'Replace Image' : 'Select Image'}
+                        filenameField='name'
+                        />
+                        <ErrorField name="file" />
+                    </Box>
+                </Box>
+                <Box display="flex" flexDirection="row">
+                    <Box width='90%' >
+                        <AutoField name="name" />
+                        <ErrorField name="name" />
+                    </Box>
+                </Box>
+                <Box display="flex" flexDirection="row" pt={1} pr={1}>
+                    <Box width='100%' >
+                        <AutoField name="equip_id" component={IDInputField} objectType='equip' />
+                        <ErrorField name="equip_id" />
+                    </Box>
+                </Box>
+            </Grid>
+            <Grid item xs={3} >
+                <CardMedia 
+                    style={{height: '9rem', justifyContent: 'center'}}
+                    image={process.env.PUBLIC_URL + "/logo_UCLA_blue_boxed.png"}
+                    alt='logo'
+                    onClick={handleDownload}
                 />
-                <ErrorField name="file" />
-            </Box>
-        </Box>
-        <AutoField name="name" />
-        <ErrorField name="name" />
-        <AutoField name="equip_id" component={IDInputField} objectType='equip' />
-        <ErrorField name="equip_id" />
+            </Grid>
+        </Grid>
         <Box display="flex" flexDirection="row">
             <Box width='25%' pr={1}>
                 <AutoField name="exp_time" InputProps={{endAdornment:(<InputAdornment position="end">s</InputAdornment>)}}/>
@@ -621,6 +661,7 @@ const WrappedImageEdit = ({model, ...props}) => {
             </Box>
 
         </Box>
+        
         TODO: Button to download current file
         </>
     );

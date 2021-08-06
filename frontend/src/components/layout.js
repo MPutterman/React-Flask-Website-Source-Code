@@ -132,12 +132,12 @@ const Layout = (props) => {
 
   const handleUserProfile = (event) => {
     handleCloseUserMenu(event);
-    history.push('/user/view/' + session['authUser']['user_id']); 
+    history.push('/user/edit/' + session['authUser']['user_id']); 
   }
 
   const handleChangePassword = (event) => {
     handleCloseUserMenu(event);
-    history.push('/user/change_password/' + session['authUser']['user_id']); 
+    history.push('/user/password_change'); 
   }
 
   const handleChangePrefs = (event) => {

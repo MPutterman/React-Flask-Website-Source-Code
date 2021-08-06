@@ -57,6 +57,7 @@ import { UserView, OrgView, EquipView, PlateView, CoverView, ImageView, Analysis
 import { UserSearch, OrgSearch, EquipSearch, PlateSearch, CoverSearch, ImageSearch, AnalysisSearch } from "./components/object_search";
 import UserLogin from "./components/user_login"; 
 import UserPrefs from "./components/user_prefs";
+import UserPasswordChange from './components/user_password_change';
 import { UserEdit, UserRegister, OrgEdit, EquipEdit, PlateEdit, CoverEdit, ImageEdit, /*AnalysisEdit*/ } from './components/object_edit';
 
 // Wrap a portion of the app so we can access the needed contexts (i.e. Auth)
@@ -124,7 +125,7 @@ const AppWrapped = (props) => {
                 <PrivateRoute path='/user/view/:id'><UserView /></PrivateRoute>
                 <Route exact path='/user/register'><UserRegister create={true}/></Route> 
                 <PrivateRoute exact path='/user/edit/:id'><UserEdit /></PrivateRoute>
-                <PrivateRoute exact path='/user/change_password/:id'><UserEdit change_password={true} /></PrivateRoute>
+                <PrivateRoute exact path='/user/password_change'><UserPasswordChange /></PrivateRoute>
                 <Route exact path='/user/login'><UserLogin /></Route>
                 <PrivateRoute path='/user/search'><UserSearch /></PrivateRoute>
                 <PrivateRoute exact path='/user/prefs'><UserPrefs /></PrivateRoute>

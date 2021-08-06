@@ -730,6 +730,12 @@ def db_user_load_by_email(email):
     #db_session.close()
     return user
 
+def db_user_password_change(user_id, new_password):
+    user = User.query.filter_by(user_id=user_id).one()
+    user.password_hash = User.hash(new_password)
+    db_session.commit()
+    return True
+
 def db_prefs_save(user_id, data):
     #db_session.begin()
     user = User.query.filter_by(user_id=user_id).one()
@@ -780,11 +786,11 @@ def db_user_save(data):
     return user
 
 # Save an image
+# TODO: create a thumbnail image and store in database...
 def db_image_save(data):
     print("incoming data:")
     print(data)
     if (data['image_id'] is not None):
-        # TODO: Currently can't update owner_id, modified, created
         image = Image.query.filter_by(image_id=data['image_id']).one()
         image.name = data['name']
         image.description = data['description']
