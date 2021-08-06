@@ -1,6 +1,7 @@
 // TODO:
 // * Why does the field display just slightly above others?
 // * Add a clear (X) icon to remove the curently selected file...
+// * Figure out how to make width adjustable
 // * Provide a way to specify the upload type, or get it directly from files[0]. I'm just leaving as
 //     image/png since that was previously in the submission.js file...
 // * Show a progress bar when uploading large files
@@ -34,9 +35,13 @@ function FileInput({ onChange, name, value, label, error, ref, required, ...prop
   return (
     <>
       <label htmlFor={name}>
-            <TextField disabled value={filename ? filename : 'No file chosen'} error={!!(error)}
+            <TextField
+              disabled
+              value={filename ? filename : 'No file chosen'}
+              error={!!(error)}
               required={required}
               label='File to upload'
+              {...props}
               InputProps={{
                 startAdornment:(
                   <InputAdornment position="start">
