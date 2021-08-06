@@ -16,7 +16,6 @@
 //     still show things like '*' for required fields.  Also a few cases where the public should not
 //     see all the fields, e.g. a user profile.  Hmm... Maybe MOST objects can be the same but UserProfile
 //     is a different view?
-// * TODO: need to set all fields to '' if not existing from the database so labels appear at consistent size/position
 
 import React from "react";
 import { callAPI } from '../helpers/api';
@@ -176,8 +175,8 @@ return (props) => {
                 <Grid fullWidth container direction='row' justifyContent='space-between'>
                     <TextField label={`${objectTitle(object_type)} ID`} value={id || ''} />
                     <TextField label="Owner ID" value={model.owner_id || ''} />
-                    <TextField label="Created" value={model.created} />
-                    <TextField label="Last modified" value={model.modified} />
+                    <TextField label="Created" value={model.created || ''} />
+                    <TextField label="Last modified" value={model.modified || ''} />
                     <TextField label="Is deleted?" value={model.is_deleted} />
                 </Grid>
 
@@ -215,9 +214,10 @@ const GenericObjectView = (props) => {
     return (
         <Grid container direction='row'>
         <Grid item>
-        <Box flexDirection='row' s={2}>
-            {props.fields.map(({label, value}) => (
+        <Box flexDirection='row' py={1}>
+            {props.fields.map(({icon, label, type, value}) => (
                 <Box py={1}>
+
                     <TextField
                         readOnly
                         disabled
