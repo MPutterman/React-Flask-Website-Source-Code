@@ -686,6 +686,35 @@ def db_object_purge(object_type, object_id):
 
     # TODO: implement
 
+# Clone an object with specified id from database. Call object-specific function it it exists
+# Return new object if successful, None if any error
+# TODO: add error checking
+def db_object_clone(object_type, object_id):
+    # If object-specific function exists, call it
+    function_name = object_action_function(object_type, 'clone')
+    try:
+        eval(function_name)
+    except NameError:
+        pass
+    else:
+        return eval(function_name + f"({object_id})")
+
+    # Otherwise clone the record
+    id_field = object_idfield(object_type)
+    record = db_object_load(object_type, object_id)
+    if (record is None):
+        return None
+    else:
+        data = record.as_dict() # Should this be done in api.py? No, shouldn't be aware of modified,created,etc...
+        del data[id_field]
+        del data['modified']
+        del data['created']
+        del data['is_deleted']
+        if (object_type is not 'user'):
+            del data['owner_id'] # TODO: remove the need for this exception here
+        return db_object_save(object_type, data) # Note use of 'save' instead of 'create' is deliberate
+
+
 # Search objects meeting the filter criteria. Call object-specific function if it exists
 # Return a list of object, or empty list if not found. Return None if any error encountered.
 # TODO: add error checking
@@ -712,9 +741,9 @@ def db_object_search(object_type, object_filter=None):
 
 # Load a user from id. Also load the list of associated organization ids.
 # Return as a user object.
-def db_user_load(id):
+def db_user_load(user_id):
     #db_session.begin()
-    user = User.query.options(selectinload(User.org_list)).filter_by(user_id=id).scalar() # scalar returns a single record or 'None'; raises exception if >1 found
+    user = User.query.options(selectinload(User.org_list)).filter_by(user_id=user_id).scalar() # scalar returns a single record or 'None'; raises exception if >1 found
     db_session.commit()
     #db_session.close()
     return user

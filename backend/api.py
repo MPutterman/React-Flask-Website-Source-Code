@@ -14,7 +14,6 @@
 
 
 # TODO:
-# * Avoid use of 'id' as variable due to overlap with python 'id' built-in
 # * Simplify error handling wth @errorhandler (can capture certain types of exceptions for global response)
 
 # * Be careful when doing multiple DB calls in response to a single request...
@@ -1138,7 +1137,7 @@ def object_save(object_type):
     if (record is None):
         return api_error_response(HTTPStatus['INTERNAL_SERVER_ERROR'], 'Save failed')
     else:
-        return { 'id': getattr(record,id_field) } # eval('record.' + id_field) }
+        return { 'id': getattr(record,id_field) } 
 
 
 # Generic handler to delete object not caught by earlier routes
@@ -1174,6 +1173,24 @@ def object_purge(object_type, object_id):
         return api_error_response(HTTPStatus['FORBIDDEN'], 'Not Authorized')
     from database import db_object_purge
     return { 'success': db_object_purge(object_type, object_id) }
+
+# Generic handler to clone object not caught by earlier routes
+@app.route('/api/<object_type>/clone/<object_id>', methods = ['POST'])
+@cross_origin(supports_credentials=True)
+def object_clone(object_type, object_id):
+    if not object_type_valid(object_type):
+        return api_error_response(HTTPStatus['NOT_FOUND'], 'Unsupported object type')
+    if (not has_permission(object_type, 'clone', object_id)):
+        return api_error_response(HTTPStatus['FORBIDDEN'], 'Not Authorized')
+    from database import db_object_clone
+    record = db_object_clone(object_type, object_id)
+    if (record is None):
+        return api_error_response(HTTPStatus['INTERNAL_SERVER_ERROR'], 'Clone failed')
+    else:
+        from database import object_idfield
+        id_field = object_idfield(object_type)
+        return { 'id': getattr(record,id_field) } 
+
 
 # Generic handler to search objects not caught by earlier routes
 # Filters and pagination passed as URL arguments    TODO: implement this
@@ -1220,7 +1237,7 @@ def image_save():
     }
 
     if (request.files):
-        data['file'] = request.files['file']
+            data['file'] = request.files['file']
         
     from database import db_image_save
     record = db_image_save(data)

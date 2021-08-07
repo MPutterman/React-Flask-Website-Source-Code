@@ -59,6 +59,8 @@ def has_permission (object_type, permission, object_id=None, user=flask_login.cu
         return True
     elif (permission == 'search'):
         return True
+    elif (permission == 'clone'):
+        return has_permission(object_type, 'view', object_id, user) and has_permission(object_type, 'create', None, user)
     else:
         # Return False for any unsupported permission type
         return False
@@ -66,7 +68,7 @@ def has_permission (object_type, permission, object_id=None, user=flask_login.cu
 # List the allowed permissions for the current user for a particular resource or object_type
 # TODO: implement caching to avoid so many calls to is_owner
 def list_permissions (object_type, object_id=None, user=flask_login.current_user):
-    all_actions = ['view', 'edit', 'delete', 'restore', 'purge', 'create', 'search']
+    all_actions = ['view', 'edit', 'delete', 'restore', 'purge', 'create', 'search', 'clone']
     allowed_actions = []
     for action in all_actions:
         if has_permission (object_type, action, object_id, user):
