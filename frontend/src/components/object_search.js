@@ -26,11 +26,12 @@
 import React, {useState, useEffect } from "react";
 import { useConfigState } from "../contexts/config";
 import { useHistory } from 'react-router-dom';
+import { useThrobber } from '../contexts/throbber';
+import { useErrorResponse } from '../contexts/error';
 import { callAPI } from '../helpers/api';
 import { withRouter } from "react-router";
 import { DataGrid, GridLinkOperator } from "@material-ui/data-grid";
 import { createFilterModel } from "../helpers/search_utils";
-import Busy from '../components/busy';
 import { ObjectIcon, objectTitle } from "../helpers/object_utils";
 import Card from '@material-ui/core/Card';
 import CardHeader from '@material-ui/core/CardHeader';
@@ -41,7 +42,9 @@ import Avatar from '@material-ui/core/Avatar';
 const ObjectSearch = (props) => {
 
     const history = useHistory();
-    const config = useConfigState();    
+    const config = useConfigState();
+    const setBusy = useThrobber();  
+    const setErrorResponse = useErrorResponse();  
 
     const object_type = props.objectType;
     const columns = props.columns;
@@ -56,18 +59,26 @@ const ObjectSearch = (props) => {
 
     // Retrieve list of images
     const loadObjects = (filters) => {
-        return callAPI('GET', `${object_type}/search`)
+        setBusy(true);
+        callAPI('GET', `${object_type}/search`)
         .then((response) => {
-            // Reformat... return as array indexed by ID... but DataGrid wants list of dicts
-            response.data.results.map((element, index) => {
-                element['id'] = element[id_column()];
-            });
-            setObjectList(response.data.results);
-            setLoaded(true);
-        })
-        .catch((e) => {
-            console.error("GET /image/search (filters: " + filters + "): " + e);
-            setLoaded(true); // TODO: does this make sense to  (yes, it will stop the spinning wheel)??
+            if (response.error) {
+                // TODO: handle some specific errors (e.g. unauthorized) or add error details?
+                setErrorResponse({code: response.status, details: response.data.error ? response.data.error : '' });
+                setLoaded(true);
+                setBusy(false);
+                return false;
+            }
+            else {
+                // Reformat... return as array indexed by ID... but DataGrid wants list of dicts
+                response.data.results.map((element, index) => {
+                    element['id'] = element[id_column()];
+                });
+                setObjectList(response.data.results);
+                setLoaded(true);
+                setBusy(false);
+                return true;
+            }
         });
     }
 
@@ -96,7 +107,6 @@ const ObjectSearch = (props) => {
 
     return (
         <>
-        <Busy busy={!loaded} />
             <div >
                 <Card>
                 <CardHeader
