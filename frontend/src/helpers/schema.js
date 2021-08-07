@@ -127,14 +127,14 @@ const schema = new SimpleSchema ({
         required: false,
     },
     file: {
-        label: 'File data',
-        type: Blob,
+        label: 'File',
+        type: File, //Blob, //String,// Blob, (URL)
         required: false,
         custom() {
             if (!this.value && !this.field('image_path').value) {
                 return SimpleSchema.ErrorTypes.REQUIRED;
             }
-        },
+        }, 
     },
 });
 schema.extend(metaSchema);

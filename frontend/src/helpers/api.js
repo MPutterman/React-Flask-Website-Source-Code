@@ -172,7 +172,7 @@ export function callAPI(method, route, data={}) {
 
                 } else {
                     formData.append(key, value);
-                    if (!(value instanceof Blob)) {
+                    if (!(value instanceof File)) {
                         JSON_data[key] = value;
                     }
                 }
