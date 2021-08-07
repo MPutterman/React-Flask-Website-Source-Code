@@ -32,6 +32,9 @@ import { ConfirmProvider } from 'material-ui-confirm';
 // Import alert list
 import { AlertList } from './contexts/alerts';
 
+// Import throbber
+import { Throbber } from './contexts/throbber';
+
 // Import Material-UI pickers
 import { MuiPickersUtilsProvider } from '@material-ui/pickers';
 //import LuxonUtils from '@date-io/luxon';
@@ -63,6 +66,7 @@ import { UserEdit, UserRegister, OrgEdit, EquipEdit, PlateEdit, CoverEdit, Image
 // Wrap a portion of the app so we can access the needed contexts (i.e. Auth)
 const App = (props) => {
     return (
+      <Throbber>
         <ConfigProvider>
           <MuiPickersUtilsProvider utils={DateFnsUtils}>
             <AuthContext>
@@ -70,6 +74,7 @@ const App = (props) => {
             </AuthContext>
           </MuiPickersUtilsProvider>
         </ConfigProvider>        
+      </Throbber>
     )
 }
 
