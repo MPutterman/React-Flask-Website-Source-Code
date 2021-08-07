@@ -18,7 +18,8 @@
 // * When 'edit', maybe should disable the OK button if the form is dirty (i.e. force user to save/cancel first)
 // * Incorporate some permissions. E.g. if not permission to edit the item, show in view mode.
 //     E.g. if not allowed to create iteams, don't show Create button.
-// * Update to support multiple selection
+// * Update to support multiple selection?
+// * Why does field sit at just slightly higher height than other input fields?
 // * Allow editing ID field directly (typing)? This has some complications:
 //    - We would probably want to load the name of the corresponding record,
 //      which would require async request. Would we do it onChange or onBlur?
@@ -40,6 +41,7 @@ import { HTMLFieldProps, connectField } from 'uniforms';
 import { useForm } from 'uniforms';
 import { name_lookup } from '../helpers/validation_utils';
 import { ErrorHandler } from '../contexts/error';
+import { Throbber } from '../contexts/throbber';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
@@ -123,7 +125,7 @@ function IDInput({ name, error, onChange, value, label, ref, required, readOnly,
               setNameField(name);
           })
           .catch((e) => {
-              setNameField('Lookup error');
+              setNameField('ERROR: could not retrieve name');
           });
       } else {
           setNameField('');
@@ -224,6 +226,7 @@ function IDInput({ name, error, onChange, value, label, ref, required, readOnly,
       />
 */}
       <TextField 
+          fullWidth
           size="small"
           id={name + '-name'}
           value={nameField}
@@ -273,6 +276,7 @@ function IDInput({ name, error, onChange, value, label, ref, required, readOnly,
       </Box>
 */}      
       <Dialog fullWidth open={openEdit} onClose={handleCloseEdit} >
+        <Throbber>
         <DialogTitle id="dialog-edit">
             {props.editTitle ? ( <span>{props.editTitle}</span> ) : ( <span>Edit record</span> )}
         </DialogTitle>
@@ -298,10 +302,12 @@ function IDInput({ name, error, onChange, value, label, ref, required, readOnly,
             Cancel
           </Button>
         </DialogActions>
+        </Throbber>
       </Dialog>
 
 
       <Dialog fullWidth open={openSelect} onClose={handleCloseSelect} >
+        <Throbber>
         <DialogTitle id="dialog-select">
             {props.selectTitle ? ( <span>{props.selectTitle}</span> ) : ( <span>Select record</span> )}
         </DialogTitle>
@@ -330,9 +336,11 @@ function IDInput({ name, error, onChange, value, label, ref, required, readOnly,
             Cancel
           </Button>
         </DialogActions>
+        </Throbber>
       </Dialog>
 
       <Dialog fullWidth open={openCreate} onClose={handleCloseCreate} >
+        <Throbber>
         <DialogTitle id="dialog-select">
             {props.createTitle ? ( <span>{props.createTitle}</span> ) : ( <span>Create new record</span> )}
         </DialogTitle>
@@ -361,6 +369,7 @@ function IDInput({ name, error, onChange, value, label, ref, required, readOnly,
             Cancel
           </Button>
         </DialogActions>
+        </Throbber>
       </Dialog>
 
 
