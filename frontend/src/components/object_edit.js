@@ -25,6 +25,9 @@
 // * Add a feature to prompt to update preferences (default dark and default flat) if create a new image?
 //     This could be a special component to take the value of another field and store as preference.
 //     (Later can be extended to 'follow' or 'add to favorites')
+// * https://uniforms.tools/docs/tutorials-creating-custom-field/ -- some ideas how to show a live
+//     version of selected file, i.e. img src={value}.  But not doesn't use blob, uses: URL.createObjectURL(files[0])
+//     to point to file...
 
 import React from "react";
 import { callAPI } from '../helpers/api';
@@ -53,11 +56,12 @@ import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import FileInputField from './filefield';
 import IDInputField from './idfield';
-import Busy from '../components/busy';
+//import Busy from '../components/busy';
 import { useAlerts } from '../contexts/alerts';
+import { useThrobber } from '../contexts/throbber';
 import { userSchema, userRegistrationSchema, orgSchema, equipSchema, plateSchema, coverSchema, imageSchema, analysisSchema } from '../helpers/schema';
 import { defaultValidator, userValidator, imageValidator } from '../helpers/schema';
-import { ObjectViewButton, ObjectEditButton, ObjectDeleteButton, ObjectRestoreButton, ObjectPurgeButton } from '../helpers/object_utils';
+import { ObjectViewButton, ObjectEditButton, ObjectCloneButton, ObjectDeleteButton, ObjectRestoreButton, ObjectPurgeButton } from '../helpers/object_utils';
 import { ObjectIcon, objectTitle, ActionIcon } from '../helpers/object_utils';
 import CardActions from '@material-ui/core/CardActions';
 import Card from '@material-ui/core/Card';
@@ -83,6 +87,7 @@ import InputAdornment from '@material-ui/core/InputAdornment';
 //   - transformFunction <Function> - transform the model before form, validation, or submit
 //   - onSaveHandler <Function> - 
 
+
 const connectEdit = (WrappedEdit, objectType, schemaFunction, validatorFunction=null, transformFunction=null) => {
 return (props) => {
 
@@ -91,6 +96,7 @@ return (props) => {
     const session = useAuthState();
     const setErrorResponse = useErrorResponse();
     const setAlert = useAlerts();
+    const setBusy = useThrobber();
 
     // State
     const object_type = objectType;
@@ -108,8 +114,12 @@ return (props) => {
     // we can fully determine 'create' from just the id..)
     const [create, setCreate] = React.useState(initial_create);
 
+    React.useEffect (() => {
+        setId( props.create ? null : (props.objectID ? props.objectID : (props.match.params.id ? props.match.params.id : null)));
+    },[props.create, props.objectID, props.match.params.id]);
+
     const [loaded, setLoaded] = React.useState(create ? true : false);
-    const [busy, setBusy] = React.useState(false);
+    //const [busy, setBusy] = React.useState(false);
 
     const [permissions, setPermissions] = React.useState([]);
 
@@ -143,35 +153,36 @@ return (props) => {
     // Convenience functions for showing action buttons
     const showViewButton = () => { return !create && permissions.includes('view'); }
     const showEditButton = () => { return false; }
+    const showCloneButton = () => { return !create && permissions.includes('clone'); }
     const showDeleteButton = () => { return !create && permissions.includes('delete') && !model.is_deleted; }
     const showRestoreButton = () => { return !create && permissions.includes('restore') && model.is_deleted; }
     const showPurgeButton = () => { return !create && permissions.includes('purge'); }
 
     // Create a new object
-    // Note, if 'filter' is provided, we look for any override fields here (i.e. when creating new object)
-    // TODO: need to load in defaults?  From callAPI, we can see that these are not called from the schema
-    //   ... i.e. many more fields in an 'update' versus 'create' API call
     function objectCreate(id) {
-        const initialModel = {};
-        setModel(initialModel); 
-        applyFilter();
+        const initialModel = {}; // TODO: need to find a way to load defaults instead
+        setModel(applyFilter(initialModel)); 
         setLoaded(true);
+        setBusy(false);
         return true;
     }
 
     // Retrieve object with specified id from the database
     function objectLoad(id) {
         if (id) {
+            setBusy(true);
             callAPI('GET', `${object_type}/load/${id}`) // TODO: change to api/object/load/id
             .then((response) => {
                 if (response.error) {
                     // TODO: handle some specific errors (e.g. unauthorized) or add error details?
                     setErrorResponse({code: response.status, details: response.data.error ? response.data.error : '' });
                     setLoaded(true);
+                    setBusy(false);
                     return false;
                 } else {
                     setModel(response.data);
                     setLoaded(true);
+                    setBusy(false);
                     return true;            
                 }
             });
@@ -179,18 +190,25 @@ return (props) => {
         return true;
     }
 
-    const applyFilter = () => {
+    // Apply incoming filter (in props.filter) to a model
+    const applyFilter = (model) => {
         if (props.filter) {
-            console.log('in object_edit, received props.filter: ', props.filter);
-            let override = {};
-            props.filter.forEach( element => {
+            //console.log('in object_edit, received props.filter: ', props.filter);
+            //let override = {};
+            //props.filter.forEach( element => {
+            //    if (!element.operator || element.operator == 'eq') {
+            //        override[element.field] = element.value;
+            //    }
+            //});
+            //console.log('overriding values from props.filter', override);
+            //setModel(prev => ({...prev, ...override}));
+            props.filter.forEach ( element => {
                 if (!element.operator || element.operator == 'eq') {
-                    override[element.field] = element.value;
+                    model[element.field] = element.value;
                 }
-            });
-            console.log('overriding values from props.filter', override);
-            setModel(prev => ({...prev, ...override}));
+            })
         }
+        return model;
     }
 
 
@@ -259,8 +277,6 @@ return (props) => {
     return (
 
         <>
-        <Busy busy={busy || !loaded} />
-
         <div className="EditForm" style={{ maxWidth: '800px', align:'middle'}}>
 
             <AutoForm
@@ -271,7 +287,7 @@ return (props) => {
                 model={model}
                 onValidate={validatorFunction ? validatorFunction : defaultValidator}
             >
-{/*<fieldset disabled={true} readOnly={true} style={{border: '0 none',}}>*/}
+                {/*<fieldset disabled={true} readOnly={true} style={{border: '0 none',}}>*/}
                 <Card>
                 <CardHeader
                     avatar={
@@ -284,6 +300,7 @@ return (props) => {
                     action={<>
                         {showViewButton() ? (<ObjectViewButton objectType={object_type} objectID={id} />) : ( <></> )}
                         {showEditButton() ? (<ObjectEditButton objectType={object_type} objectID={id} />) : ( <></> )}
+                        {showCloneButton() ? (<ObjectCloneButton objectType={object_type} objectID={id} />) : ( <></> )}
                         {showDeleteButton() ? (<ObjectDeleteButton objectType={object_type} objectID={id} />) : ( <></> )}
                         {showRestoreButton() ? (<ObjectRestoreButton objectType={object_type} objectID={id} />) : ( <></> )}
                         {showPurgeButton() ? (<ObjectPurgeButton objectType={object_type} objectID={id} />) : ( <></> )}
@@ -298,7 +315,7 @@ return (props) => {
 
                 <Accordion /*defaultExpanded*/ elevation={10}>
                     <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <span>Additional fields</span>
+                        <span>Additional read-only fields</span>
                     </AccordionSummary>
                     <AccordionDetails>
 
@@ -610,8 +627,8 @@ const WrappedImageEdit = ({model, ...props}) => {
                         <ErrorField name="file" />
                     </Box>
                 </Box>
-                <Box display="flex" flexDirection="row">
-                    <Box width='90%' >
+                <Box display="flex" flexDirection="row" pr={1}>
+                    <Box width='100%' >
                         <AutoField name="name" />
                         <ErrorField name="name" />
                     </Box>

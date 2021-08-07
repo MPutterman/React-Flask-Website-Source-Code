@@ -20,6 +20,8 @@ import DeleteIcon from '@material-ui/icons/Delete';
 import RestoreIcon from '@material-ui/icons/RestoreFromTrash';
 import PurgeIcon from '@material-ui/icons/DeleteForever';
 import SearchIcon from '@material-ui/icons/Search';
+import CloneIcon from '@material-ui/icons/FileCopy';
+
 import IDInputField from '../components/idfield';
 
 import Grid from '@material-ui/core/Grid';
@@ -36,6 +38,7 @@ import PlateIcon from '@material-ui/icons/Note'; // TODO: need something better
 import CoverIcon from '@material-ui/icons/Note'; // TODO: need something better
 import EquipmentIcon from '@material-ui/icons/Camera'; // or CameraAlt
 
+
 // Return action-type icon
 const actionIcon = (action) => {
     switch(action) {
@@ -45,6 +48,7 @@ const actionIcon = (action) => {
         case 'restore': return RestoreIcon;
         case 'purge': return PurgeIcon;
         case 'search': return SearchIcon;
+        case 'clone': return CloneIcon;
     }
 }
 
@@ -80,6 +84,59 @@ const objectTitle = (objectType) => {
     }
 }
 
+// Show a clone button and handle actions
+const ObjectCloneButton = (props) => {
+
+    const object_type = props.objectType;
+    const id = props.objectID;
+
+    // Hooks and contexts
+    const history = useHistory();
+    const confirm = useConfirm();
+    const setAlert = useAlerts();
+    const [busy, setBusy] = React.useState(false);
+
+    const handleClick = (event) => {
+
+        confirm ({/*title:<title>, description:<description>*/})
+        .then(() => {
+
+            setBusy(true);
+            callAPI('POST', `api/${object_type}/clone/${id}`)
+            .then((response) => {
+
+                if (response.error) {
+
+                    // Display the returned error
+                    setAlert({
+                        severity: 'error',
+                        message: `Clone failed. Error ${response.status}: ${response.data.error}`
+                    });
+                    setBusy(false);
+                    return false;
+
+                } else {
+
+                    setAlert({severity: 'success', message: `Clone successful`});
+                    setBusy(false);
+                    const new_id = response.data.id;
+                    history.push(`/${object_type}/edit/${new_id}`)
+                    return true;
+                
+                }
+            
+            })
+        })
+
+    }
+
+    return (
+        <>
+            {/*<Busy busy={busy}/>*/}
+            <Button size='small' onClick={handleClick}><CloneIcon />Clone</Button>
+        </>
+    );
+}; 
 
 
 
@@ -317,6 +374,7 @@ const ActionIcon = ({action, children, ...props}) => {
 export {
     ObjectViewButton,
     ObjectEditButton,
+    ObjectCloneButton,
     ObjectDeleteButton,
     ObjectRestoreButton,
     ObjectPurgeButton,
