@@ -1,7 +1,9 @@
 // TODO:
 // * Why does the field display just slightly above others?
+// * A bug during validation... sometimes shows an error that won't go away if submit without selecting
+//      file.  A warning came up of duplicate key 'file'. Maybe an interal MUI field is using 'file'
+//      as an html id element?
 // * Add a clear (X) icon to remove the curently selected file...
-// * Figure out how to make width adjustable
 // * Provide a way to specify the upload type, or get it directly from files[0]. I'm just leaving as
 //     image/png since that was previously in the submission.js file...
 // * Show a progress bar when uploading large files
@@ -37,6 +39,8 @@ function FileInput({ onChange, name, value, label, error, ref, required, ...prop
       <label htmlFor={name}>
             <TextField
               disabled
+              fullWidth
+              id={`${name}-label`}
               value={filename ? filename : 'No file chosen'}
               error={!!(error)}
               required={required}
@@ -44,7 +48,7 @@ function FileInput({ onChange, name, value, label, error, ref, required, ...prop
               {...props}
               InputProps={{
                 startAdornment:(
-                  <InputAdornment position="start">
+                  <InputAdornment  position="start">
                     <Button size='small' variant='outlined' component='span'>
                       {props.buttonLabel ? (
                         <span>{props.buttonLabel}</span>
@@ -57,7 +61,7 @@ function FileInput({ onChange, name, value, label, error, ref, required, ...prop
             />
       </label>
       
-      <Input
+      <input
         //accept="image/*" // TODO: read this from the properties if specified
         id={name}
         onChange={({ target: { files } }) => {
@@ -66,7 +70,9 @@ function FileInput({ onChange, name, value, label, error, ref, required, ...prop
             if (props.filenameField) {
               form.onChange(props.filenameField, files[0].name);
             }
-            value = new Blob([files[0]], {type: 'image/png',});
+            value = files[0]; //new Blob([files[0]], {type: 'image/png',});
+            // TODO: capture type of file from extension and indicate mime type...
+            //value = URL.createObjectURL(files[0]);
             onChange(value); //new Blob([files[0]],{type: 'image/png',})); //URL.createObjectURL(files[0]));
           }
         }}
