@@ -61,7 +61,7 @@ import { useAlerts } from '../contexts/alerts';
 import { useThrobber } from '../contexts/throbber';
 import { userSchema, userRegistrationSchema, orgSchema, equipSchema, plateSchema, coverSchema, imageSchema, analysisSchema } from '../helpers/schema';
 import { defaultValidator, userValidator, imageValidator } from '../helpers/schema';
-import { ObjectViewButton, ObjectEditButton, ObjectCloneButton, ObjectDeleteButton, ObjectRestoreButton, ObjectPurgeButton } from '../helpers/object_utils';
+import { ObjectViewButton, ObjectEditButton, ObjectFavoriteButton, ObjectCloneButton, ObjectDeleteButton, ObjectRestoreButton, ObjectPurgeButton } from '../helpers/object_utils';
 import { ObjectIcon, objectTitle, ActionIcon } from '../helpers/object_utils';
 import CardActions from '@material-ui/core/CardActions';
 import Card from '@material-ui/core/Card';
@@ -150,9 +150,11 @@ return (props) => {
     let formRef;
     const [model, setModel] = React.useState({}); // default values not needed (defined in schema)
 
-    // Convenience functions for showing action buttons
+    // Convenience functions for showing action buttons. Note most are disabled until after saving so
+    // that the ID value is available.
+    const showFavoriteButton = () => { return !create; }
     const showViewButton = () => { return !create && permissions.includes('view'); }
-    const showEditButton = () => { return false; }
+    const showEditButton = () => { return false; }  // We are already in edit mode
     const showCloneButton = () => { return !create && permissions.includes('clone'); }
     const showDeleteButton = () => { return !create && permissions.includes('delete') && !model.is_deleted; }
     const showRestoreButton = () => { return !create && permissions.includes('restore') && model.is_deleted; }
@@ -298,6 +300,7 @@ return (props) => {
                     title={`${create ? 'CREATE' : 'EDIT'} ${objectTitle(object_type).toUpperCase()}`}
                     subheader={`${model.name || ''}`}
                     action={<>
+                        {showFavoriteButton() ? (<ObjectFavoriteButton objectType={object_type} objectID={id} />) : ( <></> )}
                         {showViewButton() ? (<ObjectViewButton objectType={object_type} objectID={id} />) : ( <></> )}
                         {showEditButton() ? (<ObjectEditButton objectType={object_type} objectID={id} />) : ( <></> )}
                         {showCloneButton() ? (<ObjectCloneButton objectType={object_type} objectID={id} />) : ( <></> )}

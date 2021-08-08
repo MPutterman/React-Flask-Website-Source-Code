@@ -3,7 +3,8 @@
 // factor out the handler to improve code re-use.
 //
 // TODO: 
-// * Clicking a button would cause loss of any edits... give a warning?
+// * Clicking an action button (e.g. view from edit page) would potentially cause loss of form data. 
+//      Handle this in the forms by diabling the actions after form changes?
 
 import React from 'react';
 import { callAPI } from '../helpers/api.js'; 
@@ -12,8 +13,10 @@ import { useConfirm } from 'material-ui-confirm';
 import { useAlerts } from '../contexts/alerts';
 import { useErrorResponse } from '../contexts/error';
 import { StatusCodes } from 'http-status-codes';
+import { useAuthState, useAuthDispatch, authRefreshSession, isFavorite } from '../contexts/auth';
 import Busy from '../components/busy';
 import Button from '@material-ui/core/Button';
+import Tooltip from '@material-ui/core/Button';
 import ViewIcon from '@material-ui/icons/Visibility';
 import EditIcon from '@material-ui/icons/Edit';
 import DeleteIcon from '@material-ui/icons/Delete';
@@ -21,6 +24,8 @@ import RestoreIcon from '@material-ui/icons/RestoreFromTrash';
 import PurgeIcon from '@material-ui/icons/DeleteForever';
 import SearchIcon from '@material-ui/icons/Search';
 import CloneIcon from '@material-ui/icons/FileCopy';
+import IsFavoriteIcon from '@material-ui/icons/Star';
+import NotFavoriteIcon from '@material-ui/icons/StarOutline';
 
 import IDInputField from '../components/idfield';
 
@@ -83,6 +88,62 @@ const objectTitle = (objectType) => {
             return '';
     }
 }
+
+// Show a favorite / unfavorite button and handle actions
+const ObjectFavoriteButton = (props) => {
+    const object_type = props.objectType;
+    const id = props.objectID;
+    const setAlert = useAlerts();
+    const session = useAuthState();
+    const dispatch = useAuthDispatch();
+
+    const is_fav = () => {
+        return isFavorite(session, object_type, id);
+    }
+
+    const handleClick = (event) => {
+
+        const action = is_fav() ? 'remove' : 'add';
+        
+        callAPI('POST', `api/favorite/${action}/${object_type}/${id}`)
+        .then((response) => {
+
+            if (response.error) {
+
+                // Display the returned error
+                setAlert({
+                    severity: 'error',
+                    message: `Operation failed. Error ${response.status}: ${response.data.error}`
+                });
+                return false;
+
+            } else {
+
+                authRefreshSession(dispatch, null);
+                setAlert({severity: 'success', message: is_fav() ? 'Removed from favorites' : 'Added to favorites' });
+                return true;
+            
+            }
+        
+        })
+
+    }
+
+    return (
+        <Button size='small' onClick={handleClick}>
+            {is_fav() ? (
+                <Tooltip title='Remove from favorites'>
+                    <IsFavoriteIcon />Unfavorite
+                </Tooltip>
+            ) : (
+                <Tooltip title='Add to favorites'>
+                    <NotFavoriteIcon />Favorite
+                </Tooltip>
+            )}
+        </Button>
+    );
+}; 
+
 
 // Show a clone button and handle actions
 const ObjectCloneButton = (props) => {
@@ -374,6 +435,7 @@ const ActionIcon = ({action, children, ...props}) => {
 export {
     ObjectViewButton,
     ObjectEditButton,
+    ObjectFavoriteButton,
     ObjectCloneButton,
     ObjectDeleteButton,
     ObjectRestoreButton,

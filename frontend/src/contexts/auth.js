@@ -16,6 +16,8 @@
 // * Implement a way to 'dirty' the prefs (or the whole session) when prefs are saved. Trigger reload of
 //     these values from backend.
 // * Add 'roles' to authUser
+// * For now, favorites are stored in user table and session. Performance impact should be 
+//     small if only a relatively small number of preferences is stored
 
 import React, { useReducer, useEffect } from "react";
 import { callAPI } from '../helpers/api';
@@ -110,6 +112,9 @@ export const defaultUserRoles = [
 
 ];
 
+// Default favorites
+// Stored as dictionary of Arrays, with object_type as the index
+const defaultFavorites = {};
 
 const initialState = { // This is the session info provided to child components
   auth: false,
@@ -119,6 +124,7 @@ const initialState = { // This is the session info provided to child components
   errorMessage: '',
   prefs: defaultUserPrefs,
   roles: defaultUserRoles,
+  favorites: defaultFavorites,
 };
 
 export const AuthReducer = (initialState, action) => {
@@ -126,6 +132,7 @@ export const AuthReducer = (initialState, action) => {
   let user = null;    
   let userPrefs = {};   // prefs from backend
   let prefs = {};       // prefs with defaults merged in
+  let favorites = {};
 
   switch (action.type) {
 
@@ -158,12 +165,14 @@ export const AuthReducer = (initialState, action) => {
           if (userPrefs[category][key]) prefs[category][key] = userPrefs[category][key];
         }
       }
+      favorites = action.payload.favorites;
       return {
         ...initialState,
         loaded: true,
         auth: user ? true : false,
         authUser: user,
         prefs: prefs,
+        favorites: favorites,
       }
 
     case "REQUEST_LOGIN":
@@ -186,11 +195,13 @@ export const AuthReducer = (initialState, action) => {
           if (userPrefs[category][key]) prefs[category][key] = userPrefs[category][key];
         }
       }
+      favorites = action.payload.favorites;
       return {
         ...initialState,
         auth: true,
         authUser: user,
         prefs: prefs,
+        favorites: favorites,
         loaded: true,
       };
 
@@ -200,6 +211,7 @@ export const AuthReducer = (initialState, action) => {
         auth: false,
         authUser: null,
         prefs: defaultUserPrefs, // Prefs for anonymous user are the defaults
+        favorites: defaultFavorites,
       };
  
     case "LOGOUT_ERROR":
@@ -232,7 +244,8 @@ async function loadSessionFromServer(dispatch) { // This one is not exported and
     .then((response) => {
         let user = response.data.current_user;
         let prefs = response.data.prefs;
-        dispatch({ type: 'SESSION_LOADED', payload: { user: user, prefs: prefs }})
+        let favorites = response.data.favorites;
+        dispatch({ type: 'SESSION_LOADED', payload: { user: user, prefs: prefs, favorites: favorites }})
     })
     .catch((e) => {
         console.log("POST /user/login, error =>" + e);
@@ -241,7 +254,7 @@ async function loadSessionFromServer(dispatch) { // This one is not exported and
     });
 }
 
-// TODO: think if this is the best approach. Called after changing prefs or profile on 
+// TODO: think if this is the best approach. Called after changing prefs, favorites, or profile on 
 //  the server. Or changing permissions/roles
 export async function authRefreshSession(dispatch,data){
     return loadSessionFromServer(dispatch);
@@ -256,8 +269,9 @@ export async function authGoogleLogin(dispatch,data){
     console.log ('POST /user/login/google, response =>', response.data);
     let user = response.data.current_user;
     let prefs = response.data.prefs;
+    let favorites = response.data.favorites;
     if (user) {
-        dispatch({ type: 'LOGIN_SUCCESS', payload: {user: user, prefs: prefs}});
+        dispatch({ type: 'LOGIN_SUCCESS', payload: {user: user, prefs: prefs, favorites: favorites}});
         return true;
     } else {
         dispatch({ type: 'LOGIN_ERROR', error: response.data['error'] });
@@ -282,8 +296,9 @@ export async function authLogin(dispatch, data) {
         console.log ('POST /user/login/basic, response =>', response.data);
         let user = response.data.current_user;
         let prefs = response.data.prefs;
+        let favorites = response.data.favorites;
         if (user) {
-            dispatch({ type: 'LOGIN_SUCCESS', payload: {user: user, prefs: prefs}});
+            dispatch({ type: 'LOGIN_SUCCESS', payload: {user: user, prefs: prefs, favorites: favorites}});
             return true;
         } else {
             dispatch({ type: 'LOGIN_ERROR', error: response.data['error'] });
@@ -320,4 +335,15 @@ export async function authLogout(dispatch) {
     });
 }
 
+// Helper functions
+// TODO: it should be possible to incorporate this into the context (i.e. context value can
+//   be not only state but also contain functions). This will clean up the usage
+
+export function isFavorite (session, object_type, object_id) {
+    if (session?.favorites?.[object_type]) {
+        return session.favorites[object_type].includes(parseInt(object_id));
+    } else {
+        return false;
+    }
+};
 
