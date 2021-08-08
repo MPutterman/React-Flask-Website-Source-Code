@@ -8,21 +8,20 @@
 # * https://pythonhosted.org/Flask-Security/quickstart.html (use of flask_security module) -- not currently used
 # * https://yasoob.me/posts/how-to-setup-and-deploy-jwt-auth-using-react-and-flask/ (handling login with react/flask combination)
 # * https://www.digitalocean.com/community/tutorials/how-to-add-authentication-to-your-app-with-flask-login (another approach)
-
+#
 # NOTES:
 # * Need to import session from Flask, and Session from flask_session
 
 
 # TODO:
 # * Simplify error handling wth @errorhandler (can capture certain types of exceptions for global response)
-
 # * Be careful when doing multiple DB calls in response to a single request...
 #      If any objects are mutated, then can end up with a 'transaction already started' error...
+#      There is a way to disconnect from database (make_transient)
 # * We should move all the analysis-specific stuff out of here and into separate files that are just loaded in particular
 #   API calls when needed
 # * Incorporate Flask Mail to do email verification. Maybe also subscriptions? https://pythonhosted.org/Flask-Mail/
 # * Re-insert the @flask_login.login_required now that permissions are somewhat sorted out
-#   an extra layer of protection in backend using @flask_login.login_required
 # * A few sites have recommended using '/api' at the beginning of all backend to help better separate frontend and backend
 # * A lot of flask_session files get created per request (for Mike). Does this happen for others too?
 # * Need to look up how to split initialization activities between (if __name__ == '__main__':) section and @app.before_first_request
@@ -30,8 +29,7 @@
 #   after Google login).  Backend should be careful of which fields are sent to database.
 # * Need to look at difference between DB session versus connection... maybe not using correctly
 # * Need to test whether session timeout is working properly, and remember-me feature
-# * A few API calls return 'success'. Change instead to 'error' (false), and give message
-#      if there was any problem
+# * Make API more consistent. Some failed calls return status 500. Some return { error: message }
 
 import time
 import json
@@ -65,13 +63,14 @@ import urllib
 import ast
 import datetime
 from dateutil import parser
+import sqlalchemy
 
 
 
 # Include database layer
 from database import (
     db_create_tables, db_add_test_data,db_cleanup,
-    db_user_load, db_user_load_by_email,
+    db_user_load_by_email,
     retrieve_image_path,retrieve_initial_analysis,db_analysis_save,db_analysis_save_initial,db_analysis_edit,
     object_type_valid
 
@@ -874,7 +873,13 @@ app.config['IMAGE_CACHE_PATH'] = './CACHE'
 
 @login_manager.user_loader
 def session_load_user(user_id):
-    return db_user_load(user_id)
+    from database import db_object_load
+    user = db_object_load('user', user_id)
+    # Only send basic fields to LoginManager
+    #del user.password_hash
+    #del user.prefs
+    #del user.favorites
+    return user
 
 
 # ---------------
@@ -996,25 +1001,40 @@ def api_list_permissions(object_type, object_id=None):
 # User-related routes
 # -------------------
 
+# Helper function for session responses
+def prepare_session_response(user, error=False, message=''):
+    if (user is None):
+        user_dict = None
+        prefs = {}
+        favorites = {}
+    else:
+        user_dict = user.as_dict()
+        user_dict.pop('password_hash') # Remove password_hash
+        prefs = user_dict.pop('prefs') # Remove prefs (append separately)
+        favorites = user_dict.pop('favorites') # Remove favorites (append separately)
+    return {
+        'error': error,
+        'message': message,
+        'current_user': user_dict,
+        'prefs': prefs,
+        'favorites': favorites,
+    }
+
+# Load the current session (user data, preferences, favorites).
+# We rely on flask_login to provide just the user_id, then we look up the most recent data in the
+# database (in case profile, prefs, or favorites have been updated).
 @app.route('/api/session/load', methods = ['GET'])
 @cross_origin(supports_credentials=True)
 def session_load():
-    user = flask_login.current_user
-    if (user.is_authenticated):
-        #print("GET /api/session/load, retrieved user_id = " + str(user.user_id) + "\n")
-        user_dict = user.as_dict()
-        user_dict.pop('password_hash') # Remove password_hash before returning to frontend
-        user_dict.pop('prefs') # Remove prefs in case they are dirty (e.g. if user updated prefs)
-        # Retrieve prefs from database
-        from database import db_prefs_load
-        prefs = db_prefs_load(user.get_id())
-        return ({ 'current_user': user_dict, 'prefs': prefs, })
+    if (flask_login.current_user.is_authenticated):
+        from database import db_object_load
+        user = db_object_load('user', flask_login.current_user.get_id())
+        return prepare_session_response(user)
     else:
-        #print("GET /api/session/load, not logged in\n")
-        return ({ 'current_user': None, 'prefs': {} })
+        return prepare_user_response(None, True, 'Not logged in')
 
-# TODO: Need to trigger update prefs in the session!!!
 # Save the submitted user preferences
+# TODO: Need to trigger update prefs in the session!!!
 @app.route('/api/prefs/save', methods = ['POST'])
 @cross_origin(supports_credentials=True)
 def prefs_save():
@@ -1022,8 +1042,55 @@ def prefs_save():
     print(prefs)
     user_id = flask_login.current_user.get_id()
     from database import db_prefs_save
-    db_prefs_save(user_id, prefs)
-    return ''
+    return { 'error': not db_prefs_save(user_id, prefs) }
+
+# Load all favorites or a set of favorites of one object type
+# Return a dict of lists (all favorites), a list (a specific type of favorites)
+# Note: sets are a better data type but don't work well with pickler and/or response encoding/decoding.
+#   Thus using lists instead
+@app.route('/api/favorites/load/<object_type>', methods = ['GET'])
+@app.route('/api/favorites/load', methods = ['GET'])
+@cross_origin(supports_credentials=True)
+def favorites_load(object_type=None):
+    user = flask_login.current_user
+    from database import db_favorites_load
+    favorites = db_favorites_load(user.get_id(), object_type)
+    return { 'favorites': favorites }
+
+# Clear all favorites or a set of favorites of one object type
+@app.route('/api/favorites/clear/<object_type>', methods = ['POST'])
+@app.route('/api/favorites/clear', methods = ['POST'])
+@cross_origin(supports_credentials=True)
+def favorites_clear(object_type=None):
+    user = flask_login.current_user
+    from database import db_favorites_clear
+    if (db_favorites_clear(user.get_id(),object_type)):
+        return { 'error': False }
+    else:
+        return { 'error': 'Favorites could not be cleared' }
+
+# Add a favorite
+@app.route('/api/favorite/add/<object_type>/<object_id>', methods = ['POST'])
+@cross_origin(supports_credentials=True)
+def favorite_add(object_type, object_id):
+    user = flask_login.current_user
+    from database import db_favorite_add
+    if (db_favorite_add(user.get_id(), object_type, object_id)):
+        return { 'error': False }
+    else:
+        return { 'error': 'Favorite could not be added' }
+
+# Remove a favorite
+@app.route('/api/favorite/remove/<object_type>/<object_id>', methods = ['POST'])
+@cross_origin(supports_credentials=True)
+def favorite_remove(object_type, object_id):
+    user = flask_login.current_user
+    from database import db_favorite_remove
+    if (db_favorite_remove(user.get_id(), object_type, object_id)):
+        return { 'error': False }
+    else:
+        return { 'error': 'Favorite could not be removed' }
+
 
 # Check if user email address exists
 @app.route('/api/user/email_exists/<email>', methods = ['GET'])
@@ -1042,10 +1109,10 @@ def user_password_change():
     password = request.form.get('password')
     new_password = request.form.get('new_password')
     # Check current password
+    user_id = flask_login.current_user.user_id
+    from database import db_object_load
+    user = db_object_load('user', user_id)
     import bcrypt
-    user = flask_login.current_user
-    if (user is None):
-        return { error: 'Must be logged in' }
     if (not bcrypt.checkpw(password.encode('utf8'), user.password_hash.encode('utf8'))):
         return { 'error': 'Password incorrect' }
     # Successful match
@@ -1089,15 +1156,15 @@ def object_name_lookup(object_type, object_id):
 
 # Generic handler to load object not caught by ealier routes
 # Return dict of fields
-@app.route('/<object_type>/load/<id>', methods = ['GET'])
+@app.route('/<object_type>/load/<object_id>', methods = ['GET'])
 @cross_origin(supports_credentials=True)
-def object_load(object_type, id):
+def object_load(object_type, object_id):
     if not object_type_valid(object_type):
         return api_error_response(HTTPStatus['NOT_FOUND'], 'Unsupported object type')
-    if (not has_permission(object_type, 'view', id)):
+    if (not has_permission(object_type, 'view', object_id)):
         return api_error_response(HTTPStatus['FORBIDDEN'], 'Not Authorized')
     from database import db_object_load
-    record = db_object_load(object_type, id)
+    record = db_object_load(object_type, object_id)
     if (record is None):
         return api_error_response(HTTPStatus['NOT_FOUND'], f"No {object_type} with this id")
     else:
@@ -1150,7 +1217,10 @@ def object_delete(object_type, object_id):
     if (not has_permission(object_type, 'delete', object_id)):
         return api_error_response(HTTPStatus['FORBIDDEN'], 'Not Authorized')
     from database import db_object_delete
-    return { 'success': db_object_delete(object_type, object_id) }
+    if (db_object_delete(object_type, object_id)):
+        return { 'error': None }
+    else:
+        return { 'error': 'Delete failed' }
 
 # Generic handler to restore object not caught by earlier routes
 @app.route('/api/<object_type>/restore/<object_id>', methods = ['POST'])
@@ -1161,7 +1231,10 @@ def object_restore(object_type, object_id):
     if (not has_permission(object_type, 'restore', object_id)):
         return api_error_response(HTTPStatus['FORBIDDEN'], 'Not Authorized')
     from database import db_object_restore
-    return { 'success': db_object_restore(object_type, object_id) }
+    if (db_object_restore(object_type, object_id)):
+        return { 'error': None }
+    else:
+        return { 'error': 'Restore failed' }
 
 # Generic handler to purge object not caught by earlier routes
 @app.route('/api/<object_type>/purge/<object_id>', methods = ['POST'])
@@ -1172,7 +1245,10 @@ def object_purge(object_type, object_id):
     if (not has_permission(object_type, 'purge', object_id)):
         return api_error_response(HTTPStatus['FORBIDDEN'], 'Not Authorized')
     from database import db_object_purge
-    return { 'success': db_object_purge(object_type, object_id) }
+    if (db_object_purge(object_type, object_id)):
+        return {'error': None }
+    else:
+        return { 'error': 'Purge failed' }
 
 # Generic handler to clone object not caught by earlier routes
 @app.route('/api/<object_type>/clone/<object_id>', methods = ['POST'])
@@ -1310,119 +1386,67 @@ def fix_background(num):
     img.save(filepath)
     return {'r':2}
 
+
 @app.route('/user/login/<login_method>', methods=['POST'])
 @cross_origin(supports_credentials=True)
 def user_login(login_method):
-    from database import db_user_load_by_email
+
     if login_method=='basic':
-        # Set up hashing
-        import bcrypt
 
-        email = request.form['email']
-        print(request.form['remember'])
-        remember = request.form['remember']=='true'
-        
+        form_fields = json.loads(request.form['JSON_data']) # All form data in a JSON encoded field
+        email = form_fields['email']
+        remember = form_fields['remember']
+
+        # Look up user by email
+        from database import db_user_load_by_email
         user = db_user_load_by_email(email)
-        if (user == None):
-            return {
-                'error': True,
-                'message': "User email not found",
-                'current_user': None,
-            }
-            
-        if (bcrypt.checkpw(request.form['password'].encode('utf8'), user.password_hash.encode('utf8'))):
-            #user.setAuthenticated() # Do something here to set when logged in
-            session.permanent = True
-            flask_login.login_user(user, remember) # Part of flask_login
-            user_dict = user.as_dict()
-            user_dict.pop('password_hash') # Remove password_hash before sending to front_end
-            prefs = user_dict.pop('prefs') # Remove prefs as well
-            return {
-                'error': False,
-                'message': "Successful login",
-                'current_user': user_dict,
-                'prefs': prefs,
-            }
 
+        # If not found
+        if (user == None):
+            return prepare_session_response(None, True, 'No account with that email')
+
+        # If found, check password            
+        import bcrypt
+        if (bcrypt.checkpw(request.form['password'].encode('utf8'), user.password_hash.encode('utf8'))):
+            flask_login.login_user(user, remember)
+            return prepare_session_response(user, False, 'Successful login')
         else:
-            return {
-                'error': True,
-                'message': "Password mismatch",
-                'current_user': None,
-                'prefs': {},
-            }
+            return prepare_session_response(None, True, 'Incorrect email or password')
+
     elif login_method=='google':
         from google.oauth2 import id_token
         from google.auth.transport import requests
         token = request.form['tokenId']
-        
-        remember = request.form['remember']=='false'
+        form_fields = json.loads(request.form['JSON_data']) # All form data in a JSON encoded field
+        remember = form_fields['remember']
+
         client_id = os.getenv('REACT_APP_GOOGLE_OAUTH_CLIENT')
         try:
             id_info = id_token.verify_oauth2_token(token, requests.Request(),client_id)
         except:
-            return{
-                'error':True,
-                'message':'Invalid Token',
-                'current_user':None,
-                'prefs': {},
-            }
+            return prepare_session_response(None, True, 'Invalid token')
 
         if id_info['iss'] != 'https://accounts.google.com' and id_info['iss']!='accounts.google.com':
-            return {
-                'error':True,
-                'message':'Wrong Auth Provider',
-                'current_user':None,
-                'prefs': {},
-            }
-        
+            return prepare_session_response(None, True, 'Wrong auth provider')
         if id_info['aud'] not in [client_id]:
-            return{
-                'error':True,
-                'message':'Faulty or Faked Token',
-                'current_user':None,
-                'prefs': {},
-            }
+            return prepare_session_response(None, True, 'Faulty or faked token')
         if id_info['exp']<time.time():
-            return{
-                'error':True,
-                'message':'Past Expiry Time',
-                'current_user':None,
-                'prefs': {},
-            }
-        email = id_info['email']
-        
-        user = db_user_load_by_email(email)
-        if (user == None):
-            return {
-                'error': True,
-                'message': "User email not found",
-                'current_user': None,
-                'prefs': {},
-            }
-        session.permanent = True
-        flask_login.login_user(user, remember) # Part of flask_login
-        user_dict = user.as_dict()
-        user_dict.pop('password_hash') # remove before returning to front end
-        prefs = user_dict.pop('prefs') # remove before returning to front end
-        return {
-            'error': False,
-            'message': "Successful login",
-            'current_user': user_dict,
-            'prefs': prefs,
-        }
-        
-        
-    
+            return prepare_session_response(None, True, 'Past expiry time')
 
+        # Look up user by email
+        email = id_info['email']
+        from database import db_user_load_by_email
+        user = db_user_load_by_email(email)
+
+        # If not found
+        if (user == None):
+            return prepare_session_response(None, True, 'No account with that email')
+
+        flask_login.login_user(user, remember)
+        return prepare_session_response(user, False, 'Successful login')
         
     else:
-        return {
-            'error':True,
-            'message':'Invalid Login Type',
-            'current_user': None,
-            'prefs': {},
-        }
+        return prepare_session_response(None, False, 'Invalid login type')
 
 @app.route('/user/logout', methods=['POST'])
 #@flask_login.login_required
@@ -1430,20 +1454,11 @@ def user_login(login_method):
 def user_logout():
     if flask_login.current_user.is_authenticated: 
         flask_login.logout_user() # Part of flask_login
-        return {
-            'error': False,
-            'message': "Successful logout",
-            'current_user': None,
-            'prefs': {},
-        }
+        return prepare_session_response(None, False, 'Successful logout')
     else:
-        return {
-            'error': True,
-            'message': "Not logged in",
-            'current_user': None,
-            'prefs': {},
-        }
-    
+        return prepare_session_response(None, True, 'Not logged in')
+
+'''    
 # Google-signin
 # TODO: needs to be linked to our user table (and create a new user upon first login, if email not already exist)
 
@@ -1460,7 +1475,7 @@ def sign_in():
     session['based_arr'] = arr
     print(session.get('email'))
     return 'kk'
-
+'''
 
 @app.route('/autoselect/<filename>',methods=['POST','GET'])
 @cross_origin(supports_credentials=True)

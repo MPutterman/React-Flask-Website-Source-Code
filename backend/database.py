@@ -10,6 +10,9 @@
 # * Convert all DateTime database types to 'TZDateTime'
 # * I am getting rid of 'org_list' from User (instead using org_id).  But haven't yet finished removing the old code.
 # * Store image_type as string instead of enum?
+# * SQLAlchemy PickleType does NOT detect changes to a portion of the object (e.g. dict). For now we rewrite the
+#     whole thing whenever we make a change. Need to look into how to use 'MutableDict' or other approaches
+#     to make this more efficient or intutive
 
 # Package dependencies:
 # mysql-connector-python, SQLAlchemy, flask-login
@@ -30,10 +33,11 @@ from sqlalchemy import TypeDecorator
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.orm import Session, sessionmaker, scoped_session
 from sqlalchemy.orm import joinedload, selectinload
-from sqlalchemy.orm import class_mapper
+from sqlalchemy.orm import class_mapper, make_transient
 from sqlalchemy import select
 from dotenv import load_dotenv
 import os
+import copy
 from urllib.parse import quote
 from sqlalchemy.dialects.postgresql import ARRAY
 import enum
@@ -164,7 +168,8 @@ class User(UserMixin, Base):
     is_deleted = Column(Boolean, default=False, nullable=False)
     created = Column(TZDateTime) 
     modified = Column(TZDateTime)
-    prefs = Column(PickleType)
+    prefs = Column(PickleType, default={}, nullable=False) # was PickleType
+    favorites = Column(PickleType, default={}, nullable=False) # was PickleType
     org_list = relationship("Organization", secondary=user_org_map) 
     analysis_list=relationship("Analysis",secondary=user_analysis_map)
 
@@ -477,7 +482,8 @@ def db_add_test_data():
     db_session.add_all([org1, org2, org3])
     prefs1 = { 'general': {'redirect_after_login': '/',}, }
     prefs2 = { 'general': {'redirect_after_login': '/user/search',}, }
-    db_session.add(User(first_name = 'Alice', last_name = 'Armstrong', email = 'alice@armstrong.com', password_hash='$2b$12$jojM5EuDHREVES2S0OpLbuV.oDjqXWJ/wq9x07HwSQRfdpEUHLqNG', org_list=[org1], prefs=prefs1)) # PASSWORD 123
+    favs1 = { 'equip': [4000, 2938],}
+    db_session.add(User(first_name = 'Alice', last_name = 'Armstrong', email = 'alice@armstrong.com', password_hash='$2b$12$jojM5EuDHREVES2S0OpLbuV.oDjqXWJ/wq9x07HwSQRfdpEUHLqNG', org_list=[org1], prefs=prefs1, favorites=favs1)) # PASSWORD 123
     db_session.add(User(first_name = 'Bob', last_name = 'Brown', email = 'bob@brown.com',password_hash='$2b$12$kA7FRa6qA./40Pmtmi6mRelW2cnkhcOHtsKelIMVezDlF33YF62C2', org_list=[org1,org2], prefs=prefs2)) # PASSWORD 123
     db_session.add(User(first_name = 'Cathy', last_name = 'Chen', email = 'cathy@chen.com',org_list=[org1,org2]))
     db_session.add(User(first_name = 'David', last_name = 'Delgado', email = 'david@delgado.com',org_list=[org1,org2]))
@@ -739,24 +745,9 @@ def db_object_search(object_type, object_filter=None):
 # TODO: likely to be merged into generic ones
 # ------------------------
 
-# Load a user from id. Also load the list of associated organization ids.
-# Return as a user object.
-def db_user_load(user_id):
-    #db_session.begin()
-    user = User.query.options(selectinload(User.org_list)).filter_by(user_id=user_id).scalar() # scalar returns a single record or 'None'; raises exception if >1 found
-    db_session.commit()
-    #db_session.close()
-    return user
-
 def db_user_load_by_email(email):
-    #db_session.begin()
-    #users = (User.query.all())
-    #print(users)
-    #for user in users:
-
-    user = User.query.options(selectinload(User.org_list)).filter_by(email=email).scalar() # scalar returns a single record or 'None'; raises exception if >1 found
+    user = User.query.filter_by(email=email).scalar() 
     db_session.commit()
-    #db_session.close()
     return user
 
 def db_user_password_change(user_id, new_password):
@@ -770,12 +761,65 @@ def db_prefs_save(user_id, data):
     user = User.query.filter_by(user_id=user_id).one()
     user.prefs = data
     db_session.commit()
-    return ''
+    return True
 
 def db_prefs_load(user_id):
     user = User.query.filter_by(user_id=user_id).one()
     db_session.commit()
     return user.prefs
+
+# Load all favorites or a set of favorites of one object type
+# Return a dict (all favorites), an array (a specific type of favorites), or None
+# Internal storage format is sets to avoid duplicates: converts to array for convenience of other code
+def db_favorites_load(user_id, object_type=None):
+    user = db_object_load('user', user_id)
+    if (user is None): return None
+    if (object_type is not None):
+        return user.favorites.get(object_type) if user.favorites.get(object_type) else []
+    else:
+        return user.favorites
+
+# Delete all favorites or a set of favorites of one object type
+# Return boolean
+def db_favorites_clear(user_id, object_type=None):
+    user = db_object_load('user', user_id)
+    if (user is None): return False
+    favorites = user.favorites.copy()
+    if (object_type is not None):
+        del favorites[object_type]
+    else:
+        del favorites
+    user.favorites = favorites # Write whole dict (needed to trigger update)
+    db_session.commit()
+    return True
+
+# Add a favorite
+# Return boolean
+def db_favorite_add(user_id, object_type, object_id):
+    user = db_object_load('user', user_id)
+    if (user is None): return False
+    favorites = user.favorites.copy()
+    old_branch = favorites.get(object_type) if favorites.get(object_type) else []
+    new_branch = set(old_branch) # Convert to set to make it convenient to ensure uniqueness
+    new_branch.add(int(object_id))
+    favorites[object_type] = list(new_branch) # Convert back to list
+    user.favorites = favorites # Write whole dict (needed to trigger update)
+    db_session.commit()
+    return True
+
+# Remove a favorite
+# Return boolean
+def db_favorite_remove(user_id, object_type, object_id):
+    user = db_object_load('user', user_id)
+    if (user is None): return False
+    favorites = user.favorites.copy()
+    branch = favorites.get(object_type) if favorites.get(object_type) else []
+    # Other methods of updating favorites didn't seem to get recognized as changed. This works.
+    favorites[object_type] = [x for x in branch if x != int(object_id) ]
+    user.favorites = favorites # Write whole dict (needed to trigger update)
+    db_session.commit()
+    return True
+    
 
 # Save a user to the database.  Expects a dict, ant the org_list to be a list of org_ids.
 # Blank user_id means it hasn't yet been inserted to database
