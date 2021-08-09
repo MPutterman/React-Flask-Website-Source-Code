@@ -140,9 +140,14 @@ const Layout = (props) => {
     history.push('/user/password_change'); 
   }
 
-  const handleChangePrefs = (event) => {
+  const handlePrefs = (event) => {
     handleCloseUserMenu(event);
     history.push('/user/prefs'); 
+  }
+
+  const handleFavorites = (event) => {
+    handleCloseUserMenu(event);
+    history.push('/user/favorites'); 
   }
 
   async function handleUserLogout(event) {
@@ -225,7 +230,8 @@ const Layout = (props) => {
               >
                 <MenuItem onClick={handleUserProfile}>Profile</MenuItem>
                 <MenuItem onClick={handleChangePassword}>Change password</MenuItem>
-                <MenuItem onClick={handleChangePrefs}>Preferences</MenuItem>
+                <MenuItem onClick={handlePrefs}>Preferences</MenuItem>
+                <MenuItem onClick={handleFavorites}>Favorites</MenuItem>
                 <MenuItem onClick={handleUserLogout}>Logout</MenuItem>
               </Menu>
             </div>

@@ -13,6 +13,7 @@
 //     to the selected ones in an Analysis (if differ from prefs)?  Or add to
 //     favorites. Or does this feature belong in the analysis_edit component?
 // * Limitation: DataGrid only supports 1 column of filtering
+// * TODO: provide a way to only show the datagrid, and suppress title, controls, etc...
 //
 // Usage:
 //   Composed into object-specific search components.
@@ -52,6 +53,24 @@ const ObjectSearch = (props) => {
     const object_type = props.objectType;
     const columns = props.columns;
 
+    // Keep array of filters.  Most will be dict tuples, but special
+    // ones are just strings, e.g. 'favorites'
+    const [filter, setFilter] = React.useState(props.filter ? props.filter : []);
+
+    const filterAdd = (f) => {
+        // TODO: check for unique filters?
+        setFilter((prev) => { return [...prev, f]; });
+    }
+
+    const filterRemove = (f) => {
+        setFilter((prev) => {
+            return prev.filter(function(value, index, arr) {
+                return value != f;
+            });
+        })
+    }
+
+    // Convenience function
     const id_column = () => {
         return `${object_type}_id`;
     }
@@ -60,13 +79,14 @@ const ObjectSearch = (props) => {
     const [loaded, setLoaded] = useState(false); // Support for loading indicator
     const [objectList, setObjectList] = useState([]);
 
-    // Filter handlers. For now just a checkbox for favorites. In future may be a more extensive
-    // form with search and sort options.
-    const onFilterChange = (event) => {
+    // Filter handlers
+    // For now just a checkbox for favorites. In future may be a more extensive
+    // form with search and sort options and other special filters
+    const onFavoritesChange = (event) => {
         if (event.target.checked) {
-            loadObjects(['favorites']);
+            filterAdd('favorites');
         } else {
-            loadObjects();
+            filterRemove('favorites');
         }
     }
 
@@ -98,8 +118,8 @@ const ObjectSearch = (props) => {
     }
 
     useEffect(() => {
-        loadObjects(); 
-    }, []); 
+        loadObjects(filter); 
+    }, [filter]); 
 
     const onReset = () => {
         // TODO: Reset all filters and sorting to defaults
@@ -134,7 +154,7 @@ const ObjectSearch = (props) => {
                     //subheader={`${model.name || ''}`}
                     action={
                         <FormControlLabel
-                            control={<Checkbox default='off' onChange={onFilterChange} />}
+                            control={<Checkbox defaultChecked={filter.includes('favorites')} onChange={onFavoritesChange} />}
                             label="Search only favorites"
                         />}
                         

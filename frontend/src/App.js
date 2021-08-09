@@ -60,6 +60,7 @@ import { UserView, OrgView, EquipView, PlateView, CoverView, ImageView, Analysis
 import { UserSearch, OrgSearch, EquipSearch, PlateSearch, CoverSearch, ImageSearch, AnalysisSearch } from "./components/object_search";
 import UserLogin from "./components/user_login"; 
 import UserPrefs from "./components/user_prefs";
+import UserFavorites from './components/user_favorites';
 import UserPasswordChange from './components/user_password_change';
 import { UserEdit, UserRegister, OrgEdit, EquipEdit, PlateEdit, CoverEdit, ImageEdit, /*AnalysisEdit*/ } from './components/object_edit';
 
@@ -132,6 +133,7 @@ const AppWrapped = (props) => {
                 <Route exact path='/user/login'><UserLogin /></Route>
                 <PrivateRoute path='/user/search'><UserSearch /></PrivateRoute>
                 <PrivateRoute exact path='/user/prefs'><UserPrefs /></PrivateRoute>
+                <PrivateRoute exact path='/user/favorites'><UserFavorites /></PrivateRoute>
 
                 <Route component={NotFound} status={StatusCodes.NOT_FOUND} /> 
             </Switch>
