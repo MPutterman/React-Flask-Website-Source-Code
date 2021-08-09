@@ -1273,13 +1273,12 @@ def object_clone(object_type, object_id):
 # Return { results: [Array of dict] }
 @app.route('/<object_type>/search', methods = ['GET'])
 @cross_origin(supports_credentials=True)
-def object_search(object_type):
+def object_search(object_type, object_filter={}):
     if not object_type_valid(object_type):
         return api_error_response(HTTPStatus['NOT_FOUND'], 'Unsupported object type')
     if (not has_permission(object_type, 'search')):
         return api_error_response(HTTPStatus['FORBIDDEN'], 'Not Authorized')
     from database import db_object_search
-    object_filter = None # TODO: implement this
     record_list = db_object_search(object_type, object_filter)
     if (record_list is None):
         return api_error_response(HTTPStatus['INTERNAL_SERVER_ERROR'], 'Database error')
@@ -1289,6 +1288,11 @@ def object_search(object_type):
         for index, value in enumerate(record_list):
             record_list[index].image_type = convert_image_type_to_string(value.image_type)
     return { 'results': [record.as_dict() for record in record_list] }
+
+@app.route('/<object_type>/search/favorites', methods = ['GET'])
+@cross_origin(supports_credentials=True)
+def object_search_favorites(object_type):
+    return object_search(object_type, {'favorites': {'user_id': flask_login.current_user.get_id()}})
 
 #
 # TODO: LEGACY METHODS -- NEED TO INTEGRATE WITH GENERIC HANDLERS

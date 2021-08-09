@@ -38,6 +38,9 @@ import CardHeader from '@material-ui/core/CardHeader';
 import CardContent from '@material-ui/core/CardContent';
 import CardActions from '@material-ui/core/CardActions';
 import Avatar from '@material-ui/core/Avatar';
+import Checkbox from '@material-ui/core/Checkbox';
+import FormControlLabel from '@material-ui/core/FormControlLabel';
+import FavoriteIcon from '@material-ui/icons/Star';
 
 const ObjectSearch = (props) => {
 
@@ -57,10 +60,22 @@ const ObjectSearch = (props) => {
     const [loaded, setLoaded] = useState(false); // Support for loading indicator
     const [objectList, setObjectList] = useState([]);
 
+    // Filter handlers. For now just a checkbox for favorites. In future may be a more extensive
+    // form with search and sort options.
+    const onFilterChange = (event) => {
+        if (event.target.checked) {
+            loadObjects(['favorites']);
+        } else {
+            loadObjects();
+        }
+    }
+
     // Retrieve list of images
-    const loadObjects = (filters) => {
+    const loadObjects = (filters=[]) => {
         setBusy(true);
-        callAPI('GET', `${object_type}/search`)
+        var url = `${object_type}/search`;
+        if (filters.includes('favorites')) url += '/favorites';
+        callAPI('GET', url)
         .then((response) => {
             if (response.error) {
                 // TODO: handle some specific errors (e.g. unauthorized) or add error details?
@@ -117,11 +132,15 @@ const ObjectSearch = (props) => {
                     }
                     title={`SEARCH ${objectTitle(object_type).toUpperCase()}`}
                     //subheader={`${model.name || ''}`}
+                    action={
+                        <FormControlLabel
+                            control={<Checkbox default='off' onChange={onFilterChange} />}
+                            label="Search only favorites"
+                        />}
+                        
+
                 />
                 <CardContent>
-
-{/*                {objectList.length > 0 ? (
-*/}
                     <DataGrid
                         rows={objectList}
                         columns={columns}
@@ -137,10 +156,9 @@ const ObjectSearch = (props) => {
                         filterModel={createFilterModel(props.filter)}
                         
                     />
-{/*
-                ) : ( <p>No results found</p>)}
-*/}
                 </CardContent>
+                <CardActions>
+                </CardActions>
             </Card>
 
         </div>

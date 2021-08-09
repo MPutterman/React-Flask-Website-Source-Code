@@ -724,7 +724,7 @@ def db_object_clone(object_type, object_id):
 # Search objects meeting the filter criteria. Call object-specific function if it exists
 # Return a list of object, or empty list if not found. Return None if any error encountered.
 # TODO: add error checking
-def db_object_search(object_type, object_filter=None):
+def db_object_search(object_type, object_filter={}):
     # If object-specific function exists, call it
     function_name = object_action_function(object_type, 'search')
     try:
@@ -736,7 +736,13 @@ def db_object_search(object_type, object_filter=None):
 
     # Otherwise search and return the results
     class_name = object_class(object_type)
-    record_list = getattr(eval(class_name),'query').all() # TODO: add filtering and pagination/sorting here
+    id_field = object_idfield(object_type)
+    favorites_filter = object_filter.get('favorites')
+    if (favorites_filter is not None):
+        favorites = db_favorites_load(favorites_filter['user_id'], object_type)
+        record_list = getattr(eval(class_name),'query').filter(getattr(getattr(eval(class_name),id_field),'in_')(favorites)).all()
+    else:
+        record_list = getattr(eval(class_name),'query').all() # TODO: add filtering and pagination/sorting here
     db_session.commit()
     return record_list
 
