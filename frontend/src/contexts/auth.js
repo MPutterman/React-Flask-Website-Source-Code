@@ -178,6 +178,7 @@ export const AuthReducer = ({session: prevSession, profile: prevProfile, roles: 
 
     case "SESSION_LOADED":
       user = action.payload.user;
+      //console.log('user =>', user);
       userPrefs = action.payload.prefs;
       prefs = defaultUserPrefs;
       // TODO: change to
