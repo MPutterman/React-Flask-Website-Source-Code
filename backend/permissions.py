@@ -60,7 +60,8 @@ def has_permission (object_type, permission, object_id=None, user=flask_login.cu
     elif (permission == 'search'):
         return True
     elif (permission == 'clone'):
-        return has_permission(object_type, 'view', object_id, user) and has_permission(object_type, 'create', None, user)
+        # Allow clone if can view and create. Disallow clone of type 'user'
+        return (object_type != 'user') and has_permission(object_type, 'view', object_id, user) and has_permission(object_type, 'create', None, user)
     else:
         # Return False for any unsupported permission type
         return False

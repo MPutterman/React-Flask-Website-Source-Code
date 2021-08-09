@@ -395,6 +395,7 @@ class Image(Base):
     image_id = Column(Integer, primary_key=True)
     equip_id = Column(Integer, ForeignKey('equipment.equip_id'))
     image_type = Column(Enum(ImageType), nullable=False)
+    # TODO: switch to Column(Enum('radio', 'dark', 'flat', 'bright', 'uv'))
     captured = Column(TZDateTime) # Image creation date
     exp_time = Column(Float) # Exposure time (seconds)
     exp_temp = Column(Float) # Exposure temp (deg C)
@@ -405,6 +406,12 @@ class Image(Base):
     created = Column(TZDateTime) 
     modified = Column(TZDateTime)
     is_deleted = Column(Boolean, default=False, nullable=False)
+    def get_path(self):
+        return os.path.join(app.config['IMAGE_UPLOAD_PATH'], str(self.image_id)) if self.image_id else None
+    def get_uri(self):
+        # Backend api call to get image data
+        return f"/img/{self.image_id}" if self.image_id else None
+
 
     def as_dict(self):
         # Returns full represenation of model.
@@ -569,6 +576,12 @@ def db_object_save(object_type, data):
     except NameError:
         pass
     else:
+        # TODO: hack to deal with ImageType (doesn't work well with eval)
+        # TODO: remove when we change db field to string instead ImageType
+        image_type = data.get('image_type')
+        if (image_type and not type(image_type) is str):
+            data['image_type'] = convert_image_type_to_string(image_type)
+
         return eval(function_name + f"({data})")
 
     # Otherwise, find the id value and determine if this is a 'insert' or 'update' operation    
@@ -591,6 +604,11 @@ def db_object_create(object_type, data):
     except NameError:
         pass
     else:
+        # TODO: hack to deal with ImageType (doesn't work well with eval)
+        # TODO: remove when we change db field to string instead ImageType
+        image_type = data.get('image_type')
+        if (image_type and not type(image_type) is str):
+            data['image_type'] = convert_image_type_to_string(image_type)
         return eval(function_name + f"({data})")
 
     # Otherwise create the object
@@ -696,6 +714,15 @@ def db_object_purge(object_type, object_id):
 # Return new object if successful, None if any error
 # TODO: add error checking
 def db_object_clone(object_type, object_id):
+
+    # Don't allow cloning of users
+    if (object_type == 'user'):
+        return None
+    # TODO: reminder that image cloning not fully figured out
+    #  i.e. also need to copy the underlying file etc...
+    if (object_type == 'image'):
+        print ('============= IMAGE CLONE IMPLEMENTATION INCOMPLETE - doesnt copy file')
+
     # If object-specific function exists, call it
     function_name = object_action_function(object_type, 'clone')
     try:
@@ -716,8 +743,7 @@ def db_object_clone(object_type, object_id):
         del data['modified']
         del data['created']
         del data['is_deleted']
-        if (object_type is not 'user'):
-            del data['owner_id'] # TODO: remove the need for this exception here
+        del data['owner_id']
         return db_object_save(object_type, data) # Note use of 'save' instead of 'create' is deliberate
 
 
@@ -855,7 +881,7 @@ def db_user_save(data):
                 first_name = data['first_name'],
                 last_name = data['last_name'],
                 email = data['email'],
-                password_hash = User.hash(data['password']),
+                password_hash = User.hash(data['password']) if data.get('password') else None,
                 modified = datetime.now(timezone.utc),
                 created = datetime.now(timezone.utc),)
         ####orgs = Organization.query.filter(Organization.org_id.in_(data['org_list'])).all() 
@@ -866,22 +892,21 @@ def db_user_save(data):
 
 # Save an image
 # TODO: create a thumbnail image and store in database...
+# TODO: after get rid of enum in database... this function should
+#    create the file if appropriate, and then call db_object_save
+#    (and then clean up file if any error)
 def db_image_save(data):
-    print("incoming data:")
-    print(data)
-    if (data['image_id'] is not None):
+    if (data.get('image_id') is not None):
         image = Image.query.filter_by(image_id=data['image_id']).one()
         image.name = data['name']
         image.description = data['description']
         image.equip_id = data['equip_id']
         image.modified = datetime.now(timezone.utc)
-        image.image_type = find_image_type(data['image_type'])
         image.captured = data['captured'] 
         image.exp_time = data['exp_time'] 
         image.exp_temp = data['exp_temp'] 
+        image.image_type = find_image_type(data['image_type'])
     else:
-        print ('image_captured before convert')
-        print (data['captured'])
         image = Image(
             name = data['name'],
             description = data['description'],
@@ -905,7 +930,8 @@ def db_image_save(data):
         image.image_path = os.path.join(app.config['IMAGE_UPLOAD_PATH'], str(image.image_id))
         # Create new file
         newfile = data['file']
-        makeFileArray(newfile, data['file'])  # TODO: fix so we don't need to pass twice
+        makeFileArray(newfile, data['file'])  # TODO: fix so we don't need to pass twice.  Maybe have the Image class know how to make its own image path and URL for retrieval
+                                             
         newfile.save(image.image_path)
         db_session.commit()
     return image
