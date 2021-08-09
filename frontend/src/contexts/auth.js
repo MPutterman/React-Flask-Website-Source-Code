@@ -4,18 +4,19 @@
 // * https://kentcdodds.com/blog/authentication-in-react-applications (nice thoughts on keep separate the public and authenticated sites)
 // * https://soshace.com/react-user-login-authentication-using-usecontext-and-usereducer/ (most of initial code design was from here)
 // * https://medium.com/@thanhbinh.tran93/private-route-public-route-and-restricted-route-with-react-router-d50b27c15f5e (more thoughts on private routes)
+// * https://stackoverflow.com/questions/60866924/how-to-pass-multiple-states-through-react-context-api
+//     (some ideas how to implement separate states with one reducer)
 
 // TODO:
+// * Rename to SessionContext etc. instead of AuthContext
 // * Still considering what is the best way to handle unexpected login or logout errors. 
 //   Maybe it is safer just to reload the session from backend server, rather than try to
 //   guess the actual state.  Doing so would greatly simplify the code here and have only minor
 //   performance impact (only when logging in or out)
-// * Initialization of initial state via unconstrained useEffect is very inefficient. Need to
-//   fix so it only loads at startup, possibly re-read after login/logout...
 // * Separate profile out of the user_id? 
 // * Implement a way to 'dirty' the prefs (or the whole session) when prefs are saved. Trigger reload of
 //     these values from backend.
-// * Add 'roles' to authUser
+// * Add 'roles'
 // * For now, favorites are stored in user table and session. Performance impact should be 
 //     small if only a relatively small number of preferences is stored
 
@@ -44,11 +45,24 @@ export function useAuthDispatch() {
   return context;
 }
 
-// Provider component
 
+
+// Provider component
+// Divide up state so we can independently refresh certain parts and avoid triggering
+// whole page refresh when we just update a portion
 export const AuthContext = ({ children }) => {
 
-    const [session, dispatch] = useReducer(AuthReducer, initialState);
+    const [{session, profile, roles, prefs, favorites}, dispatch]
+        = useReducer(
+          AuthReducer,
+          {
+            session: initialSession,
+            profile: initialProfile,
+            roles: initialRoles,
+            prefs: initialPrefs,
+            favorites: initialFavorites
+          }
+        );
 
     // Initialize the auth state from the server
     useEffect(() => {
@@ -56,7 +70,7 @@ export const AuthContext = ({ children }) => {
     }, []); 
 
     return (
-        <AuthStateContext.Provider value={session}>
+        <AuthStateContext.Provider value={{session: session, profile: profile, roles: roles, prefs: prefs, favorites: favorites}}>
             <AuthDispatchContext.Provider value={dispatch}>
                 {children}
             </AuthDispatchContext.Provider>
@@ -92,6 +106,7 @@ export const defaultUserPrefs = {
     },
 }
 
+
 // Default roles
 export const defaultAnonymousRoles = [];
 export const defaultUserRoles = [
@@ -116,40 +131,51 @@ export const defaultUserRoles = [
 // Stored as dictionary of Arrays, with object_type as the index
 const defaultFavorites = {};
 
-const initialState = { // This is the session info provided to child components
-  auth: false,
-  authUser: null,  
-  loaded: false,
-  error: false,
-  errorMessage: '',
-  prefs: defaultUserPrefs,
-  roles: defaultUserRoles,
-  favorites: defaultFavorites,
-};
 
-export const AuthReducer = (initialState, action) => {
+// Initial states
+const initialSession = {
+    auth: false,
+    auth_id: null, // user_id
+    loaded: false,
+    error: false,
+    errorMessage: '',
+};
+const initialProfile = {
+    first_name: '',
+    last_name: '',
+};
+const initialRoles = {}; //defaultUserRoles;
+const initialPrefs = defaultUserPrefs;
+const initialFavorites = defaultFavorites;
+
+
+export const AuthReducer = ({session: prevSession, profile: prevProfile, roles: prevRoles, prefs: prevPrefs, favorites: prevFavorites}, action) => {
 
   let user = null;    
   let userPrefs = {};   // prefs from backend
   let prefs = {};       // prefs with defaults merged in
   let favorites = {};
 
+  console.log('REDUCER action type: ', action.type);
+
   switch (action.type) {
 
     case "REQUEST_SESSION":
       return {
-        ...initialState,
-        loaded: false,
-        error: false,
-        errorMessage: '',
+        session: prevSession,
+        profile: prevProfile,
+        roles: prevRoles,
+        prefs: prevPrefs,
+        favorites: prevFavorites,
       }
 
-    case "SESSION_ERROR":
-      return {
-        ...initialState,
-        loaded: false,
-        error: true,
-        errorMessage: action.error,
+    case "SESSION_ERROR": // reset all state to defaults
+      return { 
+        session: { auth: false, auth_id: null, loaded: false, error: true, errorMessage: action.error },
+        profile: {},
+        roles: {},
+        prefs: {},
+        favorites: {},
       }
 
     case "SESSION_LOADED":
@@ -167,20 +193,20 @@ export const AuthReducer = (initialState, action) => {
       }
       favorites = action.payload.favorites;
       return {
-        ...initialState,
-        loaded: true,
-        auth: user ? true : false,
-        authUser: user,
+        session: { ...prevSession, loaded: true, auth: user ? true : false, auth_id: user.user_id, error: false, errorMessage: ''},
+        profile: { first_name: user.first_name, last_name: user.last_name },
+        roles: {}, // Not yet implemented
         prefs: prefs,
-        favorites: favorites,
+        favorites: favorites, 
       }
 
     case "REQUEST_LOGIN":
       return {
-        ...initialState,
-        loaded: false,
-        error: false,
-        errorMessage: '',
+        session: {...prevSession, loaded: false, error: false, errorMessage: ''},
+        profile: prevProfile,
+        roles: prevRoles,
+        prefs: prevPrefs,
+        favorites: prevFavorites,
       };
 
     case "LOGIN_SUCCESS":
@@ -197,37 +223,38 @@ export const AuthReducer = (initialState, action) => {
       }
       favorites = action.payload.favorites;
       return {
-        ...initialState,
-        auth: true,
-        authUser: user,
+        session: { ...prevSession, loaded: true, auth: user ? true : false, auth_id: user.user_id, error: false, errorMessage: ''},
+        profile: {first_name: user.first_name, last_name: user.last_name},
+        roles: {}, // Not yet implemented
         prefs: prefs,
-        favorites: favorites,
-        loaded: true,
-      };
+        favorites: favorites, 
+      }
 
     case "LOGOUT":
       return {
-        ...initialState,
-        auth: false,
-        authUser: null,
-        prefs: defaultUserPrefs, // Prefs for anonymous user are the defaults
-        favorites: defaultFavorites,
+        session: initialSession,
+        profile: initialProfile,
+        roles: initialRoles,
+        prefs: initialPrefs,
+        favorites: initialFavorites,
       };
  
     case "LOGOUT_ERROR":
       return{
-        ...initialState,
-        loaded: true,
-        error: true,
-        errorMessage: action.error,
+        session: {...prevSession, loaded: true, error: true, errorMessage: action.error},
+        profile: prevProfile,
+        roles: prevRoles,
+        prefs: prevPrefs,
+        favorite: prevFavorites,
       }
     
     case "LOGIN_ERROR":
       return {
-        ...initialState,
-        loaded: true,
-        error: true,
-        errorMessage: action.error,
+        session: {...prevSession, loaded: true, error: true, errorMessage: action.error},
+        profile: initialProfile,
+        roles: initialRoles,
+        prefs: initialPrefs,
+        favorites: initialFavorites,
       };
  
     default:
@@ -256,6 +283,8 @@ async function loadSessionFromServer(dispatch) { // This one is not exported and
 
 // TODO: think if this is the best approach. Called after changing prefs, favorites, or profile on 
 //  the server. Or changing permissions/roles
+// TODO: session now split into multiple variables, though may be considered a single state update
+//   depending on useReducer function...
 export async function authRefreshSession(dispatch,data){
     return loadSessionFromServer(dispatch);
 }
@@ -339,9 +368,9 @@ export async function authLogout(dispatch) {
 // TODO: it should be possible to incorporate this into the context (i.e. context value can
 //   be not only state but also contain functions). This will clean up the usage
 
-export function isFavorite (session, object_type, object_id) {
-    if (session?.favorites?.[object_type]) {
-        return session.favorites[object_type].includes(parseInt(object_id));
+export function isFavorite (favorites, object_type, object_id) {
+    if (favorites?.[object_type]) {
+        return favorites[object_type].includes(parseInt(object_id));
     } else {
         return false;
     }

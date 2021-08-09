@@ -6,7 +6,8 @@
 // Credit: https://ui.dev/react-router-v5-protected-routes-authentication/
 //
 // TODO:
-// * Does not currently handle <Route component> property (children is the recommended use)
+// * Does not currently handle <Route component> property, but not a priority to fix because
+//     <Route>children</Route> is the recommended use
 
 import React from 'react';
 import { Route } from 'react-router';
@@ -16,12 +17,12 @@ import { Redirect } from 'react-router-dom';
 
 export function PrivateRoute({ children, component, ...rest }) {
 
-    const session = useAuthState();
+    const { session } = useAuthState(); //TODO: only need session
     const setAlert = useAlerts();
 
     return (
         <>
-        { session.loaded
+        { session.loaded 
         ? (
             <Route {...rest} render={({ location }) => {
                 return session.auth === true

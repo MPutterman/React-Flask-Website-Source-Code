@@ -94,11 +94,11 @@ const ObjectFavoriteButton = (props) => {
     const object_type = props.objectType;
     const id = props.objectID;
     const setAlert = useAlerts();
-    const session = useAuthState();
+    const { favorites } = useAuthState(); // TODO: only need favorites
     const dispatch = useAuthDispatch();
 
     const is_fav = () => {
-        return isFavorite(session, object_type, id);
+        return isFavorite(favorites, object_type, id);
     }
 
     const handleClick = (event) => {
@@ -119,7 +119,7 @@ const ObjectFavoriteButton = (props) => {
 
             } else {
 
-                authRefreshSession(dispatch, null);
+                authRefreshSession(dispatch);
                 setAlert({severity: 'success', message: is_fav() ? 'Removed from favorites' : 'Added to favorites' });
                 return true;
             

@@ -37,7 +37,7 @@ const UserLogin = (props) => {
 
     // Connect to Auth context
     const authDispatch = useAuthDispatch();
-    const session = useAuthState(); // provides a dictionary containing auth, authUser, loading, error, errorMessage, prefs
+    const { session, profile, prefs } = useAuthState(); 
     const config = useConfigState();
 
     // Schema for automated form
@@ -77,7 +77,7 @@ const UserLogin = (props) => {
         return await authGoogleLogin(authDispatch, data)
         .then( (response) => {
             if (response) {
-                const url = session.prefs['general']['redirect_after_login'];    
+                const url = prefs['general']['redirect_after_login'];    
                 history.push(state?.from || url);
             }
             setLoginPending(false);
@@ -86,14 +86,11 @@ const UserLogin = (props) => {
     
     async function onLogin(data, e) {
 
-        //console.log('session value is: =>', session);
-        //console.log("UserLogin form submit: data => ", data);
-
         setLoginPending(true);
         return await authLogin(authDispatch, data)
         .then( (response) => {
             if (response) {
-                const url = session.prefs['general']['redirect_after_login'];
+                const url = prefs['general']['redirect_after_login'];
                 history.push(state?.from || url);
             } else {
                 setAlert({severity:'error', message:'Incorrect username and/or password'});
@@ -129,9 +126,9 @@ const UserLogin = (props) => {
 
     return (
         <>
-        {session['auth'] ? (  // If logged in:
+        {session.auth ? (  // If logged in:
           <form onSubmit={onLogout}>
-            <p>Welcome, {session['authUser']['first_name']}. </p>
+            <p>Welcome, {profile.first_name}. </p>
             <Button type="submit" variant="outlined" onClick={onLogout}>Logout</Button>
             <Busy busy={logoutPending} />
           </form>

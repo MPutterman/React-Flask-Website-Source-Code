@@ -12,7 +12,7 @@
 import React from "react"; 
 import { withRouter } from "react-router";
 import { callAPI } from '../helpers/api';
-import { useAuthState, useAuthDispatch, defaultUserPrefs, authRefreshSession } from '../contexts/auth';
+import { useAuthState, defaultUserPrefs, authRefreshSession } from '../contexts/auth';
 
 // Imports for form display components
 import Button from "@material-ui/core/Button";
@@ -35,12 +35,7 @@ import Busy from '../components/busy';
 
 const AnalysisData = (props) => {
 
-    // TODO: when use preferences... it doesn't pull up the 'name' part for the ID values.
-    //    E.g. the default equip_id.  Should the 'name' part be linked to an API call in
-    //    IDInputField??  Probably would be cleaner (i.e. a lookupNameById function)
-
-    const session = useAuthState();
-    const dispatch = useAuthDispatch();
+    const { prefs } = useAuthState(); 
 
     const initialAnalysisState = {
         id: '',
@@ -50,19 +45,19 @@ const AnalysisData = (props) => {
         owner_id: null,
         created: null,
         modified: null,
-        equip_id: session.prefs['analysis']['default_equip'],
-        plate_id: session.prefs['analysis']['default_plate'],
-        cover_id: session.prefs['analysis']['default_cover'],
+        equip_id: prefs['analysis']['default_equip'],
+        plate_id: prefs['analysis']['default_plate'],
+        cover_id: prefs['analysis']['default_cover'],
         radio_image_id: null,
         bright_image_id: null,
-        correct_dark: session.prefs['analysis']['default_use_dark_correction'],
-        darK_image_id: session.prefs['analysis']['default_dark_image'],
-        correct_flat: session.prefs['analysis']['default_use_flat_correction'],
-        flat_image_id: session.prefs['analysis']['default_flat_image'],
-        correct_bkgrd: session.prefs['analysis']['default_use_bkgrd_correction'],
-        bkgrd_algorithm: session.prefs['analysis']['default_bkgrd_algorithm'],
-        correct_filter: session.prefs['analysis']['default_use_filter_correction'],
-        filter_algorithm: session.prefs['analysis']['default_filter_algorithm'],
+        correct_dark: prefs['analysis']['default_use_dark_correction'],
+        darK_image_id: prefs['analysis']['default_dark_image'],
+        correct_flat: prefs['analysis']['default_use_flat_correction'],
+        flat_image_id: prefs['analysis']['default_flat_image'],
+        correct_bkgrd: prefs['analysis']['default_use_bkgrd_correction'],
+        bkgrd_algorithm: prefs['analysis']['default_bkgrd_algorithm'],
+        correct_filter: prefs['analysis']['default_use_filter_correction'],
+        filter_algorithm: prefs['analysis']['default_filter_algorithm'],
     };
 
     const [currentAnalysis, setCurrentAnalysis] = React.useState(initialAnalysisState);

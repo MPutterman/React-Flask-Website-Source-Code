@@ -20,7 +20,7 @@ import "./App.css";
 
 // Import configuration, authentication/preferences
 import { ConfigProvider } from './contexts/config';
-import { AuthContext, useAuthState } from './contexts/auth';
+import { AuthContext } from './contexts/auth';
 
 // Import error handler
 import { ErrorHandler } from './contexts/error';
@@ -79,8 +79,6 @@ const App = (props) => {
 }
 
 const AppWrapped = (props) => {
-
-    const session = useAuthState();
 
     return (
         <ThemeProvider theme={darkMode}>

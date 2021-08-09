@@ -44,7 +44,7 @@ const UserPrefs = (props) => {
 
     let formRef;
 
-    const session = useAuthState();
+    const { prefs } = useAuthState(); // TODO: only need 'prefs'
     const dispatch = useAuthDispatch();
     const config = useConfigState();
     const setAlert = useAlerts();
@@ -150,16 +150,16 @@ const UserPrefs = (props) => {
     // When save prefs, need to trigger session to reload / update prefs...
     async function loadUserPrefs() {
         setBusy(true);
-        setCurrentUserPrefs(session.prefs);
+        setCurrentUserPrefs(prefs);
         console.log('found prefs =>', currentUserPrefs);
         setBusy(false);
     }
 
     React.useEffect(() => {
         console.log("In useEffect - loading prefs"); 
-        console.log('preferences are now: ', session.prefs);
+        console.log('preferences are now: ', prefs);
         loadUserPrefs();
-    }, [session]);
+    }, [prefs]);
 
     async function onSubmit(data, e)  {
       saveUserPrefs(data);

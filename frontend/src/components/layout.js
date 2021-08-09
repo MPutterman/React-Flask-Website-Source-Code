@@ -120,7 +120,7 @@ const Layout = (props) => {
 
   // Connect to Auth context
   const dispatch = useAuthDispatch();
-  const session = useAuthState();
+  const { session, profile } = useAuthState();
 
   // Event handlers
 
@@ -132,7 +132,7 @@ const Layout = (props) => {
 
   const handleUserProfile = (event) => {
     handleCloseUserMenu(event);
-    history.push('/user/edit/' + session['authUser']['user_id']); 
+    history.push('/user/edit/' + session.auth_id); 
   }
 
   const handleChangePassword = (event) => {
@@ -142,7 +142,7 @@ const Layout = (props) => {
 
   const handleChangePrefs = (event) => {
     handleCloseUserMenu(event);
-    history.push('/user/prefs' /* + session['authUser']['user_id'] */ ); 
+    history.push('/user/prefs'); 
   }
 
   async function handleUserLogout(event) {
@@ -196,9 +196,9 @@ const Layout = (props) => {
           <Typography variant="h6" className={classes.title}>
             {location.pathname}
           </Typography>
-          {session['auth'] ? (
+          {session.auth ? (
             <div>
-              {session['authUser']['first_name']} {session['authUser']['last_name']}
+              {profile.first_name} {profile.last_name}
               <IconButton
                 aria-label="account of current user"
                 aria-controls="menu-user"

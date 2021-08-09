@@ -93,7 +93,7 @@ return (props) => {
 
     // Contexts    
     const config = useConfigState();
-    const session = useAuthState();
+    const  { prefs } = useAuthState();
     const setErrorResponse = useErrorResponse();
     const setAlert = useAlerts();
     const setBusy = useThrobber();
@@ -125,7 +125,7 @@ return (props) => {
 
     // When id changes (and upon first initialization), check permissions and load object
     React.useEffect(() => {
-        console.log (`in useEffect, id: ${id}, create: ${create}, props.filter: ${props.filter}`);
+        //console.log (`in useEffect, id: ${id}, create: ${create}, props.filter: ${props.filter}`);
         listPermissions(object_type, id)
         .then((list) => {
             setPermissions(list);
@@ -273,7 +273,7 @@ return (props) => {
 
 
     // Build schema and bridge
-    const schema = schemaFunction(config,session);
+    const schema = schemaFunction(config,prefs);
     const bridge = new SimpleSchema2Bridge(schema);
 
     return (

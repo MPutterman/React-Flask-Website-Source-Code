@@ -80,7 +80,7 @@ const descriptionSchema = new SimpleSchema ({
 
 
 
-const imageSchema = (config=null, session=null) => {
+const imageSchema = (config=null, prefs=null) => {
 
 const schema = new SimpleSchema ({
     image_id: {
@@ -107,19 +107,19 @@ const schema = new SimpleSchema ({
         label: 'Equipment',
         type: String, // should be integer? should use selector if empty
         required: true, 
-        defaultValue: session ? session.prefs['analysis']['default_equip'] : null,
+        defaultValue: prefs ? prefs['analysis']['default_equip'] : null,
     },
     exp_time: {
         label: 'Exposure time',
         type: Number,
         required: false,
-        defaultValue: session ? session.prefs['analysis']['default_exposure_time'] : null,
+        defaultValue: prefs ? prefs['analysis']['default_exposure_time'] : null,
     },
     exp_temp: {
         label: 'Exposure temp',
         type: Number,
         required: false,
-        defaultValue: session ? session.prefs['analysis']['default_exposure_temp'] : null,
+        defaultValue: prefs ? prefs['analysis']['default_exposure_temp'] : null,
     },
     image_path: {
         label: 'Server path', // set by server
@@ -143,7 +143,7 @@ schema.extend(descriptionSchema);
 return schema;
 }
 
-const orgSchema = (config, session) => {
+const orgSchema = (config, prefs) => {
 const schema = new SimpleSchema ({
     org_id: {
         label: 'ID',
@@ -162,7 +162,7 @@ schema.extend(descriptionSchema);
 return schema;
 }
 
-const equipSchema = (config, session) => {
+const equipSchema = (config, prefs) => {
 const schema = new SimpleSchema ({
     equip_id: {
         label: 'ID',
@@ -226,7 +226,7 @@ schema.extend(descriptionSchema);
 return schema;
 }
 
-const plateSchema = (config, session) => {
+const plateSchema = (config, prefs) => {
 const schema = new SimpleSchema ({
     plate_id: {
         label: 'ID',
@@ -250,7 +250,7 @@ schema.extend(descriptionSchema);
 return schema;
 }
 
-const coverSchema = (config, session) => {
+const coverSchema = (config, prefs) => {
 const schema = new SimpleSchema ({
     cover_id: {
         label: 'ID',
@@ -377,7 +377,7 @@ analysisSchema.extend(nameSchema);
 analysisSchema.extend(descriptionSchema);
 
 
-const userRegistrationSchema = (config=null, session=null) => {
+const userRegistrationSchema = (config=null, prefs=null) => {
 const schema = new SimpleSchema ({
     email_confirm: {        // TODO: only for new user creation (registration).  Maybe put these in a separate schema and extend...
         label: 'Confirm Email',
@@ -413,11 +413,11 @@ const schema = new SimpleSchema ({
         },
     },
 });
-schema.extend(userSchema(config,session));
+schema.extend(userSchema(config,prefs));
 return schema;
 }
 
-const userSchema = (config=null, session=null) => {
+const userSchema = (config=null, prefs=null) => {
 const schema = new SimpleSchema ({
     user_id: {
         label: 'ID',
