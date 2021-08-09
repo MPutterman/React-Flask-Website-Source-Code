@@ -216,6 +216,9 @@ const Layout = (props) => {
               <Menu
                 id="menu-user"
                 anchore1={anchorE1}
+                // Following is a hack to get positioning correct
+                // https://stackoverflow.com/questions/48157863/how-to-make-a-dropdown-menu-open-below-the-appbar-using-material-ui
+                getContentAnchorEl={null}
                 anchorOrigin={{
                   vertical: 'top',
                   horizontal: 'right',
