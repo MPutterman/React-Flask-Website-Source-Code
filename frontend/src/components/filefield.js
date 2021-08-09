@@ -3,7 +3,6 @@
 // * A bug during validation... sometimes shows an error that won't go away if submit without selecting
 //      file.  A warning came up of duplicate key 'file'. Maybe an interal MUI field is using 'file'
 //      as an html id element?
-// * Add a clear (X) icon to remove the curently selected file...
 // * Provide a way to specify the upload type, or get it directly from files[0]. I'm just leaving as
 //     image/png since that was previously in the submission.js file...
 // * Show a progress bar when uploading large files
@@ -23,6 +22,8 @@ import Input from '@material-ui/core/Input';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
+import IconButton from '@material-ui/core/IconButton';
+import ClearIcon from '@material-ui/icons/Clear';
 import { useForm } from 'uniforms';
 //import LinearProgress from "@material-ui/core/LinearProgress";
 
@@ -31,12 +32,27 @@ export type FileInputFieldProps = HTMLFieldProps<string, HTMLDivElement>;
 
 function FileInput({ onChange, name, value, label, error, ref, required, ...props }: FileInputFieldProps) {
 
-  const form = useForm();
-  const [filename, setFilename] = React.useState('');
+    const form = useForm();
+    const [filename, setFilename] = React.useState('');
 
-  return (
-    <>
-      <label htmlFor={name}>
+    const onClear = (event) => {
+        setFilename('');
+        if (props.filenameField) form.onChange(props.filenameField, '');
+        onChange(null);
+    }
+
+    const onChangeFile = ({ target: { files } }) => {
+        console.log(files[0]);
+        if (files && files[0]) {
+            setFilename(files[0].name);
+            if (props.filenameField) form.onChange(props.filenameField, files[0].name);
+            onChange(files[0]);
+        }
+    }
+
+    return (
+        <>
+        <label htmlFor={name}>
             <TextField
               disabled
               fullWidth
@@ -48,7 +64,7 @@ function FileInput({ onChange, name, value, label, error, ref, required, ...prop
               {...props}
               InputProps={{
                 startAdornment:(
-                  <InputAdornment  position="start">
+                  <InputAdornment position="start">
                     <Button size='small' variant='outlined' component='span'>
                       {props.buttonLabel ? (
                         <span>{props.buttonLabel}</span>
@@ -57,27 +73,28 @@ function FileInput({ onChange, name, value, label, error, ref, required, ...prop
                       )}
                     </Button>
                   </InputAdornment>
-                )}}
+                ),
+                endAdornment:(
+                  <InputAdornment position="end">
+                      <IconButton size='small' onClick={onClear}>
+                          <ClearIcon color={!!error ? 'error' : 'inherit'} />
+                      </IconButton>
+                  </InputAdornment>
+                ),
+              }}
             />
       </label>
       
       <input
         //accept="image/*" // TODO: read this from the properties if specified
         id={name}
-        onChange={({ target: { files } }) => {
-          if (files && files[0]) {
-            setFilename(files[0].name);
-            if (props.filenameField) {
-              form.onChange(props.filenameField, files[0].name);
-            }
-            value = files[0]; //new Blob([files[0]], {type: 'image/png',});
-            // TODO: capture type of file from extension and indicate mime type...
-            //value = URL.createObjectURL(files[0]);
-            onChange(value); //new Blob([files[0]],{type: 'image/png',})); //URL.createObjectURL(files[0]));
-          }
-        }}
+        // onClick is a hack to set value of field to null. Ensures onChange is fired
+        // even if user chooses the same file as before. (E.g. choose, clear, choose again)
+        onClick={(event) => { event.target.value=null; }} 
+        onChange={onChangeFile}
         style={{ display: 'none' }}
         type="file"
+
 /*
         InputProps={{
           startAdornment:(
@@ -93,8 +110,8 @@ function FileInput({ onChange, name, value, label, error, ref, required, ...prop
           ),}}
 */
       />
-    </>
-  );
+      </>
+    );
 }
 
 export default connectField(FileInput); 
