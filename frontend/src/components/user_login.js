@@ -77,7 +77,7 @@ const UserLogin = (props) => {
         return await authGoogleLogin(authDispatch, data)
         .then( (response) => {
             if (response) {
-                const url = prefs['general']['redirect_after_login'];    
+                const url = prefs.general.redirect_after_login;    
                 history.push(state?.from || url);
             }
             setLoginPending(false);
@@ -90,7 +90,7 @@ const UserLogin = (props) => {
         return await authLogin(authDispatch, data)
         .then( (response) => {
             if (response) {
-                const url = prefs['general']['redirect_after_login'];
+                const url = prefs.general.redirect_after_login;
                 history.push(state?.from || url);
             } else {
                 setAlert({severity:'error', message:'Incorrect username and/or password'});
@@ -107,7 +107,7 @@ const UserLogin = (props) => {
             // TODO: doesn't log output, but the redirect appears to be okay...
             //console.log ('here, config state is =>', config);
             setLogoutPending(false);
-            history.push(config['general']['redirect_after_logout']);
+            history.push(config.general.redirect_after_logout);
         });
     }
 

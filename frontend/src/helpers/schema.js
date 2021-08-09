@@ -107,19 +107,19 @@ const schema = new SimpleSchema ({
         label: 'Equipment',
         type: String, // should be integer? should use selector if empty
         required: true, 
-        defaultValue: prefs ? prefs['analysis']['default_equip'] : null,
+        defaultValue: prefs ? prefs.analysis.default_equip : null,
     },
     exp_time: {
         label: 'Exposure time',
         type: Number,
         required: false,
-        defaultValue: prefs ? prefs['analysis']['default_exposure_time'] : null,
+        defaultValue: prefs ? prefs.analysis.default_exposure_time : null,
     },
     exp_temp: {
         label: 'Exposure temp',
         type: Number,
         required: false,
-        defaultValue: prefs ? prefs['analysis']['default_exposure_temp'] : null,
+        defaultValue: prefs ? prefs.analysis.default_exposure_temp : null,
     },
     image_path: {
         label: 'Server path', // set by server
