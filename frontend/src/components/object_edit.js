@@ -151,14 +151,14 @@ return (props) => {
     const [model, setModel] = React.useState({}); // default values not needed (defined in schema)
 
     // Convenience functions for showing action buttons. Note most are disabled until after saving so
-    // that the ID value is available.
+    // that the ID value is available. Purge (complete deletion) is only available for deleted items.
     const showFavoriteButton = () => { return !create; }
     const showViewButton = () => { return !create && permissions.includes('view'); }
     const showEditButton = () => { return false; }  // We are already in edit mode
     const showCloneButton = () => { return !create && permissions.includes('clone'); }
     const showDeleteButton = () => { return !create && permissions.includes('delete') && !model.is_deleted; }
     const showRestoreButton = () => { return !create && permissions.includes('restore') && model.is_deleted; }
-    const showPurgeButton = () => { return !create && permissions.includes('purge'); }
+    const showPurgeButton = () => { return !create && permissions.includes('purge') && model.is_deleted; }
 
     // Create a new object
     function objectCreate(id) {
