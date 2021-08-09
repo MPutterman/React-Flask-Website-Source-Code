@@ -156,8 +156,6 @@ export const AuthReducer = ({session: prevSession, profile: prevProfile, roles: 
   let prefs = {};       // prefs with defaults merged in
   let favorites = {};
 
-  console.log('REDUCER action type: ', action.type);
-
   switch (action.type) {
 
     case "REQUEST_SESSION":
