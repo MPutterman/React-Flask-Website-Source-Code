@@ -406,6 +406,7 @@ class Image(Base):
     created = Column(TZDateTime) 
     modified = Column(TZDateTime)
     is_deleted = Column(Boolean, default=False, nullable=False)
+    filename = Column(String(128))
     def get_path(self):
         return os.path.join(app.config['IMAGE_UPLOAD_PATH'], str(self.image_id)) if self.image_id else None
     def get_uri(self):
@@ -896,6 +897,8 @@ def db_user_save(data):
 #    create the file if appropriate, and then call db_object_save
 #    (and then clean up file if any error)
 def db_image_save(data):
+    print ('db_image_save: data =>')
+    print (data)
     if (data.get('image_id') is not None):
         image = Image.query.filter_by(image_id=data['image_id']).one()
         image.name = data['name']
@@ -924,10 +927,12 @@ def db_image_save(data):
     db_session.commit()  # or flush?
     # If received a new file:
     if ('file' in data and data['file']):
-        # Delete old file
+        image.filename = data['file'].filename
+        # Delete old file if exists
         if (image.image_path):
-            os.remove(image.image_path) 
-        image.image_path = os.path.join(app.config['IMAGE_UPLOAD_PATH'], str(image.image_id))
+            os.remove(db_build_image_path(image.image_id))
+        # TODO: eventually remove image_path -- not needed... can build this instead
+        image.image_path = db_build_image_path(image.image_id)
         # Create new file
         newfile = data['file']
         makeFileArray(newfile, data['file'])  # TODO: fix so we don't need to pass twice.  Maybe have the Image class know how to make its own image path and URL for retrieval
@@ -935,6 +940,11 @@ def db_image_save(data):
         newfile.save(image.image_path)
         db_session.commit()
     return image
+
+# Build the path to the image file
+# TODO: do we want file extensions? Do we want to use the original uploaded name?
+def db_build_image_path(image_id):
+    return os.path.join(app.config['IMAGE_UPLOAD_PATH'], str(image_id))
 
 
 # TODO: later remove duplicate code. COPIED FROM api.py

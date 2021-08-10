@@ -21,6 +21,7 @@
 //     [Note for empty values we would want to display as '' to make sure all labels are the same size/position']
 // * For Image type, is there any value in saving the front-end filename to backend database? Currently copies
 //     to the 'name' field, but user can change it after
+// * For images -- maybe click to view in popup window?  And then click to download?
 // * Delete 'description' from images? (backend too)
 // * Add a feature to prompt to update preferences (default dark and default flat) if create a new image?
 //     This could be a special component to take the value of another field and store as preference.
@@ -71,6 +72,7 @@ import CardMedia from '@material-ui/core/CardMedia';
 import Avatar from '@material-ui/core/Avatar';
 import { hasPermission, listPermissions } from '../helpers/object_utils';
 import InputAdornment from '@material-ui/core/InputAdornment';
+import Typography from '@material-ui/core/Typography';
 
 // Image edit form
 // Usage:
@@ -610,7 +612,19 @@ const WrappedImageEdit = ({model, ...props}) => {
     const setAlert = useAlerts();
 
     const handleDownload = (event) => {
-        setAlert({severity: 'error', message: 'Download not yet implemented'});
+        // TODO: how to configure if don't know ahead of time the file type?
+        //const config = {headers: {'Content-Type': 'application/png',}};
+        callAPI('GET', `api/image/download/${model.image_id}`, null, {responseType: 'arraybuffer'})
+        .then((response) => {
+            const file = new Blob(response.data); //File(response.data);
+            const url = window.URL.createObjectURL(file);
+            const link = document.createElement('a');
+            link.href = url;
+            link.setAttribute('download', 'filename'); // How to get actual name from server?
+            document.body.appendChild(link);
+            link.click();
+        })
+        setAlert({severity: 'error', message: 'Download not yet working'});
     }
 
     return (
@@ -648,8 +662,13 @@ const WrappedImageEdit = ({model, ...props}) => {
                     style={{height: '9rem', justifyContent: 'center'}}
                     image={process.env.PUBLIC_URL + "/logo_UCLA_blue_boxed.png"}
                     alt='logo'
-                    onClick={handleDownload}
+                    onClick={model.image_path ? handleDownload : null}
                 />
+                {model.image_path ? (
+                <CardContent style={{justifyContent: 'center'}}>
+                    <Typography variant="body2">Click thumbnail to download original</Typography>
+                </CardContent>
+                ) : ( <></> )}
             </Grid>
         </Grid>
         <Box display="flex" flexDirection="row">
@@ -682,7 +701,6 @@ const WrappedImageEdit = ({model, ...props}) => {
 
         </Box>
         
-        TODO: Button to download current file
         </>
     );
 

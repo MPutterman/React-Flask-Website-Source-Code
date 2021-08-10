@@ -95,13 +95,13 @@ export function backend_url(route) {
 }
 
 
-export function callAPI(method, route, data={}) {
+export function callAPI(method, route, data={}, config=null) {
 
     switch(method) {
 
         case 'GET':
 
-            return axios.get(backend_url(route))
+            return axios.get(backend_url(route), config)
             .then((response) => {
                 return {
                     error: false,
@@ -180,11 +180,12 @@ export function callAPI(method, route, data={}) {
             formData.append('JSON_data', JSON.stringify(JSON_data));
 
             // TODO: apparently can get this from FormData...
-            const config = {     
+            const headers = {     
                 headers: { 'content-type': 'multipart/form-data' }
             }
 
-            return axios.post(backend_url(route), formData, config)
+            // TODO: post doesn't support custom config currently
+            return axios.post(backend_url(route), formData, headers)
             .then((response) => {
                 return {
                     error: false,

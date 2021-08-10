@@ -833,7 +833,7 @@ Session(app)
 
 CORS(app,
     headers=['Content-Type'],
-    expose_headers=['Access-Control-Allow-Origin'],
+    expose_headers=['Access-Control-Allow-Origin', 'x-suggested-filename'],
     support_credentials=True
 )
 
@@ -1657,6 +1657,18 @@ def give(filename):
     filen = retrieve_image_path('cerenkovdisplay',filename)
     print(filen)
     return send_file(filen)
+
+@app.route('/api/image/download/<image_id>', methods=['GET'])
+@cross_origin(supports_credentials=True)
+def image_download(image_id):
+    from database import db_object_load
+    image = db_object_load('image', image_id)
+    from database import db_build_image_path
+    pathname = db_build_image_path(image_id) # Change to image.get_pathname()
+    print ('requesting file... name:')
+    print (pathname)
+    return send_file(pathname, as_attachment=True, attachment_filename=image.filename)
+
 @app.route('/radius/<filename>/<x>/<y>/<shift>',methods = ['POST', 'GET'])
 @cross_origin(supports_credentials=True)
 def findRadius(filename,x,y,shift):
