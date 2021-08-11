@@ -14,7 +14,7 @@
 // * Add a profile picture for the image...?
 // * This about Image type a bit and preferences. Default exposure time and temp doesn't make sense for all image
 //     types (e.g. flat or bright)....  Maybe rename them to "radiation_image defaults"?
-//
+// * Tried to define a type alias (type IDType = SimpleSchema.Integer) but doesn't to work
 // RESOURCES:
 // https://github.com/longshotlabs/simpl-schema (simple schema docs, and good descriptions of
 //   special validation (e.g. password match) and customized error message)
@@ -24,8 +24,6 @@ import SimpleSchema from 'simpl-schema';
 import { callAPI } from '../helpers/api';
 import { id_exists, name_lookup } from '../helpers/validation_utils';
 
-// Define type for ID fields
-type IDType = SimpleSchema.Integer
 
 // TODO: update with more complex rules, e.g. modified and create and owner_id (and id) should
 // all be set once it has been saved
@@ -50,7 +48,7 @@ const metaSchema = new SimpleSchema ({
     },
     owner_id: {
         label: 'Owner',
-        type: Number, // TODO: change to ID type?
+        type: SimpleSchema.Integer,
         defaultValue: undefined,
         required: false,    // set by backend
     },
@@ -87,7 +85,7 @@ const imageSchema = (config=null, prefs=null) => {
 const schema = new SimpleSchema ({
     image_id: {
         label: 'ID',
-        type: String,  // TODO: should it be a SimpleSchema.Integer??
+        type: SimpleSchema.Integer,
         required: false,    // set by backend
      },
     image_type: {
@@ -107,7 +105,7 @@ const schema = new SimpleSchema ({
     },
     equip_id: {
         label: 'Equipment',
-        type: String, // should be integer? should use selector if empty
+        type: SimpleSchema.Integer,
         required: true, 
         defaultValue: prefs ? prefs.analysis.default_equip : null,
     },
@@ -154,7 +152,7 @@ const orgSchema = (config, prefs) => {
 const schema = new SimpleSchema ({
     org_id: {
         label: 'ID',
-        type: String, 
+        type: SimpleSchema.Integer,
         required: false,    // set by backend
     },
     location: {
@@ -173,7 +171,7 @@ const equipSchema = (config, prefs) => {
 const schema = new SimpleSchema ({
     equip_id: {
         label: 'ID',
-        type: String, 
+        type: SimpleSchema.Integer,
         required: false,    // set by backend
     },
     manufacturer: {
@@ -237,7 +235,7 @@ const plateSchema = (config, prefs) => {
 const schema = new SimpleSchema ({
     plate_id: {
         label: 'ID',
-        type: String, 
+        type: SimpleSchema.Integer,
         required: false,    // set by backend
     },
     manufacturer: {
@@ -261,7 +259,7 @@ const coverSchema = (config, prefs) => {
 const schema = new SimpleSchema ({
     cover_id: {
         label: 'ID',
-        type: String, 
+        type: SimpleSchema.Integer,
         required: false,    // set by backend
     },
     manufacturer: {
@@ -328,7 +326,7 @@ const schema = new SimpleSchema ({
     },
     radio_image_id: {
         label: 'Radiation Image',
-        type: String, 
+        type: SimpleSchema.Integer,
         required: true,
     },
     correct_dark: {
@@ -357,13 +355,13 @@ const schema = new SimpleSchema ({
     },
     dark_image_id: {
         label: 'Dark Image',
-        type: String,
+        type: SimpleSchema.Integer,
         required: false,
         defaultValue: prefs ? prefs.default_dark_image : null,
     },
     flat_image_id: {
         label: 'Flat Image',
-        type: String,
+        type: SimpleSchema.Integer,
         required: false,
         defaultValue: prefs ? prefs.default_flat_image : null,
     },
@@ -383,12 +381,12 @@ const schema = new SimpleSchema ({
     },
     bright_image_id: {
         label: 'Brightfield Image',
-        type: String,
+        type: SimpleSchema.Integer,
         required: false,
     },
     uv_image_id: {
         label: 'LEGACY: UV Image',
-        type: String,
+        type: SimpleSchema.Integer,
         required: false,
     },
     brightness: {
@@ -457,7 +455,7 @@ const userSchema = (config=null, prefs=null) => {
 const schema = new SimpleSchema ({
     user_id: {
         label: 'ID',
-        type: Number, // TODO: change to integer type
+        type: SimpleSchema.Integer,
         required: false,
     },
     email: {
@@ -479,7 +477,7 @@ const schema = new SimpleSchema ({
     },
     org_id: {
         label: 'Organization',
-        type: Number, // TODO: make an ID?
+        type: SimpleSchema.Integer,
         required: false,
     },
     org_list: { // TODO: this won't be a simple selector -- users will have to 'apply' to join an
