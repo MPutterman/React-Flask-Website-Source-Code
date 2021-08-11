@@ -5,10 +5,13 @@ import functools
 
 # Define decorator for checking permissions for API calls
 # TODO: IMPORTANT: decorator not yet working since the 'id' has to be captured somehow from @app.route
-def check_permission (object_type, object_id, permission):
+def check_permission (object_type, permission, object_id=None):
     def decorator_check_permission(func):
         @functools.wraps(func)
         def wrapper_check_permission(*args, **kwargs):
+            print ('in decorator check_permission')
+            print (args)
+            print (kwargs)
             if (has_permission(object_type, permission, object_id, flask_login.current_user)):
                 return func(*args, **kwargs)
             else:
