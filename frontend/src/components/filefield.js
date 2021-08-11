@@ -6,7 +6,6 @@
 // * Provide a way to specify the upload type, or get it directly from files[0]. I'm just leaving as
 //     image/png since that was previously in the submission.js file...
 // * Show a progress bar when uploading large files
-// * Add a way to view/download existing file?  Also provide a way to delete the current file?
 // * When we have an error state... make sure underlying components render in error state (doesn't seem to be working)
 // * How to handle 'required'? Generally after file is uploaded and we edit record, we don't require a new file pick
 
@@ -35,9 +34,16 @@ function FileInput({ onChange, name, value, label, error, ref, required, ...prop
     const form = useForm();
     const [filename, setFilename] = React.useState('');
 
+    React.useEffect(() => {
+        if (form.submitted) {
+            // Reset filename (don't reset filenameField since user might want to keep that)
+            setFilename('');
+        }
+    }, [form.submitted])
+
     const onClear = (event) => {
+        // Reset filename (don't reset filenameField since user might want to keep the value)
         setFilename('');
-        if (props.filenameField) form.onChange(props.filenameField, '');
         onChange(null);
     }
 

@@ -1658,9 +1658,13 @@ def image_download(image_id):
     print (pathname)
     # TODO: there is a way to send a suggested filename with attachment_filename parameter
     #  but it doesn't seem to work
-    # The cache_timeout is needed because we use the same local pathname
-    #   even if another version of the file is later uploaded.
-    return send_file(pathname, as_attachment=True, cache_timeout=0) 
+    # Mark response as no-cache (otherwise browser caches and won't retrieve
+    #   latest version if there is a change to file (since API request URL is identical)
+    # Note cache_timeout=0 option seems not working. Try instead adding headers
+    response = make_response(send_file(pathname, as_attachment=True, cache_timeout=0))
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    return response
 
 @app.route('/radius/<filename>/<x>/<y>/<shift>',methods = ['POST', 'GET'])
 @cross_origin(supports_credentials=True)
