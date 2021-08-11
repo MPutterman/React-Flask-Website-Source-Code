@@ -42,11 +42,11 @@ function FileInput({ onChange, name, value, label, error, ref, required, ...prop
     }
 
     const onChangeFile = ({ target: { files } }) => {
-        console.log(files[0]);
         if (files && files[0]) {
             setFilename(files[0].name);
             if (props.filenameField) form.onChange(props.filenameField, files[0].name);
             onChange(files[0]);
+            //console.log('FileIDField: changing file: =>', files[0]);
         }
     }
 

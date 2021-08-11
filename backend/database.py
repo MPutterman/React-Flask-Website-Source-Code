@@ -407,6 +407,11 @@ class Image(Base):
     modified = Column(TZDateTime)
     is_deleted = Column(Boolean, default=False, nullable=False)
     filename = Column(String(128))
+    def get_file(self):
+        # Return the full file
+        # TODO: define a method to get the image out of the file
+        # if needed (e.g. using an equipment-specific parser)
+        print ('get_file not yet implemented')
     def get_path(self):
         return os.path.join(app.config['IMAGE_UPLOAD_PATH'], str(self.image_id)) if self.image_id else None
     def get_uri(self):
@@ -924,20 +929,22 @@ def db_image_save(data):
         )
         print (image.captured)
     db_session.add(image)
-    db_session.commit()  # or flush?
+    db_session.commit() # Populates ID if a new image
+
     # If received a new file:
-    if ('file' in data and data['file']):
-        image.filename = data['file'].filename
+    file = data.get('file')
+    if (file): 
+        image.filename = file.filename
+        local_pathname = db_build_image_path(image.image_id)
         # Delete old file if exists
-        if (image.image_path):
-            os.remove(db_build_image_path(image.image_id))
+        try:
+            os.remove(local_pathname)
+        except:
+            pass
         # TODO: eventually remove image_path -- not needed... can build this instead
-        image.image_path = db_build_image_path(image.image_id)
-        # Create new file
-        newfile = data['file']
-        makeFileArray(newfile, data['file'])  # TODO: fix so we don't need to pass twice.  Maybe have the Image class know how to make its own image path and URL for retrieval
-                                             
-        newfile.save(image.image_path)
+        image.image_path = local_pathname
+        file.save(image.image_path)
+        file.close()
         db_session.commit()
     return image
 

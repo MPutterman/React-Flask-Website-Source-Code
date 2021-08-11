@@ -1,6 +1,9 @@
 // Implement a generic object_edit (and object_create) form
 //
 // TODO:
+// * Bug in ImageEdit -- the download link seems to give the
+//     same file even if a new file is uploaded (via /image/edit).
+//     Turned off back-end caching but still not working... what to do?
 // * Make some custom fields for date once work out picker (with 'X' icon to clear the date)
 // * Bug ImageEdit: if submit BEFORE selecting file... sets a validation error that cannot be removed,
 //     even after selecting a file. Sometimes works if there is a second error gets resolved.
@@ -614,17 +617,19 @@ const WrappedImageEdit = ({model, ...props}) => {
     const handleDownload = (event) => {
         // TODO: how to configure if don't know ahead of time the file type?
         //const config = {headers: {'Content-Type': 'application/png',}};
-        callAPI('GET', `api/image/download/${model.image_id}`, null, {responseType: 'arraybuffer'})
+        callAPI('GET', `api/image/download/${model.image_id}`, {}, {responseType: 'arraybuffer'})
         .then((response) => {
-            const file = new Blob(response.data); //File(response.data);
+            const file = new File([response.data], model.filename, {type: response.data.type});
+            // Any way to get filename from the server directly, i.e. from the response?
+            console.log('file=>', file);
             const url = window.URL.createObjectURL(file);
             const link = document.createElement('a');
             link.href = url;
-            link.setAttribute('download', 'filename'); // How to get actual name from server?
+            link.setAttribute('download', file.name);
             document.body.appendChild(link);
             link.click();
+            document.body.removeChild(link);
         })
-        setAlert({severity: 'error', message: 'Download not yet working'});
     }
 
     return (
@@ -638,7 +643,7 @@ const WrappedImageEdit = ({model, ...props}) => {
                     </Box>
                     <Box width='70%' style={{width: '70%'}} pl={1} pr={1} /* TODO: width not working? */ >
                         <AutoField name="file" component={FileInputField}
-                        buttonLabel={model.image_path ? 'Replace Image' : 'Select Image'}
+                        buttonLabel={model.filename ? 'Replace Image' : 'Select Image'}
                         filenameField='name'
                         />
                         <ErrorField name="file" />
@@ -662,9 +667,9 @@ const WrappedImageEdit = ({model, ...props}) => {
                     style={{height: '9rem', justifyContent: 'center'}}
                     image={process.env.PUBLIC_URL + "/logo_UCLA_blue_boxed.png"}
                     alt='logo'
-                    onClick={model.image_path ? handleDownload : null}
+                    onClick={model.filename ? handleDownload : null}
                 />
-                {model.image_path ? (
+                {model.filename ? (
                 <CardContent style={{justifyContent: 'center'}}>
                     <Typography variant="body2">Click thumbnail to download original</Typography>
                 </CardContent>
@@ -695,8 +700,8 @@ const WrappedImageEdit = ({model, ...props}) => {
 */}
             </Box>
             <Box width='25%' pl={1}>
-                <AutoField name="image_path" disabled={true}/>
-                <ErrorField name="image_path" />
+                <AutoField name="filename" disabled={true}/>
+                <ErrorField name="filename" />
             </Box>
 
         </Box>

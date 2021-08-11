@@ -833,7 +833,7 @@ Session(app)
 
 CORS(app,
     headers=['Content-Type'],
-    expose_headers=['Access-Control-Allow-Origin', 'x-suggested-filename'],
+    expose_headers=['Access-Control-Allow-Origin', 'X-suggested-filename', 'X-filename'],
     support_credentials=True
 )
 
@@ -962,17 +962,6 @@ def create_image_storage():
         os.mkdir(app.config['IMAGE_CACHE_PATH'])
     except OSError as e:
         print ("Error in create_image_storage: %s - %s" % (e.filename, e.strerror))
-
-# Get pathname to uploaded file
-# "id" should be the image_id stored in the database backend
-# TODO: add a way to choose correct file extension
-def get_image_upload_pathname(image_id):
-    return os.path.join(app.config['IMAGE_UPLOAD_PATH'], str(image_id))
-
-# Get pathname to cached file
-# "id" should be the analysis_id stored in the database backend
-def get_image_cache_pathname(analysis_id, filename):
-    return os.path.join(app.config['IMAGE_CACHE_PATH'], analysis_id, filename) # already a string
 
 
 # -------------------------
@@ -1667,7 +1656,11 @@ def image_download(image_id):
     pathname = db_build_image_path(image_id) # Change to image.get_pathname()
     print ('requesting file... name:')
     print (pathname)
-    return send_file(pathname, as_attachment=True, attachment_filename=image.filename)
+    # TODO: there is a way to send a suggested filename with attachment_filename parameter
+    #  but it doesn't seem to work
+    # The cache_timeout is needed because we use the same local pathname
+    #   even if another version of the file is later uploaded.
+    return send_file(pathname, as_attachment=True, cache_timeout=0) 
 
 @app.route('/radius/<filename>/<x>/<y>/<shift>',methods = ['POST', 'GET'])
 @cross_origin(supports_credentials=True)

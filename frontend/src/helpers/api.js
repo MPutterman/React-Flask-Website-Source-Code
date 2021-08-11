@@ -95,7 +95,7 @@ export function backend_url(route) {
 }
 
 
-export function callAPI(method, route, data={}, config=null) {
+export function callAPI(method, route, data={}, config={}) {
 
     switch(method) {
 
@@ -103,11 +103,14 @@ export function callAPI(method, route, data={}, config=null) {
 
             return axios.get(backend_url(route), config)
             .then((response) => {
+                console.log('response within callAPI[GET]:', response);
                 return {
                     error: false,
                     //status: response.status,
                     //statusText: response.statusText,
-                    data: response.data,
+                    // TODO: hack... all the online guides of using responseType = 'blob'
+                    // and accessing response.data did not work...  This seems to work.
+                    data: response.config.responseType=='arraybuffer' ? response.request.response : response.data
                 }
             })
             .catch((error) => {
