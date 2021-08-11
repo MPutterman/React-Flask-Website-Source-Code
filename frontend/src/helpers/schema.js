@@ -24,6 +24,8 @@ import SimpleSchema from 'simpl-schema';
 import { callAPI } from '../helpers/api';
 import { id_exists, name_lookup } from '../helpers/validation_utils';
 
+// Define type for ID fields
+type IDType = SimpleSchema.Integer
 
 // TODO: update with more complex rules, e.g. modified and create and owner_id (and id) should
 // all be set once it has been saved
@@ -280,7 +282,8 @@ return schema;
 }
 
 
-const analysisSchema = new SimpleSchema ({
+const analysisSchema = (config, prefs) => {
+const schema = new SimpleSchema ({
     id: {
         label: 'ID',
         type: String, 
@@ -296,10 +299,11 @@ const analysisSchema = new SimpleSchema ({
         type: String,
         required: false,
     },
-    expt_datetime: {
+    expt_date: {
         label: 'Experiment date',
         type: Date,
         required: false,
+        defaultValue: null,
         uniforms: {
             type: 'date',
         }
@@ -308,16 +312,19 @@ const analysisSchema = new SimpleSchema ({
         label: 'Equipment',
         type: Number, // TODO: ID
         required: true,
+        defaultValue: prefs ? prefs.default_equip : null,
     },
     plate_id: {
         label: 'TLC plate',
         type: Number, // TODO: ID
         required: true,
+        defaultValue: prefs ? prefs.default_plate : null,
     },
     cover_id: {
         label: 'TLC cover',
         type: Number, // TODO: ID
         required: true,
+        defaultValue: prefs ? prefs.default_cover : null,
     },
     radio_image_id: {
         label: 'Radiation Image',
@@ -328,32 +335,51 @@ const analysisSchema = new SimpleSchema ({
         label: 'Use dark correction?',
         type: Boolean,
         required: false,
+        defaultValue: prefs ? prefs.default_use_dark_correction : false,
     },
     correct_flat: {
         label: 'Use flat correction?',
         type: Boolean,
         required: false,
+        defaultValue: prefs ? prefs.default_use_flat_correction : false,
+    },
+    correct_bkgrd : {
+        label: 'Use background correction?',
+        type: Boolean,
+        required: false,
+        defaultValue: prefs ? prefs.default_use_bkgrd_correction : false,
     },
     correct_filter: {
         label: 'Use filter correction?',
         type: Boolean,
         required: false,
+        defaultValue: prefs ? prefs.default_use_filter_correction : false,
+    },
+    dark_image_id: {
+        label: 'Dark Image',
+        type: String,
+        required: false,
+        defaultValue: prefs ? prefs.default_dark_image : null,
+    },
+    flat_image_id: {
+        label: 'Flat Image',
+        type: String,
+        required: false,
+        defaultValue: prefs ? prefs.default_flat_image : null,
+    },
+    bkgrd_algorithm: {
+        label: 'Background correction method',
+        type: String,
+        allowedValues: ['1st order', '2nd order', '3rd order'],
+        required: false,
+        defaultValue: prefs ? prefs.default_bkgrd_algorithm : null,
     },
     filter_algorithm: {
         label: 'Filter algorithm',
         type: String,
         allowedValues: ['median 3x3',],
         required: false,
-    },
-    dark_image_id: {
-        label: 'Dark Image',
-        type: String,
-        required: false,
-    },
-    flat_image_id: {
-        label: 'Flat Image',
-        type: String,
-        required: false,
+        defaultValue: prefs ? prefs.default_filter_algorithm : null,
     },
     bright_image_id: {
         label: 'Brightfield Image',
@@ -365,22 +391,27 @@ const analysisSchema = new SimpleSchema ({
         type: String,
         required: false,
     },
-    correct_bkgrd : {
-        label: 'Use background correction?',
-        type: Boolean,
+    brightness: {
+        label: 'Brightness',
+        type: Number,
+        minValue: 0,
+        maxValue: 1000, // TODO: What should be allowed range?
         required: false,
     },
-    bkgrd_algorithm: {
-        label: 'Background correction method',
-        type: String,
-        allowedValues: ['1st order', '2nd order', '3rd order'],
+    contrast: {
+        label: 'Brightness',
+        type: Number,
+        minValue: 0,
+        maxValue: 1000, // TODO: what should be allowed range?
         required: false,
     },
-});
-analysisSchema.extend(metaSchema);
-analysisSchema.extend(nameSchema);
-analysisSchema.extend(descriptionSchema);
 
+});
+schema.extend(metaSchema);
+schema.extend(nameSchema);
+schema.extend(descriptionSchema);
+return schema;
+}
 
 const userRegistrationSchema = (config=null, prefs=null) => {
 const schema = new SimpleSchema ({
