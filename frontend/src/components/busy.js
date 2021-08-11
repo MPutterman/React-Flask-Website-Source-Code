@@ -6,7 +6,7 @@ import CircularProgress from "@material-ui/core/CircularProgress";
 import Backdrop from "@material-ui/core/Backdrop";
 import { withStyles } from '@material-ui/core/styles';
 
-export const Busy = (props) => {
+const Busy = (props) => {
 
   return (
     <Backdrop className={props.classes.backdrop} open={props.busy} >
