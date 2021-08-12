@@ -103,7 +103,7 @@ export function callAPI(method, route, data={}, config={}) {
 
             return axios.get(backend_url(route), config)
             .then((response) => {
-                console.log('response within callAPI[GET]:', response);
+                //console.log('response within callAPI[GET]:', response);
                 return {
                     error: false,
                     //status: response.status,
