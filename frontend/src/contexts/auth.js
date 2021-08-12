@@ -192,7 +192,7 @@ export const AuthReducer = ({session: prevSession, profile: prevProfile, roles: 
       }
       favorites = action.payload.favorites;
       return {
-        session: { ...prevSession, loaded: true, auth: user ? true : false, auth_id: user.user_id, error: false, errorMessage: ''},
+        session: { ...prevSession, loaded: true, auth: user ? true : false, auth_id: user ? user.user_id : null, error: false, errorMessage: ''},
         profile: { first_name: user.first_name, last_name: user.last_name },
         roles: {}, // Not yet implemented
         prefs: prefs,
@@ -222,7 +222,7 @@ export const AuthReducer = ({session: prevSession, profile: prevProfile, roles: 
       }
       favorites = action.payload.favorites;
       return {
-        session: { ...prevSession, loaded: true, auth: user ? true : false, auth_id: user.user_id, error: false, errorMessage: ''},
+        session: { ...prevSession, loaded: true, auth: user ? true : false, auth_id: user ? user.user_id : null, error: false, errorMessage: ''},
         profile: {first_name: user.first_name, last_name: user.last_name},
         roles: {}, // Not yet implemented
         prefs: prefs,
@@ -271,7 +271,7 @@ async function loadSessionFromServer(dispatch) { // This one is not exported and
         let user = response.data.current_user;
         let prefs = response.data.prefs;
         let favorites = response.data.favorites;
-        dispatch({ type: 'SESSION_LOADED', payload: { user: user, prefs: prefs, favorites: favorites }})
+        dispatch({ type: 'SESSION_LOADED', payload: { user: user, prefs: prefs, favorites: favorites }});
     })
     .catch((e) => {
         console.log("POST /user/login, error =>" + e);
