@@ -49,6 +49,9 @@ export const initialState = {
         theme_options: ['dark', 'light'],
         searchresult_pagesize_options: [5, 10, 25, 100],
     },
+    search: {
+        pagesize_options: [5, 10, 25, 50, 100],
+    },
     analysis: {
         bkgrd_algorithm_options: ['1st order', '2nd order', '3rd order',],
         filter_algorithm_options: ['median 3x3',],

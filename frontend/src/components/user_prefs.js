@@ -77,7 +77,7 @@ const UserPrefs = (props) => {
         "general.default_searchresult_pagesize": {
             label: 'Default number of entries per page in searh results',
             type: Number,
-            allowedValues: config.general.searchresult_pagesize_options,
+            allowedValues: config.search.pagesize_options,
         },
         analysis: {
             label: 'Category - Analysis preferences',

@@ -168,7 +168,7 @@ const ObjectSearch = (props) => {
                         autoHeight
                         loading={!loaded}
                         density="compact"
-                        rowsPerPageOptions={config.general.searchresult_pagesize_options}
+                        rowsPerPageOptions={config.search.pagesize_options}
                         paginationMode="client" // for now client (and return all rows)... later use database pagination
                         sortingMode="client" // later server (if pagination server)
                         //checkboxSelection
