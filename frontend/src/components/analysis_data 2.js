@@ -58,6 +58,9 @@ const AnalysisData = (props) => {
         bkgrd_algorithm: prefs.default_bkgrd_algorithm,
         correct_filter: prefs.default_use_filter_correction,
         filter_algorithm: prefs.default_filter_algorithm,
+        // Fields describing cosmetic aspects (image display)
+        brightness: 0, 
+        contrast: 0, 
     };
 
     const [currentAnalysis, setCurrentAnalysis] = React.useState(initialAnalysisState);

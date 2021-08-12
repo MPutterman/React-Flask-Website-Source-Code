@@ -756,6 +756,7 @@ const UserEdit = withRouter(connectEdit(WrappedUserEdit, 'user', userSchema, use
 const UserRegister = withRouter(connectEdit(WrappedUserRegistration, 'user', userRegistrationSchema, userValidator, userTransform));
 
 export {
+    connectEdit,
     UserEdit,
     UserRegister,
     OrgEdit,

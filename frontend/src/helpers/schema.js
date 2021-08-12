@@ -6,7 +6,6 @@
 // * Seems to be bug in simplschema -- 'required' property doesn't accept function.  But 'optional' works.
 // * For functions as properties (e.g. 'optional' or 'required'), can't seem to access 'this', e.g. this.value
 //     (only this.key).  Thus can't get the desired depenendencies
-// * Possible to build automatic validators for ID fields based on schema? 
 // * Unify use of schemas in 'view', 'edit', 'search', etc...?  Each view has a unique purpose and parameters,
 //     but maybe can share some aspects, e.g. schema.addViewField('name'), schema.addSearchField('name')
 // * Add username to 'User'?  This will give a unique identifier without disclosing users email addresses
@@ -282,7 +281,7 @@ return schema;
 
 const analysisSchema = (config, prefs) => {
 const schema = new SimpleSchema ({
-    id: {
+    analysis_id: {
         label: 'ID',
         type: String, 
         required: false,    // set by backend
@@ -392,15 +391,15 @@ const schema = new SimpleSchema ({
     brightness: {
         label: 'Brightness',
         type: Number,
-        minValue: 0,
-        maxValue: 1000, // TODO: What should be allowed range?
+        min: 0,
+        max: 1000, // TODO: What should be allowed range?
         required: false,
     },
     contrast: {
         label: 'Brightness',
         type: Number,
-        minValue: 0,
-        maxValue: 1000, // TODO: what should be allowed range?
+        min: 0,
+        max: 1000, // TODO: what should be allowed range?
         required: false,
     },
 
@@ -542,28 +541,64 @@ async function defaultValidator(model, error) {
     return error;
 }
 
-// Asynchronous validator for image
-// Check for valid equip_id
-async function imageValidator(model, error) {
 
-    console.log ('imageValidator: model =>', model);
-    if (error) console.log ('error.details =>', error.details);
-
+// Validate a list of ID fields [{name:<fieldname>, type:<object_type>},] by checking if they exist.
+// Assumes that none of the fields have a null value in the model.
+async function validateIDFields(model, error, fieldinfo) {
+    var results = [];
+    fieldinfo.forEach(function(field, index, array) {
+        results.push (id_exists(field.type, model[field.name]));
+    });
     var new_errors = [];
-
-    if (model.equip_id) {
-        if (!await id_exists('equip', model.equip_id)) {
-            new_errors.push({name: 'equip_id', value: model.equip_id, type: 'custom', message: 'Invalid ID'});
+    return Promise.all(results)
+    .then((exists_results) => {
+        exists_results.forEach(function(exists, index, array) {
+            if (!exists) {
+                new_errors.push({
+                    name: fieldinfo[index].name,
+                    value: model[fieldinfo[index].name],
+                    type: 'custom',
+                    message: 'Invalid ID',
+                });
+            }
+        });
+        if (new_errors.length > 0) {
+            if (error === null) {
+                error = {errorType: 'ClientError', name: 'ClientError', error: 'validation-error', details: [], };
+            }
         }
-    }
+        return error;
+    })
+    .catch((e) => {
+        // TODO: handle this
+        return error;
+    });
 
-    if (new_errors.length > 0) {
-        if (!error) error = {errorType: 'ClientError', name: 'ClientError', error: 'validation-error', details: [], };
-        error.details.push(new_errors);
-        return error;
-    } else {
-        return error;
-    }
+}
+
+
+// TODO: maybe an generalize this by adding 'id_exists' and other async calls
+// into an array along with fieldnames and error messages...?
+// Asynchronous validator for image. Check for existence of all ID fields.
+async function imageValidator(model, error) {
+    const fieldinfo = [];
+    if ((model.equip_id) !== null) fieldinfo.push({name: 'equip_id', type: 'equip'});
+    return validateIDFields(model, error, fieldinfo);
+}
+
+
+// Asynchronous validator for analysis.  Check for existence of all ID fields.
+async function analysisValidator(model, error) {
+    const fieldinfo = [];
+    if (model.equip_id !== null) fieldinfo.push({name: 'equip_id', type: 'equip'});
+    if (model.plate_id !== null) fieldinfo.push({name: 'plate_id', type: 'plate'});
+    if (model.cover_id !== null) fieldinfo.push({name: 'cover_id', type: 'cover'});
+    if (model.radio_id !== null) fieldinfo.push({name: 'radio_id', type: 'image'});
+    if (model.dark_id !== null) fieldinfo.push({name: 'dark_id', type: 'image'});
+    if (model.flat_id !== null) fieldinfo.push({name: 'flat_id', type: 'image'});
+    if (model.bright_id !== null) fieldinfo.push({name: 'bright_id', type: 'image'});
+    if (model.uv_id !== null) fieldinfo.push({name: 'uv_id', type: 'image'});
+    return validateIDFields(model, error, fieldinfo);
 }
 
 
@@ -579,4 +614,5 @@ export {
     defaultValidator,
     imageValidator,
     analysisSchema,
+    analysisValidator,
 }

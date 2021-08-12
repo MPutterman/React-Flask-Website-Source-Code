@@ -130,17 +130,19 @@ const ObjectFavoriteButton = (props) => {
     }
 
     return (
-        <Button size='small' onClick={handleClick}>
+        <>
+        {/*<Button size='small' onClick={handleClick}>*/}
             {is_fav() ? (
                 <Tooltip title='Remove from favorites'>
-                    <IsFavoriteIcon />Unfavorite
+                    <IsFavoriteIcon onClick={handleClick}/>Unfavorite
                 </Tooltip>
             ) : (
                 <Tooltip title='Add to favorites'>
-                    <NotFavoriteIcon />Favorite
+                    <NotFavoriteIcon onClick={handleClick}/>Favorite
                 </Tooltip>
             )}
-        </Button>
+        {/* </Button> */}
+        </>
     );
 }; 
 
