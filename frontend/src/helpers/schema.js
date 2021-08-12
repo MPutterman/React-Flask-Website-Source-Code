@@ -1,8 +1,6 @@
 // Build schemas for object types.
 //
 // TODO:
-// * Any use for the 'filter' property? E.g. eliminating some fields prior to saving
-//     (e.g. modified, created, or password_confirm)...
 // * Seems to be bug in simplschema -- 'required' property doesn't accept function.  But 'optional' works.
 // * For functions as properties (e.g. 'optional' or 'required'), can't seem to access 'this', e.g. this.value
 //     (only this.key).  Thus can't get the desired depenendencies
