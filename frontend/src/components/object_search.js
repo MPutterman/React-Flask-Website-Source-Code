@@ -26,6 +26,7 @@
 
 import React, {useState, useEffect } from "react";
 import { useConfigState } from "../contexts/config";
+import { useAuthState } from "../contexts/auth";
 import { useHistory } from 'react-router-dom';
 import { useThrobber } from '../contexts/throbber';
 import { useErrorResponse } from '../contexts/error';
@@ -48,7 +49,8 @@ const ObjectSearch = (props) => {
     const history = useHistory();
     const config = useConfigState();
     const setBusy = useThrobber();  
-    const setErrorResponse = useErrorResponse();  
+    const setErrorResponse = useErrorResponse();
+    const { prefs } = useAuthState();  
 
     const object_type = props.objectType;
     const columns = props.columns;
@@ -164,7 +166,7 @@ const ObjectSearch = (props) => {
                     <DataGrid
                         rows={objectList}
                         columns={columns}
-                        pageSize={10} // default page size
+                        pageSize={prefs ? prefs.general.default_searchresult_pagesize : config.search.default_pagesize}
                         autoHeight
                         loading={!loaded}
                         density="compact"

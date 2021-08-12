@@ -47,10 +47,10 @@ export const initialState = {
         maintenance_mode: false,
         redirect_after_logout: '/user/login',
         theme_options: ['dark', 'light'],
-        searchresult_pagesize_options: [5, 10, 25, 100],
     },
     search: {
         pagesize_options: [5, 10, 25, 50, 100],
+        default_pagesize: 10,
     },
     analysis: {
         bkgrd_algorithm_options: ['1st order', '2nd order', '3rd order',],

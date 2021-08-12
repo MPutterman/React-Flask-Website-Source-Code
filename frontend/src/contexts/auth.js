@@ -87,7 +87,7 @@ export const defaultUserPrefs = {
         redirect_after_login: '/',                 // relative url
         timezone: '',
         theme: 'dark',
-        default_searchresult_pagesize: 10,      
+        default_searchresult_pagesize: 10,      // Any way to bring in config here?      
     },
     analysis: {
         default_equip: null,                       // equip_id
