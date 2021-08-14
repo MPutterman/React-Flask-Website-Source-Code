@@ -1,9 +1,6 @@
 // Implement a generic object_edit (and object_create) form
 //
 // TODO:
-// * Bug in ImageEdit -- the download link seems to give the
-//     same file even if a new file is uploaded (via /image/edit).
-//     Turned off back-end caching but still not working... what to do?
 // * Make some custom fields for date once work out picker (with 'X' icon to clear the date)
 // * Bug ImageEdit: if submit BEFORE selecting file... sets a validation error that cannot be removed,
 //     even after selecting a file. Sometimes works if there is a second error gets resolved.
@@ -55,7 +52,7 @@ import AccordionSummary from '@material-ui/core/AccordionSummary';
 import AccordionDetails from '@material-ui/core/AccordionDetails';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { id_exists } from '../helpers/validation_utils';
-import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField, LongTextField} from 'uniforms-material';
+import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField, LongTextField, userForm } from 'uniforms-material';
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import FileInputField from './filefield';
@@ -67,6 +64,7 @@ import { userSchema, userRegistrationSchema, orgSchema, equipSchema, plateSchema
 import { defaultValidator, userValidator, imageValidator } from '../helpers/schema';
 import { ObjectViewButton, ObjectEditButton, ObjectFavoriteButton, ObjectCloneButton, ObjectDeleteButton, ObjectRestoreButton, ObjectPurgeButton } from '../helpers/object_utils';
 import { ObjectIcon, objectTitle, ActionIcon } from '../helpers/object_utils';
+import { ServerImage, ServerDownload } from '../components/server_file';
 import CardActions from '@material-ui/core/CardActions';
 import Card from '@material-ui/core/Card';
 import CardHeader from '@material-ui/core/CardHeader';
@@ -562,11 +560,23 @@ const WrappedUserRegistration = ({model, ...props}) => {
 
 const WrappedUserEdit = ({model, ...props}) => {
 
+    const setBusy = useThrobber();
+
     const handlePasswordChange = (event) => {
         props.history.push('/user/password_change')
-
     }
 
+    const handlePhotoChange = (event) => {
+        if (event instanceof File) {
+            setBusy(true);
+            callAPI('POST', `api/user/photo_upload/${model.user_id}`, { file: event })
+            .then((response) => {
+                // TODO: Interpret response
+                // TODO: Reload (if we show the image)
+                setBusy(false);
+            });
+        }
+    }
 
     return (
 
@@ -599,6 +609,14 @@ const WrappedUserEdit = ({model, ...props}) => {
             <Button onClick={handlePasswordChange}>Change password</Button>
         </Box>
 
+        <FileInputField
+            name="file" 
+            buttonLabel={model.photo ? 'Replace Photo' : 'Select Photo'}
+            onChange={handlePhotoChange} />
+        <ErrorField name="file" />
+
+        <ServerImage url={model.thumbnail_url} />
+        <ServerImage url={model.avatar_url} />
 
         Button: Change email
         Button: preferences
@@ -613,24 +631,6 @@ const WrappedUserEdit = ({model, ...props}) => {
 const WrappedImageEdit = ({model, ...props}) => {
   
     const setAlert = useAlerts();
-
-    const handleDownload = (event) => {
-        // TODO: how to configure if don't know ahead of time the file type?
-        //const config = {headers: {'Content-Type': 'application/png',}};
-        callAPI('GET', `api/image/download/${model.image_id}`, {}, {responseType: 'arraybuffer'})
-        .then((response) => {
-            const file = new File([response.data], model.filename, {type: response.data.type});
-            // Any way to get filename from the server directly, i.e. from the response?
-            console.log('file=>', file);
-            const url = window.URL.createObjectURL(file);
-            const link = document.createElement('a');
-            link.href = url;
-            link.setAttribute('download', file.name);
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-        })
-    }
 
     return (
         <>
@@ -667,11 +667,14 @@ const WrappedImageEdit = ({model, ...props}) => {
                     style={{height: '9rem', justifyContent: 'center'}}
                     image={process.env.PUBLIC_URL + "/logo_UCLA_blue_boxed.png"}
                     alt='logo'
-                    onClick={model.filename ? handleDownload : null}
                 />
                 {model.filename ? (
                 <CardContent style={{justifyContent: 'center'}}>
-                    <Typography variant="body2">Click thumbnail to download original</Typography>
+                    <ServerDownload
+                        url={model.download_url}
+                        filename={model.filename}
+                        label="Download original"
+                    />
                 </CardContent>
                 ) : ( <></> )}
             </Grid>
@@ -739,6 +742,10 @@ const userTransform = (mode, model) => {
         delete new_model.name;
         delete new_model.password_confirm;
         delete new_model.email_confirm;
+        delete new_model.photo_filename; // Generated by server
+        delete new_model.photo_url; // Generated by server
+        delete new_model.thumbnail_url; // Generated by server
+        delete new_model.avatar_url; // Generated by server
     }
     console.log(`mode: ${mode}, new model ===>`, new_model);
     return new_model;

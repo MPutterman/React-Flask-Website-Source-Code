@@ -136,7 +136,12 @@ const schema = new SimpleSchema ({
     filename: {
         label: 'Filename',
         type: String,
-        required: false
+        required: false,
+    },
+    download_url: {
+        label: 'Download URL',
+        type: String,
+        required: false,
     },
 });
 schema.extend(metaSchema);
@@ -475,6 +480,31 @@ const schema = new SimpleSchema ({
     org_id: {
         label: 'Organization',
         type: SimpleSchema.Integer,
+        required: false,
+    },
+    file: {
+        label: 'Profile photo',
+        type: File,
+        required: false,
+    },
+    photo_filename: {
+        label: 'Profile photo filename',
+        type: String,
+        required: false,
+    },
+    photo_url: {
+        label: 'Profile photo URL',
+        type: String,
+        required: false,
+    },
+    thumbnail_url: {
+        label: 'Thumbnail url',
+        type: String,
+        required: false,
+    },
+    avatar_url: {
+        label: 'Avatar url',
+        type: String,
         required: false,
     },
     org_list: { // TODO: this won't be a simple selector -- users will have to 'apply' to join an

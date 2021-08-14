@@ -50,6 +50,7 @@ from flask_session import Session
 import matplotlib
 import numpy as np
 from PIL import Image
+import PIL
 from sklearn.cluster import MeanShift,estimate_bandwidth,AffinityPropagation,KMeans
 from skimage.color import rgba2rgb
 import os
@@ -309,6 +310,11 @@ HTTPStatus = {
     'INTERNAL_SERVER_ERROR': 500,
 }
 
+# Image configuration:
+app.config['USER_THUMBNAIL_MAX_SIZE'] = (200, 200)
+app.config['USER_AVATAR_MAX_SIZE'] = (100, 100)
+app.config['IMAGE_THUMBNAIL_MAX_SIZE'] = (200, 200)
+
 
 
 def api_error_response(code, details=''):
@@ -327,13 +333,6 @@ login_manager.login_message = 'You need to be logged in to perform this request.
 def unauthorized():
     return api_error_response(HTTPStatus['UNAUTHORIZED'])
 
-
-app.config['session_timeout'] = 10 # minutes
-app.permanent_session_lifetime = datetime.timedelta(minutes=app.config['session_timeout'])
-app.config['anonymous_user_name'] = 'Anonymous'
-app.config['IMAGE_UPLOAD_PATH'] = './UPLOADS' 
-app.config['IMAGE_CACHE_PATH'] = './CACHE'
-
 @login_manager.user_loader
 def session_load_user(user_id):
     from database import db_object_load
@@ -343,6 +342,10 @@ def session_load_user(user_id):
     #del user.prefs
     #del user.favorites
     return user
+
+app.config['session_timeout'] = 10 # minutes
+app.permanent_session_lifetime = datetime.timedelta(minutes=app.config['session_timeout'])
+app.config['anonymous_user_name'] = 'Anonymous'
 
 
 # ---------------
@@ -382,7 +385,8 @@ app.json_decode=CustomJSONDecoder
 @app.before_first_request
 def initialize():
     # Prepare and clear folders for images
-    create_image_storage()
+    from filestorage import create_file_storage
+    create_file_storage()
     # Prepare and clear database tables
     db_create_tables() 
     # Add initial testing data
@@ -397,34 +401,6 @@ def initialize():
 def teardown(exception):
     db_cleanup()
 
-
-# --------------------
-# Image storage system
-# --------------------
-
-# Create image storage (delete existing folders and create new empty folders)
-def create_image_storage():
-    print ("Initializing image storage...")
-    try:
-        print ("Removing IMAGE_UPLOAD_PATH: %s" % app.config['IMAGE_UPLOAD_PATH'])
-        shutil.rmtree(app.config['IMAGE_UPLOAD_PATH'])
-    except OSError as e:
-        print ("Error in create_image_storage: %s - %s" % (e.filename, e.strerror))
-    try:
-        print ("Create new IMAGE_UPLOAD_PATH")
-        os.mkdir(app.config['IMAGE_UPLOAD_PATH'])
-    except OSError as e:
-        print ("Error in create_image_storage: %s - %s" % (e.filename, e.strerror))
-    try:
-        print ("Removing IMAGE_CACHE_PATH: %s" % app.config['IMAGE_CACHE_PATH'])
-        shutil.rmtree(app.config['IMAGE_CACHE_PATH'])
-    except OSError as e:
-        print ("Error in create_image_storage: %s - %s" % (e.filename, e.strerror))
-    try:
-        print ("Creating new IMAGE_CACHE_PATH")
-        os.mkdir(app.config['IMAGE_CACHE_PATH'])
-    except OSError as e:
-        print ("Error in create_image_storage: %s - %s" % (e.filename, e.strerror))
 
 
 # -------------------------
@@ -572,6 +548,34 @@ def user_password_change():
     if db_user_password_change(user.get_id(),new_password):
         return { 'error': False }
     return { 'error': 'Password could not be updated' }
+
+
+# Change profile image for specified user
+# TODO: add error checking
+@app.route('/api/user/photo_upload/<user_id>', methods=['POST'])
+@app.route('/api/user/photo_upload', methods=['POST'])
+@flask_login.login_required
+@cross_origin(supports_credentials=True)
+def user_photo_upload(user_id = None):
+    if (user_id is None):
+        user_id = flask_login.current_user.get_id()
+    if (not has_permission('user', 'edit', user_id)):
+        return api_error_response(HTTPStatus['FORBIDDEN'], 'Not Authorized')
+    file = request.files.get('file')
+    if (file is not None):
+
+        # Prepare and save original file, thumbnail and avatar
+        thumbnail = PIL.Image.open(file)
+        avatar = thumbnail.copy()
+        thumbnail.thumbnail(app.config['USER_THUMBNAIL_MAX_SIZE'])
+        avatar.thumbnail(app.config['USER_AVATAR_MAX_SIZE'])
+
+        from database import db_user_photo_upload
+        if (db_user_photo_upload(user_id, file, thumbnail, avatar)):
+            return { 'error': False }, HTTPStatus['OK']
+
+    return { 'error': 'Could not update profile photo' } # TODO: add appropriate error code
+
 
 # -----------------------------
 # Generic object route handlers
@@ -766,6 +770,8 @@ def image_save():
         # Ignore created
         # Ignore modified
         # Ignore image_path
+        # Ignore filename
+        # Ignore download_url
     }
 
     if (request.files):
@@ -1102,6 +1108,21 @@ def createFile():
         res = tim
         return {"res":res}
 
+# Retrieve a file
+@app.route('/api/file/<object_type>/<file_type>/<object_id>', methods=['GET'])
+@cross_origin(supports_credentials=True)
+def get_file(object_type, file_type, object_id):
+    from filestorage import get_pathname
+    filename = get_pathname(object_type, file_type, object_id)
+    if (filename is None):
+        return { 'error': 'Invalid file request' }, HTTPStatus['NOT_FOUND']
+    # Return file
+    # TODO: temp prevent cache for now... later set appropriate caching parameters for each type
+    response = make_response(send_file(filename, cache_timeout=0))
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    return response
+    
 # TODO: add something similar for thumbnails of the image objects
 @app.route('/img/<filename>',methods = ['GET'])
 @cross_origin(supports_credentials=True)
@@ -1109,25 +1130,6 @@ def give(filename):
     filen = retrieve_image_path('cerenkovdisplay',filename)
     print(filen)
     return send_file(filen)
-
-@app.route('/api/image/download/<image_id>', methods=['GET'])
-@cross_origin(supports_credentials=True)
-def image_download(image_id):
-    from database import db_object_load
-    image = db_object_load('image', image_id)
-    from database import db_build_image_path
-    pathname = db_build_image_path(image_id) # Change to image.get_pathname()
-    print ('requesting file... name:')
-    print (pathname)
-    # TODO: there is a way to send a suggested filename with attachment_filename parameter
-    #  but it doesn't seem to work
-    # Mark response as no-cache (otherwise browser caches and won't retrieve
-    #   latest version if there is a change to file (since API request URL is identical)
-    # Note cache_timeout=0 option seems not working. Try instead adding headers
-    response = make_response(send_file(pathname, as_attachment=True, cache_timeout=0))
-    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    response.headers['Pragma'] = 'no-cache'
-    return response
 
 @app.route('/radius/<filename>/<x>/<y>/<shift>',methods = ['POST', 'GET'])
 @cross_origin(supports_credentials=True)

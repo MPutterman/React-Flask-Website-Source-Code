@@ -37,6 +37,7 @@ from sqlalchemy.orm import class_mapper, make_transient
 from sqlalchemy import select
 from dotenv import load_dotenv
 import os
+import base64
 import copy
 from urllib.parse import quote
 from sqlalchemy.dialects.postgresql import ARRAY
@@ -50,6 +51,7 @@ from io import BytesIO
 import flask_login
 from datetime import datetime, timezone # TODO: probably should move time handling to API
 from dateutil.parser.isoparser import isoparse
+import werkzeug
 
 # TODO: how to do this setup and instantiation once and register with FLASK globals?
 
@@ -170,6 +172,10 @@ class User(UserMixin, Base):
     modified = Column(TZDateTime)
     prefs = Column(PickleType, default={}, nullable=False) # was PickleType
     favorites = Column(PickleType, default={}, nullable=False) # was PickleType
+    photo_filename = Column(String(254))
+    photo_url = Column(String(2048))
+    thumbnail_url = Column(String(2048))
+    avatar_url = Column(String(2048))
     org_list = relationship("Organization", secondary=user_org_map) 
     analysis_list=relationship("Analysis",secondary=user_analysis_map)
 
@@ -407,17 +413,8 @@ class Image(Base):
     modified = Column(TZDateTime)
     is_deleted = Column(Boolean, default=False, nullable=False)
     filename = Column(String(128))
-    def get_file(self):
-        # Return the full file
-        # TODO: define a method to get the image out of the file
-        # if needed (e.g. using an equipment-specific parser)
-        print ('get_file not yet implemented')
-    def get_path(self):
-        return os.path.join(app.config['IMAGE_UPLOAD_PATH'], str(self.image_id)) if self.image_id else None
-    def get_uri(self):
-        # Backend api call to get image data
-        return f"/img/{self.image_id}" if self.image_id else None
-
+    download_url = Column(String(2048))
+    # TODO add methods to return images and paths?
 
     def as_dict(self):
         # Returns full represenation of model.
@@ -896,6 +893,42 @@ def db_user_save(data):
     db_session.commit()
     return user
 
+# Upload user profile photo
+# NOTE: thumbnail and avatar created in frontend
+# TODO: add error checking
+def db_user_photo_upload(user_id, photo, thumbnail, avatar):
+    if (user_id is None):
+        return False
+    filename = werkzeug.utils.secure_filename(photo.filename)
+
+    # Save files
+    from filestorage import user_photo_upload_path
+    from filestorage import user_thumbnail_path
+    from filestorage import user_avatar_path
+    photo_path = user_photo_upload_path(user_id, filename)
+    thumbnail_path = user_thumbnail_path(user_id)
+    avatar_path = user_avatar_path(user_id)
+
+    os.makedirs(os.path.dirname(photo_path), exist_ok=True)
+    photo.save(photo_path)
+    os.makedirs(os.path.dirname(thumbnail_path), exist_ok=True)
+    thumbnail.save(thumbnail_path)
+    os.makedirs(os.path.dirname(avatar_path), exist_ok=True)
+    avatar.save(avatar_path)
+    photo.close()
+    thumbnail.close()
+    avatar.close()
+
+    # Update filename and paths in database
+    user = db_object_load('user', user_id)
+    user.photo_filename = filename
+    user.thumbnail_url = f"api/file/user/thumbnail/{str(user_id)}"
+    user.avatar_url = f"api/file/user/avatar/{str(user_id)}"
+    db_session.commit()
+    print (user)
+    return True
+
+
 # Save an image
 # TODO: create a thumbnail image and store in database...
 # TODO: after get rid of enum in database... this function should
@@ -934,25 +967,27 @@ def db_image_save(data):
     # If received a new file:
     file = data.get('file')
     if (file): 
-        image.filename = file.filename
-        local_pathname = db_build_image_path(image.image_id)
+
+        from filestorage import image_file_upload_path
+
         # Delete old file if exists
-        try:
-            os.remove(local_pathname)
-        except:
-            pass
-        # TODO: eventually remove image_path -- not needed... can build this instead
-        image.image_path = local_pathname
+        if (image.filename is not None):
+            pathname = image_file_upload_path(image.image_id, image.filename)
+            try:
+                os.remove(pathname)
+            except:
+                pass
+
+        # Prepare and save new file
+        image.filename = file.filename
+        image.download_url = f"/api/file/image/file/{str(image.image_id)}"
+        pathname = image_file_upload_path(image.image_id, image.filename)
+        image.image_path = pathname # TODO: remove later -- not needed (just build it)
+        os.makedirs(os.path.dirname(pathname), exist_ok=True)
         file.save(image.image_path)
         file.close()
         db_session.commit()
     return image
-
-# Build the path to the image file
-# TODO: do we want file extensions? Do we want to use the original uploaded name?
-def db_build_image_path(image_id):
-    return os.path.join(app.config['IMAGE_UPLOAD_PATH'], str(image_id))
-
 
 # TODO: later remove duplicate code. COPIED FROM api.py
 def makeFileArray(fileN,fileN1):
