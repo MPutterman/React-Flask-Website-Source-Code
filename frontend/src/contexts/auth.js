@@ -193,7 +193,7 @@ export const AuthReducer = ({session: prevSession, profile: prevProfile, roles: 
       favorites = action.payload.favorites;
       return {
         session: { ...prevSession, loaded: true, auth: user ? true : false, auth_id: user ? user.user_id : null, error: false, errorMessage: ''},
-        profile: { first_name: user.first_name, last_name: user.last_name },
+        profile: { first_name: user ? user.first_name : '', last_name: user ? user.last_name : '' },
         roles: {}, // Not yet implemented
         prefs: prefs,
         favorites: favorites, 
@@ -223,7 +223,7 @@ export const AuthReducer = ({session: prevSession, profile: prevProfile, roles: 
       favorites = action.payload.favorites;
       return {
         session: { ...prevSession, loaded: true, auth: user ? true : false, auth_id: user ? user.user_id : null, error: false, errorMessage: ''},
-        profile: {first_name: user.first_name, last_name: user.last_name},
+        profile: { first_name: user ? user.first_name : '', last_name: user ? user.last_name : '' },
         roles: {}, // Not yet implemented
         prefs: prefs,
         favorites: favorites, 
