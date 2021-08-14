@@ -1,6 +1,8 @@
 backend/.env
 !backend/UPLOADS
 backend/UPLOADS/*
+!backend/CACHE
+backend/CACHE/*
 backend/flask_session
 backend/__pycache__
 .vscode
