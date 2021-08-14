@@ -1,8 +1,9 @@
 # TODO:
 # * Currently images (radio, dark, bright) are in different formats... this should be reconsidered in the future
+# * Enforce adding of extension to upload files
+# * Auto-create a thumbnail of uploaded Image files...
 # * Perhaps can use a mixin to share code of common fields (owner_id, modified, created, deleted)
 # * Check saving methods to make sure immune to SQL injection. (SQLAlchemy handles a lot automatically with the ORM)
-# * Changing naming of main 'id' field to 'id' for all objects?
 # * Add some convenience methods, e.g. get_id(), get_name()?
 # * An alternative design strategy would be to put owner_id, modified, created, deleted into a separate table
 #     to basically track ownership/permissions, deletion status, and edit history
@@ -10,7 +11,8 @@
 # * Convert all DateTime database types to 'TZDateTime'
 # * I am getting rid of 'org_list' from User (instead using org_id).  But haven't yet finished removing the old code.
 # * Store image_type as string instead of enum?
-# * SQLAlchemy PickleType does NOT detect changes to a portion of the object (e.g. dict). For now we rewrite the
+# * SQLAlchemy PickleType does NOT detect changes to a portion of the object (e.g. dict) and will not properly
+#     commit to database when a partial change is made. For now we rewrite the
 #     whole thing whenever we make a change. Need to look into how to use 'MutableDict' or other approaches
 #     to make this more efficient or intutive
 
@@ -909,15 +911,10 @@ def db_user_photo_upload(user_id, photo, thumbnail, avatar):
     thumbnail_path = user_thumbnail_path(user_id)
     avatar_path = user_avatar_path(user_id)
 
-    os.makedirs(os.path.dirname(photo_path), exist_ok=True)
-    photo.save(photo_path)
-    os.makedirs(os.path.dirname(thumbnail_path), exist_ok=True)
-    thumbnail.save(thumbnail_path)
-    os.makedirs(os.path.dirname(avatar_path), exist_ok=True)
-    avatar.save(avatar_path)
-    photo.close()
-    thumbnail.close()
-    avatar.close()
+    from filestorage import save_file
+    save_file(photo, photo_path)
+    save_file(thumbnail, thumbnail_path)
+    save_file(avatar, avatar_path)
 
     # Update filename and paths in database
     user = db_object_load('user', user_id)
@@ -983,9 +980,8 @@ def db_image_save(data):
         image.download_url = f"/api/file/image/file/{str(image.image_id)}"
         pathname = image_file_upload_path(image.image_id, image.filename)
         image.image_path = pathname # TODO: remove later -- not needed (just build it)
-        os.makedirs(os.path.dirname(pathname), exist_ok=True)
-        file.save(image.image_path)
-        file.close()
+        from filestorage import save_file
+        save_file(file, pathname)
         db_session.commit()
     return image
 

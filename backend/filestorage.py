@@ -113,5 +113,6 @@ def save_file(file, pathname):
         os.remove(pathname)
     except:
         pass
+    os.makedirs(os.path.dirname(pathname), exist_ok=True)
     file.save(pathname)
-
+    file.close()
