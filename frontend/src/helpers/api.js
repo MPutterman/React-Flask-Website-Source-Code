@@ -103,13 +103,14 @@ export function callAPI(method, route, data={}, config={}) {
 
             return axios.get(backend_url(route), config)
             .then((response) => {
-                //console.log('response within callAPI[GET]:', response);
+
+                // DEBUG: set a reminder message about this hacky implementation
+                if (response.config.responseType=='arraybuffer') console.log('NOTE arraybuffer detected in callAPI/GET')
+
                 return {
                     error: false,
                     //status: response.status,
                     //statusText: response.statusText,
-                    // TODO: hack... all the online guides of using responseType = 'blob'
-                    // and accessing response.data did not work...  This seems to work.
                     data: response.config.responseType=='arraybuffer' ? response.request.response : response.data
                 }
             })
