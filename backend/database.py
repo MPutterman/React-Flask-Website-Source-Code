@@ -126,11 +126,11 @@ user_org_map = Table('user_org_map', Base.metadata,
 
 user_analysis_map = Table('user_analysis_map', Base.metadata,
     Column('user_id', Integer, ForeignKey('user.user_id'), primary_key=True),
-    Column('analysis_id', String(12), ForeignKey('analysis.analysis_id'), primary_key=True),
+    Column('analysis_id', Integer, ForeignKey('analysis.analysis_id'), primary_key=True),
 )
 
 analysis_image_map = Table('analysis_image_map', Base.metadata,
-    Column('analysis_id', String(12), ForeignKey('analysis.analysis_id'), primary_key=True),
+    Column('analysis_id', Integer, ForeignKey('analysis.analysis_id'), primary_key=True),
     Column('image_id', Integer, ForeignKey('image.image_id'), primary_key=True),
 )
 
@@ -268,6 +268,7 @@ class Equipment(Base):
 
 # TODO: since each analysis requires always the same set of cached
 # images, should we combine them into a single table?
+'''
 class CachedImage(Base):
     __tablename__='cachedimage'
     analysis = relationship('Analysis',back_populates='cachedimages')
@@ -286,7 +287,7 @@ class CachedImage(Base):
     #  ------ then regenerate cached image (and updated modified field). Then load
     #  ------ the new image
     # def save (image data/object)
-    
+''' 
 
 class ROI(Base):
     __tablename__='ROI'
@@ -302,19 +303,39 @@ class ROI(Base):
 class Analysis(Base):
     # TODO: Add created, modified fields (handled internally)
     __tablename__ = 'analysis'
-    analysis_id = Column(String(12), primary_key=True)
+    analysis_id = Column(Integer, primary_key=True)
     name = Column(String(128), nullable=False)
     description = Column(Text)
-    experiment_datetime = Column(DateTime(timezone=True)) # Date of experiment
-    analysis_datetime = Column(DateTime(timezone=True)) # Date of analysis (last change)
+    expt_date = Column(TZDateTime)
+    equip_id = Column(Integer, ForeignKey('equipment.equip_id')) # TODO: maybe redundant, but convenient for now
     plate_id = Column(Integer, ForeignKey('plate.plate_id'))
     cover_id = Column(Integer, ForeignKey('cover.cover_id'))
     #user=relationship("User",secondary=user_analysis_map)
+    radio_image_id = Column(Integer, ForeignKey('image.image_id'))
+    dark_image_id = Column(Integer, ForeignKey('image.image_id'))
+    flat_image_id = Column(Integer, ForeignKey('image.image_id'))
+    bright_image_id = Column(Integer, ForeignKey('image.image_id'))
+    uv_image_id = Column(Integer, ForeignKey('image.image_id'))
+    bkgrd_algorithm = Column(String(128))
+    filter_algorithm = Column(String(128))
+    correct_dark = Column(Boolean)
+    correct_flat = Column(Boolean)
+    correct_bkgrd = Column(Boolean)
+    correct_filter = Column(Boolean)
+    # Internally-generated
+    display_image_url = Column(String(2048))
+    image_cache_modified = Column(TZDateTime)
+    lanes_modified = Column(TZDateTime)
+    # user adjustable
+    display_image_contrast = Column(Integer)
+    display_image_brightness = Column(Integer)
+
+    # Fields related to lane state
     doRF = Column(Boolean)
-    cachedimages=relationship('CachedImage',back_populates='analysis')
+    #cachedimages=relationship('CachedImage',back_populates='analysis')
     origin_list = relationship('Origin',back_populates='analysis')
     lane_list = relationship("Lane", back_populates="analysis")
-    images= relationship('Image',secondary=analysis_image_map)
+    #images= relationship('Image',secondary=analysis_image_map) # TODO: remove
     owner_id = Column(Integer, ForeignKey('user.user_id'))
     created = Column(TZDateTime) 
     modified = Column(TZDateTime)
@@ -336,7 +357,7 @@ class Origin(Base):
     y=Column(Integer)
     
     analysis = relationship("Analysis", back_populates="origin_list")
-    analysis_id = Column(String(12),ForeignKey('analysis.analysis_id'))
+    analysis_id = Column(Integer,ForeignKey('analysis.analysis_id'))
     @staticmethod
     def build_origins(origins):
         origin_list = []
@@ -355,7 +376,7 @@ class Origin(Base):
 class Lane(Base):
     __tablename__ = 'lane'
     lane_id = Column(Integer, primary_key=True)
-    analysis_id = Column(String(12), ForeignKey('analysis.analysis_id'))
+    analysis_id = Column(Integer, ForeignKey('analysis.analysis_id'))
     analysis = relationship("Analysis", back_populates="lane_list")
     lane_number=Column(Integer)
     lane_label=Column(String(128)) # Future feature
@@ -478,9 +499,9 @@ def db_add_test_data():
     # Some simple tests to show usage of creating a few objects (and automatically setting up the links between different types)
     tim = time.time()
     db_session.begin()
-    plate1 = Plate(name = 'JT Baker 12345: silica, 250 um, aluminum back, F254 60',plate_id = 193587)
-    plate2 = Plate(name = 'JT Baker 23456: silica, 250 um, glass back, F254 60, concentration zone',plate_id=851)
-    cover = Cover(cover_id = 1935792, name = 'Dont know what to call this')
+    plate1 = Plate(name = 'JT Baker 12345: silica, 250 um, aluminum back, F254 60',plate_id = 1)
+    plate2 = Plate(name = 'JT Baker 23456: silica, 250 um, glass back, F254 60, concentration zone',plate_id=2)
+    cover = Cover(cover_id = 1, name = 'Dont know what to call this')
    
     db_session.add(plate1)
     db_session.add(plate2)
@@ -493,10 +514,10 @@ def db_add_test_data():
     org3 = Organization(name = 'Imaginary University Deparment of Radiochemistry',org_id = 25987)
     db_session.add_all([org1, org2, org3])
     prefs1 = { 'general': {'redirect_after_login': '/',}, }
-    prefs2 = { 'general': {'redirect_after_login': '/user/search',}, }
+    prefs2 = { 'general': {'redirect_after_login': '/user/search',}, 'analysis': {'default_plate': 2, 'default_cover': 1, 'default_equip': 4000} }
     favs1 = { 'equip': [4000, 2938],}
-    db_session.add(User(first_name = 'Alice', last_name = 'Armstrong', email = 'alice@armstrong.com', password_hash='$2b$12$jojM5EuDHREVES2S0OpLbuV.oDjqXWJ/wq9x07HwSQRfdpEUHLqNG', org_list=[org1], prefs=prefs1, favorites=favs1)) # PASSWORD 123
-    db_session.add(User(first_name = 'Bob', last_name = 'Brown', email = 'bob@brown.com',password_hash='$2b$12$kA7FRa6qA./40Pmtmi6mRelW2cnkhcOHtsKelIMVezDlF33YF62C2', org_list=[org1,org2], prefs=prefs2)) # PASSWORD 123
+    db_session.add(User(first_name = 'Alice', last_name = 'Armstrong', email = 'alice@armstrong.com', password_hash='$2b$12$jojM5EuDHREVES2S0OpLbuV.oDjqXWJ/wq9x07HwSQRfdpEUHLqNG', org_list=[org1], prefs=prefs2, favorites=favs1)) # PASSWORD 123
+    db_session.add(User(first_name = 'Bob', last_name = 'Brown', email = 'bob@brown.com',password_hash='$2b$12$kA7FRa6qA./40Pmtmi6mRelW2cnkhcOHtsKelIMVezDlF33YF62C2', org_list=[org1,org2], prefs=prefs1)) # PASSWORD 123
     db_session.add(User(first_name = 'Cathy', last_name = 'Chen', email = 'cathy@chen.com',org_list=[org1,org2]))
     db_session.add(User(first_name = 'David', last_name = 'Delgado', email = 'david@delgado.com',org_list=[org1,org2]))
     db_session.add(User(first_name = 'Elaine', last_name = 'Eastman', email = 'elaine@eastman.com',org_list=[org1,org2]))
@@ -985,6 +1006,7 @@ def db_image_save(data):
         db_session.commit()
     return image
 
+'''
 # TODO: later remove duplicate code. COPIED FROM api.py
 def makeFileArray(fileN,fileN1):
     import time
@@ -1003,7 +1025,7 @@ def makeFileArray(fileN,fileN1):
             pass
     ####print(time.time()-tim)
     return fileN
-
+'''
 
 # Analysis-related utility functions
 
@@ -1035,6 +1057,7 @@ def convert_image_type_to_string(native_type):
     else:
         return 'unknown'
 
+'''
 def find_images(data):
     images = []
     for image_type in ['dark','flat','radio','uv','bright']:
@@ -1055,45 +1078,58 @@ def find_images(data):
                 )                                
             images.append(image)
     return images
+'''
+def db_analysis_image_cache(analysis_id, url):
+    analysis = db_object_load('analysis', analysis_id)
+    analysis.display_image_url = url
+    analysis.image_cache_modified = datetime.now(timezone.utc)
+    db_session.commit()
 
 
 def retrieve_initial_analysis(analysis_id):
     #db_session.begin()   # TODO: why does this cause "transaction is already begun" error?
-    tim = time.time()
-    analysis = Analysis.query.filter(Analysis.analysis_id==analysis_id).one()
-    analysis_dict = {}
+    #tim = time.time()
+    analysis = db_object_load('analysis', analysis_id)
+    #analysis = Analysis.query.filter(Analysis.analysis_id==analysis_id).one()
+    analysis_dict = analysis.as_dict()
     analysis_dict['ROIs']=Lane.build_arr(analysis.lane_list)
     ##print('rois',analysis_dict['ROIs'])
     analysis_dict['doRF']=analysis.doRF
     analysis_dict['origins']=Origin.build_arr(analysis.origin_list)
-    analysis_dict['CerenkovName']=Image.query.filter(Image.image_type==ImageType.radio, Image.analysis_list.any(analysis_id=analysis_id)).one().name
+    #analysis_dict['CerenkovName']=Image.query.filter(Image.image_type==ImageType.radio, Image.analysis_list.any(analysis_id=analysis_id)).one().name
 
-    analysis_dict['DarkName']=Image.query.filter(Image.image_type==ImageType.dark , Image.analysis_list.any(analysis_id=analysis_id)).one().name
+    #analysis_dict['DarkName']=Image.query.filter(Image.image_type==ImageType.dark , Image.analysis_list.any(analysis_id=analysis_id)).one().name
     ##print(analysis_dict['DarkName'])
-    analysis_dict['FlatName']=Image.query.filter(Image.image_type==ImageType.flat , Image.analysis_list.any(analysis_id=analysis_id)).one().name
-    if Image.query.filter(Image.image_type==ImageType.uv , Image.analysis_list.any(analysis_id=analysis_id)).all():
-        analysis_dict['UVName']=Image.query.filter(Image.image_type==ImageType.uv , Image.analysis_list.any(analysis_id=analysis_id)).one().name
-    if Image.query.filter(Image.image_type==ImageType.bright , Image.analysis_list.any(analysis_id=analysis_id)).all():
-        analysis_dict['BrightName']=Image.query.filter(Image.image_type==ImageType.bright , Image.analysis_list.any(analysis_id=analysis_id)).one().name
-    analysis_dict['name'] = analysis.name
-    analysis_dict['description'] = analysis.description
-    analysis_dict['owner_id'] = analysis.owner_id
-    db_session.commit()
-    return analysis_dict
+    #analysis_dict['FlatName']=Image.query.filter(Image.image_type==ImageType.flat , Image.analysis_list.any(analysis_id=analysis_id)).one().name
+    #if Image.query.filter(Image.image_type==ImageType.uv , Image.analysis_list.any(analysis_id=analysis_id)).all():
+    #    analysis_dict['UVName']=Image.query.filter(Image.image_type==ImageType.uv , Image.analysis_list.any(analysis_id=analysis_id)).one().name
+    #if Image.query.filter(Image.image_type==ImageType.bright , Image.analysis_list.any(analysis_id=analysis_id)).all():
+    #    analysis_dict['BrightName']=Image.query.filter(Image.image_type==ImageType.bright , Image.analysis_list.any(analysis_id=analysis_id)).one().name
+    #analysis_dict['name'] = analysis.name
+    #analysis_dict['description'] = analysis.description
+    #analysis_dict['owner_id'] = analysis.owner_id
+    #db_session.commit()
+    return analysis_dict # TODO: later return analysis instead of dict....
 
+'''
 def analysis_info(analysis_id):
     db_session.begin()
     analysis = Analysis.query.filter(Analysis.analysis_id == analysis_id).one()
     db_session.commit()
     return analysis.as_dict()
+'''
 
+'''
 def retrieve_image_path(image_type,analysis_id):
     if 'cerenkov' in  image_type:
         image = CachedImage.query.filter(CachedImage.image_type ==find_image_type(image_type), CachedImage.analysis_id==analysis_id).one()
     else:
         image = Image.query.filter(Image.image_type==find_image_type(image_type), Image.analysis_id==analysis_id).one()
     return image.image_path
+'''
 
+# TODO: by eliminating the following function, we don't update the user.analysis_list (but I don't think we need it)
+'''
 def db_analysis_save(data,analysis_id):
     #db_session.begin()
     if data['user_id']:
@@ -1110,10 +1146,11 @@ def db_analysis_save(data,analysis_id):
     db_session.add(user)
     db_session.commit()
 #    db_session.close()
+'''
 
 def db_analysis_edit(data,analysis_id):
     
-    analysis = Analysis.query.filter(Analysis.analysis_id==analysis_id).one()
+    analysis = db_object_load('analysis', analysis_id) # Analysis.query.filter(Analysis.analysis_id==analysis_id).one()
     analysis.doRF = data['doRF']
     analysis.lane_list = Lane.build_lanes(data['ROIs'])
     analysis.origin_list = Origin.build_origins(data['origins'])
@@ -1121,6 +1158,7 @@ def db_analysis_edit(data,analysis_id):
     db_session.commit()
 #    db_session.close()
 
+'''
 # TODO: this handling should be used at time of file generation
 # ... and should be split for uploads and cached...
 def find_path(image_type,analysis_id):
@@ -1133,31 +1171,35 @@ def find_path(image_type,analysis_id):
     else:
         ending='.npy'
     return f'./UPLOADS/{analysis_id}/{image_type}{ending}'
+'''
 
-def db_analysis_save_initial(data,analysis_id):
+def db_analysis_save_ROIs(data,analysis_id):
     #db_session.begin()  # TODO: why does this cause "transaction is already begun" error?
-    images = []
-    for image_type in ['dark','flat','radio','uv','bright']:
-        if data[f'{image_type}_name']:
-            img = Image(name = data[f'{image_type}_name'], image_type = find_image_type(image_type),image_path = find_path(image_type,analysis_id))
-            images.append(img) 
-    lane_list = Lane.build_lanes(data['ROIs'])
-    origin_list = Origin.build_origins(data['origins'])
-    doRF = data['doRF']
-    cachedimages=[]
-    for image_type in ['cerenkovdisplay','cerenkovcalc','cerenkovradii']:
-        img = CachedImage(image_type = image_type,image_path=find_path(image_type,analysis_id))
-        cachedimages.append(img)
-    analysis = Analysis(images=images,lane_list=lane_list,cachedimages = cachedimages,analysis_id = analysis_id, origin_list = origin_list,doRF=doRF, name=data['name'], description=data['description'], owner_id=data['user_id'])
-    db_session.add(analysis)
-    db_session.flush()
-    if data['user_id'] is not None:
-        user_id = data['user_id']
-    else:
-        user_id='1433625970'
-    user = User.query.filter(User.user_id==user_id).one()
+    #images = []
+    #for image_type in ['dark','flat','radio','uv','bright']:
+    #    if data[f'{image_type}_name']:
+    #        img = Image(name = data[f'{image_type}_name'], image_type = find_image_type(image_type),image_path = find_path(image_type,analysis_id))
+    #        images.append(img) 
+    #cachedimages=[]
+    #for image_type in ['cerenkovdisplay','cerenkovcalc','cerenkovradii']:
+    #    img = CachedImage(image_type = image_type,image_path=find_path(image_type,analysis_id))
+    #    cachedimages.append(img)
+    analysis = db_object_load('analysis', analysis_id)
+    analysis.lane_list = Lane.build_lanes(data['ROIs'])
+    analysis.origin_list = Origin.build_origins(data['origins'])
+    analysis.doRF = data['doRF']
+    #analysis = Analysis(images=images,lane_list=lane_list,cachedimages = cachedimages,analysis_id = analysis_id, origin_list = origin_list,doRF=doRF, name=data['name'], description=data['description'], owner_id=data['user_id'])
+    #db_session.add(analysis)
+    user = db_object_load('user', analysis.owner_id)
     user.analysis_list.append(analysis)
-    db_session.add(user)
-    #db_session.flush()
     db_session.commit()
+    #if data['user_id'] is not None:
+    #    user_id = data['user_id']
+    #else:
+    #    user_id='1433625970'
+    #user = User.query.filter(User.user_id==user_id).one()
+    #user.analysis_list.append(analysis)
+    #db_session.add(user)
+    #db_session.flush()
+    #db_session.commit()
 

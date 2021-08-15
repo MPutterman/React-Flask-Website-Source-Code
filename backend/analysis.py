@@ -27,13 +27,13 @@ from flask_login import LoginManager
 import ast
 
 class Analysis():
-    """Input: ROIs, n_l, origins, filename, doUV, doRF, autoLane, names"""
-    def __init__(self,ROIs,n_l,origins,filename,doUV,doRF,autoLane,names=['Sample','Sample','Sample','','','',''],name='',description=''):
+    """Input: ROIs, n_l, origins, analysi_id, doUV, doRF, autoLane, names"""
+    def __init__(self,ROIs,n_l,origins,analysis_id,doUV,doRF,autoLane,names=['Sample','Sample','Sample','','','',''],name='',description=''):
         self.doRF=doRF
         self.ROIs = ROIs
         self.n_l=n_l
         self.origins=origins
-        self.filename=filename
+        self.analysis_id=analysis_id
         self.doRF=doRF
         self.autoLane=autoLane
         self.doUV=doUV
@@ -43,7 +43,7 @@ class Analysis():
     def upload_data(self):
         name = ''
     def __str__(self):
-        return (f'ROIS: {self.ROIs} \n origins: {self.origins} \n n_l: {self.n_l} \n filename: {self.filename} \n doUV: {self.doUV} \n doRF,{self.doRF} \n autoLane: {self.autoLane} \n {self.names}')
+        return (f'ROIS: {self.ROIs} \n origins: {self.origins} \n n_l: {self.n_l} \n analysis_id: {self.analysis_id} \n doUV: {self.doUV} \n doRF,{self.doRF} \n autoLane: {self.autoLane} \n {self.names}')
     @staticmethod
     def build_analysis(attributes):
         return Analysis(attributes[0],attributes[1],attributes[2],attributes[3],attributes[4],attributes[5],attributes[6],attributes[7])
@@ -56,7 +56,7 @@ class Analysis():
         return newROIs
 
     def dump(self):
-        return [self.ROIs,self.n_l,self.origins,self.filename,self.doUV,self.doRF,self.autoLane,self.names]
+        return [self.ROIs,self.n_l,self.origins,self.analysis_id,self.doUV,self.doRF,self.autoLane,self.names]
     def setOrigins(self,origins):
         self.origins=origins
     def setROIs(self,ROIs):
@@ -73,7 +73,7 @@ class Analysis():
         self.description=description
 
     def results(self):
-        filename=self.filename
+        analysis_id=self.analysis_id
         tim = time.time() 
         newOrigins = (np.asarray(self.origins).copy()).tolist()
         newROIs = (np.asarray(self.ROIs).copy()).tolist()
@@ -144,6 +144,7 @@ class Analysis():
             return cerenk_answers
     def predict_ROIs(self,img,imgR):
         self.ROIs=  self.ROIs_from_points(self.findCenters(img),imgR)
+        return self.ROIs
     def ROIs_from_points(self,points,img):
     
         arr = []

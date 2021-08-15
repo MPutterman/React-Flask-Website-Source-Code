@@ -12,8 +12,7 @@ app.config['USER_THUMBNAIL_PATH'] = './CACHE/USER/THUMBNAIL'
 app.config['USER_AVATAR_PATH'] = './CACHE/USER/AVATAR'
 app.config['IMAGE_FILE_UPLOAD_PATH'] = './UPLOADS/IMAGE/FILE'
 app.config['IMAGE_THUMBNAIL_PATH'] = './CACHE/IMAGE/THUMBNAIL'
-app.config['ANALYSIS_DISPLAY_PATH'] = './CACHE/ANALYSIS/DISPLAY'
-app.config['ANALYSIS_COMPUTE_PATH'] = './CACHE/ANALYSIS/COMPUTE'
+app.config['ANALYSIS_WORKING_PATH'] = './CACHE/ANALYSIS/'
 
 # Create image storage
 # CAREFUL!!! Deletes existing folders and creates new empty folders
@@ -36,8 +35,7 @@ def create_file_storage():
         'USER_AVATAR_PATH',
         'IMAGE_FILE_UPLOAD_PATH',
         'IMAGE_THUMBNAIL_PATH',
-        'ANALYSIS_DISPLAY_PATH',
-        'ANALYSIS_COMPUTE_PATH',
+        'ANALYSIS_WORKING_PATH',
     ]
     for path in path_list:
         try:
@@ -80,12 +78,24 @@ def image_thumbnail_path(image_id):
     # path/<image_id>.png
 
 def analysis_display_path(analysis_id):
-    return os.path.join(app.config['ANALYSIS_DISPLAY_PATH'], f"{str(analysis_id)}.png")
-    # path/<analysis_id>.png
+    return os.path.join(app.config['ANALYSIS_WORKING_PATH'], str(analysis_id), 'display.png')
+    # path/<analysis_id>/display.png
 
-def analysis_display_path(analysis_id):
-    return os.path.join(app.config['ANALYSIS_COMPUTE_PATH'], f"{str(analysis_id)}.png") # TODO: another filetype?
-    # path/<analysis_id>.png
+def analysis_display_radio_path(analysis_id):
+    return os.path.join(app.config['ANALYSIS_WORKING_PATH'], str(analysis_id), 'display-radio.png')
+    # path/<analysis_id>/display.png
+
+def analysis_display_uv_path(analysis_id):
+    return os.path.join(app.config['ANALYSIS_WORKING_PATH'], str(analysis_id), 'display-uv.png')
+    # path/<analysis_id>/display.png
+
+def analysis_compute_path(analysis_id):
+    return os.path.join(app.config['ANALYSIS_WORKING_PATH'], str(analysis_id), 'compute.npy')
+    # path/<analysis_id>/compute.npy
+
+def analysis_radii_path(analysis_id):
+    return os.path.join(app.config['ANALYSIS_WORKING_PATH'], str(analysis_id), 'radii.npy')
+    # path/<analysis_id>/radii.npy
 
 # Retrieve a pathname
 def get_pathname(object_type, file_type, object_id):
@@ -101,8 +111,14 @@ def get_pathname(object_type, file_type, object_id):
         pathname = image_thumbnail_path(object_id)
     elif (object_type == 'analysis' and file_type == 'display'):
         pathname = analysis_display_path(object_id)
+    elif (object_type == 'analysis' and file_type == 'display-radio'): # TODO: need this?
+        pathname = analysis_display_radio_path(object_id)
+    elif (object_type == 'analysis' and file_type == 'display-uv'): # TODO: need this?
+        pathname = analysis_display_uv_path(object_id)
     elif (object_type == 'analysis' and file_type == 'compute'):
         pathname = analysis_compute_path(object_id)
+    elif (object_type == 'analysis' and file_type == 'radii'): # TODO: rename this? what is it for exactly?
+        pathname = analysis_radii_path(object_id)
     else:
         pathname = None
     return pathname
@@ -116,3 +132,12 @@ def save_file(file, pathname):
     os.makedirs(os.path.dirname(pathname), exist_ok=True)
     file.save(pathname)
     file.close()
+
+def save_array(array, pathname):
+    try:
+        os.remove(pathname)
+    except:
+        pass
+    os.makedirs(os.path.dirname(pathname), exist_ok=True)
+    import numpy
+    numpy.save(pathname, array)
