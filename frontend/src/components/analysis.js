@@ -55,6 +55,9 @@ import { analysisSchema, analysisValidator } from '../helpers/schema';
 import { connectEdit } from '../components/object_edit';
 import { SubmitField } from 'uniforms-material';
 import { useThrobber } from '../contexts/throbber';
+import { useAlerts } from '../contexts/alerts';
+import Popup from '../components/popup';
+import HelpIcon from '@material-ui/icons/Help';
 
 // FUTURE: embed results in ROI info...
 // ROI_list: list of {id, x, y, rx, ry, intensity}
@@ -71,6 +74,7 @@ import { useThrobber } from '../contexts/throbber';
 const WrappedAnalysisEdit = ({model, ...props}) => {
 
     const setBusy = useThrobber();
+    const setAlert = useAlerts();
 
     // Define step sizes (in pixels) to increment position or radius (via keypresses)
     const STEP_X = 4;
@@ -124,17 +128,17 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
         if (model.auto_lane !== null && model.auto_lane !== undefined) {
            setLaneState((prev) => ({ ...prev, autoLane: model.auto_lane, }));
         }
-        if (model.num_lanes !== null && model.num_lanes !== undefined) {
-           setLaneState((prev) => ({ ...prev, num_lanes: model.num_lanes, }));
-        }
+//        if (model.num_lanes !== null && model.num_lanes !== undefined) {
+//           setLaneState((prev) => ({ ...prev, num_lanes: model.num_lanes, }));
+//        }
         if (model.origins !== null && model.origins !== undefined) {
            setLaneState((prev) => ({ ...prev, origins: model.origins, }));
         }
         if (model.ROIs !== null && model.ROIs !== undefined) {
             console.log('capturing new ROIs from model', model.ROIs);
-           setLaneState((prev) => ({ ...prev, ROIs: model.ROIs,}));
+           setLaneState((prev) => ({ ...prev, ROIs: model.ROIs, num_lanes: model.ROIs.length}));
         }
-    }, [model.auto_lane, model.num_lanes, model.origins, model.ROIs])
+    }, [model.auto_lane, /*model.num_lanes,*/ model.origins, model.ROIs])
 
     const initialLegacyState = {
         doRF: false,  // LEGACY: phase this out 
@@ -184,20 +188,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
     //   these values, or need a backend method to populate them (e.g. size, etc...)
     const [imageState, setImageState] = React.useState(initialImageState);
 
-    // TODO: something not working right on redirect after submit files for /analysis/new
-    // Not triggering this useEffect... does the redirect not refresh the props/params?
-
-/*
-    React.useEffect(() => {
-        console.log("In useEffect [props.match.params.id]");
-        loadAnalysis(dataState.id);
-    }, [dataState.id])
-*/
-
-    // When the model changes (from wrapped form), set some variables
-    React.useEffect(() => {
-
-    }, [model])
 
     // TODO: this will call /api/analysis/load (which returns analysis data, params, and results)
     // TODO: add error checking if record not found
@@ -423,6 +413,12 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
     setLaneState(prev => ({...prev, origins: [], }));
   };
 
+  // Reset image brightness and contrast
+  const resetImage = () => {
+    // TODO: implement backend support for this
+    setAlert({severity: 'warning', message: 'Reset image brightness/contrast not yet supported'});
+  };
+
   // Re-autoselect the ROIs
   // TODO: add similar functions (or combine here) for origins and lanes?
   async function autoSelect() {
@@ -472,6 +468,20 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
   const originsDefined = () => {
     return Array.isArray(laneState.origins) && laneState.origins.length >= 3;
   };
+
+  const helpTextROI = 
+      `Click on a band to build a new ROI, or select on an existing ROI to modify it. 
+      While an ROI is select, click on it to delete it, or use the following keys to update it:<br/> 
+      [a / A] jog left (left or right side)<br/> 
+      [w / W] jog up (top or bottom side)<br/> 
+      [s / S] jog down (top or bottom side)<br/> 
+      [d / D] jog right (left or right side)<br/>`;
+
+  const helpTextOrigin = 
+      `Click on a desired point to set a new origin. Click on an existing one to delete it. 
+      To fully define the origins, click at the spotting point on each lane, and then use two 
+      points to define a solvent front line at the top of the TLC plate. These solvent front points 
+      must be the last two points selected.`;
 
   // TODO: combine these API calls into one?
   async function submitParams() {
@@ -664,34 +674,15 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                       setSelectMode(event.target.value );
                     }}
                   >
-                  <FormControlLabel value="roi" control={<Radio />} label="Select ROIs" />
-                  <FormControlLabel value="origin" control={<Radio />} label="Select Origins" />
+                  <FormControlLabel value="roi" control={<Radio />} label={<>"Select ROIs" <Popup message={helpTextROI} button_label={<HelpIcon/>} /></>} />
+                  <FormControlLabel value="origin" control={<Radio />} label={<>"Select Origins" <Popup message={helpTextOrigin} button_label={<HelpIcon/>} /></>}/>
                 </RadioGroup>
               </FormControl>
-              <div>
-                {selectMode === "roi" ? (
-                  <span>
-                  Click on a band to build a new ROI, or select on an existing ROI to modify it.
-                  While an ROI is select, click on it to delete it, or use the following keys to update it:<br/>
-                  [a / A] jog left (left or right side)<br/>
-                  [w / W] jog up (top or bottom side)<br/>
-                  [s / S] jog down (top or bottom side)<br/>
-                  [d / D] jog right (left or right side)<br/>
-                  </span>
-                ) : ( <></> )}
-                {selectMode === "origin" ? (
-                  <span>
-                  Click on a desired point to set a new origin. Click on an existing one to delete it.
-                  To fully define the origins, click at the spotting point on each lane, and then use two 
-                  points to define a solvent front line at the top of the TLC plate. These solvent front points
-                  must be the last two points selected.
-                  </span>
-                ) : ( <></>)}
-              </div>
 
-              <Button color="primary" variant="contained" onClick={clearROIs}> Clear all ROIs </Button>
-              <Button color="primary" variant="contained" onClick={autoSelect}> Autoselect / reset ROIs </Button>
-              <Button color="primary" variant="contained" onClick={clearOrigins}> Clear all origins </Button>
+              <Button size='small' color="primary" variant="contained" onClick={clearROIs}> Clear all ROIs </Button>
+              <Button size='small' color="primary" variant="contained" onClick={autoSelect}> Autoselect / reset ROIs </Button>
+              <Button size='small' color="primary" variant="contained" onClick={clearOrigins}> Clear all origins </Button>
+              <Button size='small' color="primary" variant="contained" onClick={resetImage}> Reset brightness/contrast </Button>
 
             </Grid>
 
@@ -706,6 +697,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                     step={1}
                     marks={true}
                     defaultValue={initialImageState.brightness}
+                    value={imageState.brightness}
                     min={-100}
                     max={500}
                     onChange={(e, value) => {
@@ -724,6 +716,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                     step={1}
                     marks={true}
                     defaultValue={initialImageState.contrast}
+                    value={imageState.contrast}
                     min={-100}
                     max={500}
                     onChange={(e, value) => {
@@ -789,7 +782,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                       step={1} 
                       valueLabelDisplay="on"
                       marks='true' //{true} Native HTML elements only accept strings
-                      defaultValue={laneState.num_lanes}
+                      value={laneState.num_lanes}
                       min={0}
                       max={12}
                       onInput={(e) => {
