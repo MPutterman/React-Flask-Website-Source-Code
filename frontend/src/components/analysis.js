@@ -46,7 +46,7 @@ import AccordionDetails from '@material-ui/core/AccordionDetails';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { withStyles, makeStyles } from '@material-ui/core/styles';
 import AnalysisResults from './analysis_results';
-import AnalysisData from './analysis_data 3';
+import AnalysisData from './analysis_data 4';
 //import {useKeypress} from '../hooks/Keypress';
 import {useEventListener} from '../hooks/useEventListener';
 import { ServerImage } from '../components/server_file';
@@ -58,6 +58,7 @@ import { useThrobber } from '../contexts/throbber';
 import { useAlerts } from '../contexts/alerts';
 import Popup from '../components/popup';
 import HelpIcon from '@material-ui/icons/Help';
+import { useForm } from 'uniforms';
 
 // FUTURE: embed results in ROI info...
 // ROI_list: list of {id, x, y, rx, ry, intensity}
@@ -75,6 +76,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
 
     const setBusy = useThrobber();
     const setAlert = useAlerts();
+    const form = useForm();
 
     // Define step sizes (in pixels) to increment position or radius (via keypresses)
     const STEP_X = 4;
@@ -246,7 +248,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
           else newROIs[0].push(ROI_to_add);
           return {...prev,
             ROIs: newROIs,
-            num_lanes: res.data.n_l, // TODO: rename to num_lanes in api_call
+            num_lanes: res.data.num_lanes,
             selectedROI: {lane: 0, band: (!Array.isArray(prev.ROIs) || !prev.ROIs[0]) ? 0 : prev.ROIs[0].length-1+1},
           };
         });
@@ -415,8 +417,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
 
   // Reset image brightness and contrast
   const resetImage = () => {
-    // TODO: implement backend support for this
-    setAlert({severity: 'warning', message: 'Reset image brightness/contrast not yet supported'});
+    setImageState(prev => ({...prev, contrast: initialImageState.contrast, brightness: initialImageState.brightness, }));
   };
 
   // Re-autoselect the ROIs
@@ -468,20 +469,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
   const originsDefined = () => {
     return Array.isArray(laneState.origins) && laneState.origins.length >= 3;
   };
-
-  const helpTextROI = 
-      `Click on a band to build a new ROI, or select on an existing ROI to modify it. 
-      While an ROI is select, click on it to delete it, or use the following keys to update it:<br/> 
-      [a / A] jog left (left or right side)<br/> 
-      [w / W] jog up (top or bottom side)<br/> 
-      [s / S] jog down (top or bottom side)<br/> 
-      [d / D] jog right (left or right side)<br/>`;
-
-  const helpTextOrigin = 
-      `Click on a desired point to set a new origin. Click on an existing one to delete it. 
-      To fully define the origins, click at the spotting point on each lane, and then use two 
-      points to define a solvent front line at the top of the TLC plate. These solvent front points 
-      must be the last two points selected.`;
 
   // TODO: combine these API calls into one?
   async function submitParams() {
@@ -551,9 +538,15 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
             </AccordionSummary>
             <AccordionDetails>
 
-              <AnalysisData model={model} /*dataState={dataState} setDataState={setDataState} */ {...props} />
-              <Box />
-              <SubmitField size='small' >Save</SubmitField>
+              <Grid direction='row' >
+
+                <Grid item justifyContent='right' justify='right'>
+                  <AnalysisData model={model} /*dataState={dataState} setDataState={setDataState} */ {...props} />
+                </Grid>
+                <Grid item>
+                  <SubmitField size='small' >Save</SubmitField>
+                </Grid>
+              </Grid>
 
 
             </AccordionDetails>
@@ -674,8 +667,30 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                       setSelectMode(event.target.value );
                     }}
                   >
-                  <FormControlLabel value="roi" control={<Radio />} label={<>"Select ROIs" <Popup message={helpTextROI} button_label={<HelpIcon/>} /></>} />
-                  <FormControlLabel value="origin" control={<Radio />} label={<>"Select Origins" <Popup message={helpTextOrigin} button_label={<HelpIcon/>} /></>}/>
+                  <FormControlLabel value="roi" control={<Radio />} label={
+                      <Box display="flex" flexDirection="row" alignItems='center'>
+                          Select ROIs
+                          <Popup width='50%' button_label={<HelpIcon/>}>
+                                Click on a band to build a new ROI, or select on an existing ROI to modify it. 
+                                While an ROI is select, click on it to delete it, or use the following keys to update it:<br/> 
+                                [a / A] jog left (left or right side)<br/> 
+                                [w / W] jog up (top or bottom side)<br/> 
+                                [s / S] jog down (top or bottom side)<br/> 
+                                [d / D] jog right (left or right side)<br/>
+                          </Popup>
+                      </Box>}
+                  />
+                  <FormControlLabel value="origin" control={<Radio />} label={
+                      <Box display="flex" flexDirection="row" alignItems='center'>
+                          Select Origins
+                          <Popup width='50%' button_label={<HelpIcon/>}>
+                              Click on a desired point to set a new origin. Click on an existing one to delete it. 
+                              To fully define the origins, click at the spotting point on each lane, and then use two 
+                              points to define a solvent front line at the top of the TLC plate. These solvent front points 
+                              are assumed to be the highest two points chosen.
+                          </Popup>
+                      </Box>}
+                  />
                 </RadioGroup>
               </FormControl>
 
