@@ -1092,7 +1092,7 @@ def analysis_roi_build(analysis_id,x,y,shift):
         rowRadius,colRadius = 0,0
     rowRadius,colRadius = min(max(rowRadius+3,14),55),min(max(colRadius+3,14),55)
     
-    if (ROIs == []): ROIs = [[]]
+    if (ROIs == []): ROIs[0] = []
     # TODO: change to roi.id, roi.x, roi.y, roi.rx, roi.ry
     ROIs[0].append([int(y),int(x),int(rowRadius),int(colRadius)])
     ROIs = AnalysisHelper.flatten(ROIs)
