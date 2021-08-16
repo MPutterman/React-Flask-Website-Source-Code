@@ -43,7 +43,7 @@ import urllib
 import ast
 import datetime
 from dateutil import parser
-from analysis import Analysis
+from analysis import AnalysisHelper
 
 # TODO: these, and dependent code should be moved into Analysis class
 from skimage import morphology,filters,transform, exposure
@@ -739,7 +739,7 @@ def analysis_rois_autoselect(analysis_id):
     doRF = analysis.doRF # is this needed?
     num_lanes = None # is this needed?
     autolane = False # is this needed?
-    analysis_retrieve = Analysis([], num_lanes, [], analysis_id, doUV, doRF, autolane)
+    analysis_retrieve = AnalysisHelper([], num_lanes, [], analysis_id, doUV, doRF, autolane)
 
     # Retrieve files needed for analysis
     # TODO: check if they exist? and generate if not?
@@ -816,7 +816,7 @@ def analysis_rois_save(analysis_id):
     #   or take more advantage of it's object nature and methods...
     newROIs = Analysis.flatten(newROIs)
     #print('n',newROIs)
-    analysis = Analysis(newROIs, num_lanes, newOrigins, analysis_id, doUV, doRF, autoLane)
+    analysis = AnalysisHelper(newROIs, num_lanes, newOrigins, analysis_id, doUV, doRF, autoLane)
 
     # TODO: what does this stuff below do?  and does it work if origins is empty?
     analysis.sort2(analysis.origins,index = 0)
@@ -841,7 +841,7 @@ def analysis_rois_save(analysis_id):
     # Also compute results
     # Force autolane and num_lanes to False and None
     doUV = False # TODO: fix to reflect actual desired value
-    new_analysis = Analysis(analysis.ROIs,None,analysis.origins,analysis_id,doUV, doRF, False)
+    new_analysis = AnalysisHelper(analysis.ROIs,None,analysis.origins,analysis_id,doUV, doRF, False)
     # Load relevant image and send for computations
     from filestorage import analysis_compute_path
     img = np.load(analysis_compute_path(analysis_id))
@@ -1169,7 +1169,7 @@ def analysis_results(analysis_id):
         doUV = False # TODO: fix to reflect actual desired value
         autolane = False
         # TODO: doRF should always be true (at least attempt)
-        analysis_retrieve = Analysis(analysis.ROIs,None,analysis.origins,analysis_id,doUV, analysis.doRF,autolane)
+        analysis_retrieve = AnalysisHelper(analysis.ROIs,None,analysis.origins,analysis_id,doUV, analysis.doRF,autolane)
 
         # Load relevant image and send for computations
         from filestorage import analysis_compute_path

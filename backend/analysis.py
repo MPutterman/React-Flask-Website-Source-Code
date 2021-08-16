@@ -24,7 +24,7 @@ from sklearn.cluster import MeanShift,estimate_bandwidth,AffinityPropagation,KMe
 from skimage.color import rgba2rgb
 from skimage import measure
 
-class Analysis():
+class AnalysisHelper():
     """Input: ROIs, n_l, origins, analysi_id, doUV, doRF, autoLane"""
     def __init__(self,ROIs,n_l,origins,analysis_id,doUV,doRF,autoLane,name='',description=''):
         self.doRF=doRF
@@ -43,7 +43,7 @@ class Analysis():
         return (f'ROIS: {self.ROIs} \n origins: {self.origins} \n n_l: {self.n_l} \n analysis_id: {self.analysis_id} \n doUV: {self.doUV} \n doRF,{self.doRF} \n autoLane: {self.autoLane}')
     @staticmethod
     def build_analysis(attributes):
-        return Analysis(attributes[0],attributes[1],attributes[2],attributes[3],attributes[4],attributes[5],attributes[6],attributes[7])
+        return AnalysisHelper(attributes[0],attributes[1],attributes[2],attributes[3],attributes[4],attributes[5],attributes[6],attributes[7])
     @staticmethod
     def flatten(ROIs):
         newROIs = []
@@ -369,7 +369,7 @@ class Analysis():
         ####print(time.time()-u)
         ##print(time.time()-u)
         for i in range(4):
-            centers = Analysis.find_RL_UD(img,centers)
+            centers = AnalysisHelper.find_RL_UD(img,centers)
         centers = self.clear_near(centers)
         return centers
     def findMaxLength(self,arr):
@@ -497,7 +497,7 @@ class Analysis():
         #print(shift)
         if (shift=='0'):
             for i in range(3):
-                center  = Analysis.find_RL_UD(img,[(row,col)])
+                center  = AnalysisHelper.find_RL_UD(img,[(row,col)])
                 row = center[0][0]
                 col=center[0][1]
         val =1.35*(np.mean(img[:,150:len(img[0])-150]))
