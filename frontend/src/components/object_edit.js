@@ -80,7 +80,9 @@ import Typography from '@material-ui/core/Typography';
 //   <FullyWrappedObjectEdit create id />
 // Properties:
 //   - create=<Boolean> (If true, create a new record, ignore id parameters)
-//   - id=<Integer> (also can get from props.match.params.id)
+//   - objectId=<Integer> (also can get from props.match.params.id)
+//   - filter=<Array>
+//   - onSave=<Function>
 
 // Wrapper for edit/create forms
 //   - WrappedEdit <Component> - component to be wrapped
@@ -88,7 +90,7 @@ import Typography from '@material-ui/core/Typography';
 //   - schemaFunction <Function> - function for building schema
 //   - validatorFunction <Function> - async validator
 //   - transformFunction <Function> - transform the model before form, validation, or submit
-//   - onSaveHandler <Function> - 
+//   - onSaveHandler <Function> - NOT IMPLEMENTED...
 
 
 const connectEdit = (WrappedEdit, objectType, schemaFunction, validatorFunction=null, transformFunction=null) => {
@@ -283,7 +285,7 @@ return (props) => {
     return (
 
         <>
-        <div className="EditForm" style={{ maxWidth: '800px', align:'middle'}}>
+        <div className="EditForm" style={{ maxWidth: '900px', align:'middle'}}>
 
             <AutoForm
                 modelTransform={transformFunction ? transformFunction : defaultTransform}
