@@ -334,25 +334,25 @@ const schema = new SimpleSchema ({
     correct_dark: {
         label: 'Use dark correction?',
         type: Boolean,
-        required: false,
+        required: true,
         defaultValue: prefs ? prefs.analysis.default_use_dark_correction : false,
     },
     correct_flat: {
         label: 'Use flat correction?',
         type: Boolean,
-        required: false,
+        required: true,
         defaultValue: prefs ? prefs.analysis.default_use_flat_correction : false,
     },
     correct_bkgrd : {
         label: 'Use background correction?',
         type: Boolean,
-        required: false,
+        required: true,
         defaultValue: prefs ? prefs.analysis.default_use_bkgrd_correction : false,
     },
     correct_filter: {
         label: 'Use filter correction?',
         type: Boolean,
-        required: false,
+        required: true,
         defaultValue: prefs ? prefs.analysis.default_use_filter_correction : false,
     },
     dark_image_id: {
@@ -370,14 +370,14 @@ const schema = new SimpleSchema ({
     bkgrd_algorithm: {
         label: 'Background correction method',
         type: String,
-        allowedValues: ['1st order', '2nd order', '3rd order',],
+        allowedValues: config.analysis.bkgrd_algorithm_options,
         required: false,
         defaultValue: prefs ? prefs.analysis.default_bkgrd_algorithm : null,
     },
     filter_algorithm: {
         label: 'Filter algorithm',
         type: String,
-        allowedValues: ['median 3x3',],
+        allowedValues: config.analysis.filter_algorithm_options,
         required: false,
         defaultValue: prefs ? prefs.analysis.default_filter_algorithm : null,
     },

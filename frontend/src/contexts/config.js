@@ -53,8 +53,8 @@ export const initialState = {
         default_pagesize: 10,
     },
     analysis: {
-        bkgrd_algorithm_options: ['1st order', '2nd order', '3rd order',],
-        filter_algorithm_options: ['median 3x3',],
+        bkgrd_algorithm_options: ['None', '1st order', '2nd order', '3rd order',],
+        filter_algorithm_options: ['None', 'median 3x3',],
     },
 }
 
