@@ -41,17 +41,13 @@ from sqlalchemy.orm import class_mapper, make_transient
 from sqlalchemy import select
 from dotenv import load_dotenv
 import os
-import base64
-import copy
+import json
+#import copy
 from urllib.parse import quote
-from sqlalchemy.dialects.postgresql import ARRAY
+#from sqlalchemy.dialects.postgresql import ARRAY
 import enum
 from flask_login import UserMixin
-from json import dumps
-import PIL
 import time
-import numpy as np
-from io import BytesIO
 import flask_login
 from datetime import datetime, timezone # TODO: probably should move time handling to API
 from dateutil.parser.isoparser import isoparse
@@ -268,9 +264,9 @@ class Equipment(Base):
         }
 
 
+'''
 # TODO: since each analysis requires always the same set of cached
 # images, should we combine them into a single table?
-'''
 class CachedImage(Base):
     __tablename__='cachedimage'
     analysis = relationship('Analysis',back_populates='cachedimages')
@@ -289,8 +285,9 @@ class CachedImage(Base):
     #  ------ then regenerate cached image (and updated modified field). Then load
     #  ------ the new image
     # def save (image data/object)
-''' 
+'''
 
+'''
 class ROI(Base):
     __tablename__='ROI'
     ROI_id = Column(Integer,primary_key=True) 
@@ -301,6 +298,7 @@ class ROI(Base):
     ry=Column(Integer)#radius in y direction (in pixels)
     lane_id = Column(Integer,ForeignKey('lane.lane_id'))
     lane = relationship("Lane",back_populates='ROI_list')
+'''
 
 class Analysis(Base):
     # TODO: Add created, modified fields (handled internally)
@@ -336,9 +334,13 @@ class Analysis(Base):
     # TODO: do we need number of lanes stored?  Do we need some kind of
     #   flag to indicate whether we should re-generate ROIs if any image is updated?
     doRF = Column(Boolean)
+    ROIs = Column(PickleType, default=[], nullable=False)
+    origins = Column(PickleType, default=[], nullable=False)
     #cachedimages=relationship('CachedImage',back_populates='analysis')
-    origin_list = relationship('Origin',back_populates='analysis')
-    lane_list = relationship("Lane", back_populates="analysis")
+    #origin_list = relationship('Origin',back_populates='analysis')
+    #lane_list = relationship("Lane", back_populates="analysis")
+    #origin_list2 = Column(Text, default='[[]]', nullable=False) #PickleType, default={}, nullable=False) -- will serialize
+    #lane_list2 = Column(Text, default='[[]]', nullable=False) #PickleType, default={}, nullable=False) -- will serialize
     #images= relationship('Image',secondary=analysis_image_map) # TODO: remove
     owner_id = Column(Integer, ForeignKey('user.user_id'))
     created = Column(TZDateTime) 
@@ -352,7 +354,26 @@ class Analysis(Base):
             col.name: getattr(self, col.name)
                 for col in columns
         }
+
+    '''
+    def as_dict(self):
+        # Returns full represenation of model.
+        columns = class_mapper(self.__class__).mapped_table.c
+        data = {}
+        for col in columns:
+            data[col.name] = getattr(self, col.name)
+        data['ROIs'] = json.loads(self.lane_list2)
+        data['origins'] = json.loads(self.origin_list2)
+        return data
     
+    @property
+    def ROIs(self):
+        return json.loads(self.lane_list2)
+    @property
+    def origins(self):
+        return json.loads(self.origin_list2)
+    '''
+'''    
 class Origin(Base):
     __tablename__='origin'
     origin_id =Column(Integer,primary_key=True)
@@ -376,7 +397,6 @@ class Origin(Base):
             origin_to_add = [orig.y,orig.x]
             origins.append(origin_to_add)
         return origins
-
 class Lane(Base):
     __tablename__ = 'lane'
     lane_id = Column(Integer, primary_key=True)
@@ -409,7 +429,7 @@ class Lane(Base):
                 lane.append(roi)
             ROIs.append(lane)
         return ROIs
-
+'''
 
 class ImageType(enum.Enum):
     flat = 1
@@ -495,11 +515,15 @@ class Cover(Base):
 
 def db_create_tables():
     # Careful, this deletes ALL data in database
+    print ('Initializing database...')
+    print ('Dropping all tables')
     Base.metadata.drop_all(db_engine)
+    print ('Creating all tables')
     Base.metadata.create_all(db_engine)
 
 
 def db_add_test_data():
+    print ('Populating database with test data')
     # Some simple tests to show usage of creating a few objects (and automatically setting up the links between different types)
     tim = time.time()
     db_session.begin()
@@ -1096,9 +1120,14 @@ def db_analysis_load(analysis_id):
     db_session.commit()
     # TODO: make a copy before adding fields?
     # Build ROI list
-    analysis.ROIs=Lane.build_arr(analysis.lane_list)
+    ######analysis.ROIs=Lane.build_arr(analysis.lane_list)
+    #analysis.ROIs = json.loads(analysis.lane_list2)
+    #print ('analysis ROIs after decode: ', analysis.ROIs)
+    #print ('decode directly (not assign to object): ',  json.loads(analysis.lane_list2))
     # Build origin list
-    analysis.origins=Origin.build_arr(analysis.origin_list)
+    ######analysis.origins=Origin.build_arr(analysis.origin_list)
+    #analysis.origins = json.loads(analysis.origin_list2)
+    print ('analysis loaded... as_dict', analysis.as_dict())
     return analysis
 
 '''
@@ -1142,8 +1171,10 @@ def db_analysis_edit(data,analysis_id):
     
     analysis = db_object_load('analysis', analysis_id) # Analysis.query.filter(Analysis.analysis_id==analysis_id).one()
     analysis.doRF = data['doRF']
-    analysis.lane_list = Lane.build_lanes(data['ROIs'])
-    analysis.origin_list = Origin.build_origins(data['origins'])
+    ####analysis.lane_list = Lane.build_lanes(data['ROIs'])
+    analysis.lane_list2 = json.dumps(data['ROIs'])
+    ####analysis.origin_list = Origin.build_origins(data['origins'])
+    analysis.origin_list2 = json.dump2(data['origins'])
     db_session.add(analysis)
     db_session.commit()
 #    db_session.close()
@@ -1180,15 +1211,19 @@ def db_analysis_rois_save(analysis_id, data):
     analysis = db_object_load('analysis', analysis_id)
     # Only update fields provided
     if data.get('ROIs') is not None:
-        analysis.lane_list = Lane.build_lanes(data['ROIs'])
+        #####analysis.lane_list = Lane.build_lanes(data['ROIs'])
+        #analysis.lane_list2 = json.dumps(data['ROIs'])
+        analysis.ROIs = data['ROIs']
     if data.get('origins') is not None:
-        analysis.origin_list = Origin.build_origins(data['origins'])
+        ######analysis.origin_list = Origin.build_origins(data['origins'])
+        #analysis.origin_list2 = json.dumps(data['origins'])
+        analysis.origins = data['origins']
     if data.get('doRF') is not None:
         analysis.doRF = data['doRF']
     if data.get('display_image_brightness') is not None:
         analysis.display_image_brightness = data['display_image_brightness']
     if data.get('display_image_contrast') is not None:
-        analysis.display_image_brightness = data['display_image_contrast']
+        analysis.display_image_contrast = data['display_image_contrast']
 
     #analysis = Analysis(images=images,lane_list=lane_list,cachedimages = cachedimages,analysis_id = analysis_id, origin_list = origin_list,doRF=doRF, name=data['name'], description=data['description'], owner_id=data['user_id'])
     #db_session.add(analysis)
@@ -1199,9 +1234,13 @@ def db_analysis_rois_save(analysis_id, data):
 
     # Before returning, build the ROIs and origins arrays
     # Build ROI list
-    analysis.ROIs=Lane.build_arr(analysis.lane_list)
+    #####analysis.ROIs=Lane.build_arr(analysis.lane_list)
+    #analysis.ROIs = json.loads(analysis.lane_list2)
+    #if (not analysis.ROIs): analysis.ROIs = [[]]
     # Build origin list
-    analysis.origins=Origin.build_arr(analysis.origin_list)
+    ######analysis.origins=Origin.build_arr(analysis.origin_list)
+    #analysis.origins = json.loads(analysis.origin_list2)
+    #if (not analysis.origins): analysis.origins = [[]]
 
     return analysis
     #if data['user_id'] is not None:
