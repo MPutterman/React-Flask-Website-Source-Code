@@ -100,9 +100,9 @@ export const defaultUserPrefs = {
         default_use_dark_correction: false,
         default_dark_image: null,                  // image_id
         default_use_bkgrd_correction: false,
-        default_bkgrd_algorithm: '',         
+        default_bkgrd_algorithm: 'None',         
         default_use_filter_correction: false,
-        default_filter: '',              
+        default_filter: 'None',              
     },
 }
 
@@ -187,7 +187,7 @@ export const AuthReducer = ({session: prevSession, profile: prevProfile, roles: 
       for (const category in userPrefs) {
         for (const key in userPrefs[category]) {
           // Copy if not null/undefined
-          if (userPrefs[category][key]) prefs[category][key] = userPrefs[category][key];
+          if (userPrefs[category][key] !== null && userPrefs[category][key] !== undefined) prefs[category][key] = userPrefs[category][key];
         }
       }
       favorites = action.payload.favorites;
@@ -217,7 +217,7 @@ export const AuthReducer = ({session: prevSession, profile: prevProfile, roles: 
       // _.merge(prefs, [defaultUserPrefs, userPrefs]);
       for (const category in userPrefs) {
         for (const key in userPrefs[category]) {
-          if (userPrefs[category][key]) prefs[category][key] = userPrefs[category][key];
+          if (userPrefs[category][key] !== null && userPrefs[category][key] !== undefined) prefs[category][key] = userPrefs[category][key];
         }
       }
       favorites = action.payload.favorites;
