@@ -370,7 +370,7 @@ const schema = new SimpleSchema ({
     bkgrd_algorithm: {
         label: 'Background correction method',
         type: String,
-        allowedValues: ['1st order', '2nd order', '3rd order'],
+        allowedValues: ['1st order', '2nd order', '3rd order',],
         required: false,
         defaultValue: prefs ? prefs.analysis.default_bkgrd_algorithm : null,
     },
@@ -409,6 +409,28 @@ const schema = new SimpleSchema ({
         label: 'Display image URL',
         type: String,
         required: false,
+    },
+    ROIs: {
+        label: 'ROIs',
+        type: Array,
+        required: false,
+    },
+    'ROIs.$': {
+        type: Array,
+    },
+    'ROIs.$.$': {
+        type: SimpleSchema.Integer,
+    },
+    origins: {
+        label: 'Origins',
+        type: Array,
+        required: false,
+    },
+    'origins.$': {
+        type: Array,
+    },
+    'origins.$.$': {
+        type: SimpleSchema.Integer,
     },
 
 });
