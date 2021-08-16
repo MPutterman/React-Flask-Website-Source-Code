@@ -2,8 +2,11 @@
 # TODO:
 # * Consider whether the object with constructor is needed, or whether this should be a set of
 #   static methods...
-# * There seem to be some backed in assumptions that are not clear. E.g. origins is only
-#   origins in some cases, but has 2 extra points for doRF... Needs to be documented (and maybe changed)
+# * There are several edge cases leading to errors, e.g. empty ROI list, etc.  Also there are some
+#     baked in assumptions that are not clear. What is the structure of origins?  Why does num_lanes
+#     change to 10 when I have 8 lanes and add two extra origins for solvent front...?
+# * Move the remaining image computations from api.py to here
+
 
 import time
 from scipy.cluster.vq import vq, kmeans,whiten
