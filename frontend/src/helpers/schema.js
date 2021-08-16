@@ -312,19 +312,19 @@ const schema = new SimpleSchema ({
         label: 'Equipment',
         type: Number, // TODO: ID
         required: true,
-        defaultValue: prefs ? prefs.default_equip : null,
+        defaultValue: prefs ? prefs.analysis.default_equip : null,
     },
     plate_id: {
         label: 'TLC plate',
         type: Number, // TODO: ID
         required: true,
-        defaultValue: prefs ? prefs.default_plate : null,
+        defaultValue: prefs ? prefs.analysis.default_plate : null,
     },
     cover_id: {
         label: 'TLC cover',
         type: Number, // TODO: ID
         required: true,
-        defaultValue: prefs ? prefs.default_cover : null,
+        defaultValue: prefs ? prefs.analysis.default_cover : null,
     },
     radio_image_id: {
         label: 'Radiation Image',
@@ -335,51 +335,51 @@ const schema = new SimpleSchema ({
         label: 'Use dark correction?',
         type: Boolean,
         required: false,
-        defaultValue: prefs ? prefs.default_use_dark_correction : false,
+        defaultValue: prefs ? prefs.analysis.default_use_dark_correction : false,
     },
     correct_flat: {
         label: 'Use flat correction?',
         type: Boolean,
         required: false,
-        defaultValue: prefs ? prefs.default_use_flat_correction : false,
+        defaultValue: prefs ? prefs.analysis.default_use_flat_correction : false,
     },
     correct_bkgrd : {
         label: 'Use background correction?',
         type: Boolean,
         required: false,
-        defaultValue: prefs ? prefs.default_use_bkgrd_correction : false,
+        defaultValue: prefs ? prefs.analysis.default_use_bkgrd_correction : false,
     },
     correct_filter: {
         label: 'Use filter correction?',
         type: Boolean,
         required: false,
-        defaultValue: prefs ? prefs.default_use_filter_correction : false,
+        defaultValue: prefs ? prefs.analysis.default_use_filter_correction : false,
     },
     dark_image_id: {
         label: 'Dark Image',
         type: SimpleSchema.Integer,
         required: false,
-        defaultValue: prefs ? prefs.default_dark_image : null,
+        defaultValue: prefs ? prefs.analysis.default_dark_image : null,
     },
     flat_image_id: {
         label: 'Flat Image',
         type: SimpleSchema.Integer,
         required: false,
-        defaultValue: prefs ? prefs.default_flat_image : null,
+        defaultValue: prefs ? prefs.analysis.default_flat_image : null,
     },
     bkgrd_algorithm: {
         label: 'Background correction method',
         type: String,
         allowedValues: ['1st order', '2nd order', '3rd order'],
         required: false,
-        defaultValue: prefs ? prefs.default_bkgrd_algorithm : null,
+        defaultValue: prefs ? prefs.analysis.default_bkgrd_algorithm : null,
     },
     filter_algorithm: {
         label: 'Filter algorithm',
         type: String,
         allowedValues: ['median 3x3',],
         required: false,
-        defaultValue: prefs ? prefs.default_filter_algorithm : null,
+        defaultValue: prefs ? prefs.analysis.default_filter_algorithm : null,
     },
     bright_image_id: {
         label: 'Brightfield Image',
@@ -391,18 +391,23 @@ const schema = new SimpleSchema ({
         type: SimpleSchema.Integer,
         required: false,
     },
-    brightness: {
+    display_image_brightness: {
         label: 'Brightness',
         type: Number,
         min: 0,
         max: 1000, // TODO: What should be allowed range?
         required: false,
     },
-    contrast: {
+    display_image_contrast: {
         label: 'Brightness',
         type: Number,
         min: 0,
         max: 1000, // TODO: what should be allowed range?
+        required: false,
+    },
+    display_image_url: {
+        label: 'Display image URL',
+        type: String,
         required: false,
     },
 
