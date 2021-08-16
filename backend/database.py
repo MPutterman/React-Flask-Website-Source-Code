@@ -15,6 +15,8 @@
 #     commit to database when a partial change is made. For now we rewrite the
 #     whole thing whenever we make a change. Need to look into how to use 'MutableDict' or other approaches
 #     to make this more efficient or intutive
+# * If an Image is updated (e.g. replace image)... then should dependent analyses be recomputed... Problably
+#     Should prevent updating the image after saving to prevent issues...
 
 # Package dependencies:
 # mysql-connector-python, SQLAlchemy, flask-login
@@ -331,6 +333,8 @@ class Analysis(Base):
     display_image_brightness = Column(Integer)
 
     # Fields related to lane state
+    # TODO: do we need number of lanes stored?  Do we need some kind of
+    #   flag to indicate whether we should re-generate ROIs if any image is updated?
     doRF = Column(Boolean)
     #cachedimages=relationship('CachedImage',back_populates='analysis')
     origin_list = relationship('Origin',back_populates='analysis')
@@ -1086,30 +1090,16 @@ def db_analysis_image_cache(analysis_id, url):
     db_session.commit()
 
 
-def retrieve_initial_analysis(analysis_id):
-    #db_session.begin()   # TODO: why does this cause "transaction is already begun" error?
-    #tim = time.time()
-    analysis = db_object_load('analysis', analysis_id)
-    #analysis = Analysis.query.filter(Analysis.analysis_id==analysis_id).one()
-    analysis_dict = analysis.as_dict()
-    analysis_dict['ROIs']=Lane.build_arr(analysis.lane_list)
-    ##print('rois',analysis_dict['ROIs'])
-    analysis_dict['doRF']=analysis.doRF
-    analysis_dict['origins']=Origin.build_arr(analysis.origin_list)
-    #analysis_dict['CerenkovName']=Image.query.filter(Image.image_type==ImageType.radio, Image.analysis_list.any(analysis_id=analysis_id)).one().name
-
-    #analysis_dict['DarkName']=Image.query.filter(Image.image_type==ImageType.dark , Image.analysis_list.any(analysis_id=analysis_id)).one().name
-    ##print(analysis_dict['DarkName'])
-    #analysis_dict['FlatName']=Image.query.filter(Image.image_type==ImageType.flat , Image.analysis_list.any(analysis_id=analysis_id)).one().name
-    #if Image.query.filter(Image.image_type==ImageType.uv , Image.analysis_list.any(analysis_id=analysis_id)).all():
-    #    analysis_dict['UVName']=Image.query.filter(Image.image_type==ImageType.uv , Image.analysis_list.any(analysis_id=analysis_id)).one().name
-    #if Image.query.filter(Image.image_type==ImageType.bright , Image.analysis_list.any(analysis_id=analysis_id)).all():
-    #    analysis_dict['BrightName']=Image.query.filter(Image.image_type==ImageType.bright , Image.analysis_list.any(analysis_id=analysis_id)).one().name
-    #analysis_dict['name'] = analysis.name
-    #analysis_dict['description'] = analysis.description
-    #analysis_dict['owner_id'] = analysis.owner_id
-    #db_session.commit()
-    return analysis_dict # TODO: later return analysis instead of dict....
+def db_analysis_load(analysis_id):
+    # Note cannot call db_object_load (would be recursive call)
+    analysis = Analysis.query.filter(Analysis.analysis_id==analysis_id).one()
+    db_session.commit()
+    # TODO: make a copy before adding fields?
+    # Build ROI list
+    analysis.ROIs=Lane.build_arr(analysis.lane_list)
+    # Build origin list
+    analysis.origins=Origin.build_arr(analysis.origin_list)
+    return analysis
 
 '''
 def analysis_info(analysis_id):
@@ -1173,7 +1163,10 @@ def find_path(image_type,analysis_id):
     return f'./UPLOADS/{analysis_id}/{image_type}{ending}'
 '''
 
-def db_analysis_save_ROIs(data,analysis_id):
+# TODO: add error checking
+# Save ROI and origin info
+# Returns an analysis object
+def db_analysis_rois_save(analysis_id, data):
     #db_session.begin()  # TODO: why does this cause "transaction is already begun" error?
     #images = []
     #for image_type in ['dark','flat','radio','uv','bright']:
@@ -1185,14 +1178,32 @@ def db_analysis_save_ROIs(data,analysis_id):
     #    img = CachedImage(image_type = image_type,image_path=find_path(image_type,analysis_id))
     #    cachedimages.append(img)
     analysis = db_object_load('analysis', analysis_id)
-    analysis.lane_list = Lane.build_lanes(data['ROIs'])
-    analysis.origin_list = Origin.build_origins(data['origins'])
-    analysis.doRF = data['doRF']
+    # Only update fields provided
+    if data.get('ROIs') is not None:
+        analysis.lane_list = Lane.build_lanes(data['ROIs'])
+    if data.get('origins') is not None:
+        analysis.origin_list = Origin.build_origins(data['origins'])
+    if data.get('doRF') is not None:
+        analysis.doRF = data['doRF']
+    if data.get('display_image_brightness') is not None:
+        analysis.display_image_brightness = data['display_image_brightness']
+    if data.get('display_image_contrast') is not None:
+        analysis.display_image_brightness = data['display_image_contrast']
+
     #analysis = Analysis(images=images,lane_list=lane_list,cachedimages = cachedimages,analysis_id = analysis_id, origin_list = origin_list,doRF=doRF, name=data['name'], description=data['description'], owner_id=data['user_id'])
     #db_session.add(analysis)
-    user = db_object_load('user', analysis.owner_id)
-    user.analysis_list.append(analysis)
+    #user = db_object_load('user', analysis.owner_id)
+    #user.analysis_list.append(analysis)
     db_session.commit()
+    return True
+
+    # Before returning, build the ROIs and origins arrays
+    # Build ROI list
+    analysis.ROIs=Lane.build_arr(analysis.lane_list)
+    # Build origin list
+    analysis.origins=Origin.build_arr(analysis.origin_list)
+
+    return analysis
     #if data['user_id'] is not None:
     #    user_id = data['user_id']
     #else:

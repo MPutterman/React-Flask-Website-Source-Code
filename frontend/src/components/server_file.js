@@ -34,7 +34,7 @@ const ServerImage = ({ url, ...props }) => {
     }, [url]);
 
     return (
-        <img src={src} />
+        <img src={src} {...props} />
     )
 }
 

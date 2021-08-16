@@ -1,6 +1,12 @@
+
+# TODO:
+# * Consider whether the object with constructor is needed, or whether this should be a set of
+#   static methods...
+# * There seem to be some backed in assumptions that are not clear. E.g. origins is only
+#   origins in some cases, but has 2 extra points for doRF... Needs to be documented (and maybe changed)
+
 import time
 from scipy.cluster.vq import vq, kmeans,whiten
-from flask import Flask, request,Response,send_file,send_from_directory,make_response,Response,session
 from skimage import io, morphology, filters,transform, segmentation,exposure
 from skimage.util import invert
 import scipy
@@ -12,23 +18,15 @@ from matplotlib.patches import Rectangle
 from matplotlib.widgets import RectangleSelector, Button, EllipseSelector
 import matplotlib.patches as pat
 from matplotlib import interactive
-from flask_session import Session
 import matplotlib
 import numpy as np
-from PIL import Image
 from sklearn.cluster import MeanShift,estimate_bandwidth,AffinityPropagation,KMeans
 from skimage.color import rgba2rgb
-import os
 from skimage import measure
-from flask_cors import CORS,cross_origin
-import flask_login
-from flask_login import LoginManager
-
-import ast
 
 class Analysis():
-    """Input: ROIs, n_l, origins, analysi_id, doUV, doRF, autoLane, names"""
-    def __init__(self,ROIs,n_l,origins,analysis_id,doUV,doRF,autoLane,names=['Sample','Sample','Sample','','','',''],name='',description=''):
+    """Input: ROIs, n_l, origins, analysi_id, doUV, doRF, autoLane"""
+    def __init__(self,ROIs,n_l,origins,analysis_id,doUV,doRF,autoLane,name='',description=''):
         self.doRF=doRF
         self.ROIs = ROIs
         self.n_l=n_l
@@ -37,13 +35,12 @@ class Analysis():
         self.doRF=doRF
         self.autoLane=autoLane
         self.doUV=doUV
-        self.names=names
         self.name = name
         self.description = description
     def upload_data(self):
         name = ''
     def __str__(self):
-        return (f'ROIS: {self.ROIs} \n origins: {self.origins} \n n_l: {self.n_l} \n analysis_id: {self.analysis_id} \n doUV: {self.doUV} \n doRF,{self.doRF} \n autoLane: {self.autoLane} \n {self.names}')
+        return (f'ROIS: {self.ROIs} \n origins: {self.origins} \n n_l: {self.n_l} \n analysis_id: {self.analysis_id} \n doUV: {self.doUV} \n doRF,{self.doRF} \n autoLane: {self.autoLane}')
     @staticmethod
     def build_analysis(attributes):
         return Analysis(attributes[0],attributes[1],attributes[2],attributes[3],attributes[4],attributes[5],attributes[6],attributes[7])
@@ -56,7 +53,7 @@ class Analysis():
         return newROIs
 
     def dump(self):
-        return [self.ROIs,self.n_l,self.origins,self.analysis_id,self.doUV,self.doRF,self.autoLane,self.names]
+        return [self.ROIs,self.n_l,self.origins,self.analysis_id,self.doUV,self.doRF,self.autoLane]
     def setOrigins(self,origins):
         self.origins=origins
     def setROIs(self,ROIs):
@@ -72,7 +69,7 @@ class Analysis():
     def setDescription(self,description):
         self.description=description
 
-    def results(self):
+    def results(self, img):
         analysis_id=self.analysis_id
         tim = time.time() 
         newOrigins = (np.asarray(self.origins).copy()).tolist()
@@ -86,12 +83,12 @@ class Analysis():
         ##print(request.form['autoLane'])
         ##print(request.form['autoLane']=='true' and (not doRF and not doUV))
         ##print(autoLane)
-        
+
+        cerenks = self.calculateCerenkov(newROIs,img)
+
         if doUV:
             
-            img =session.get('cerenkovcalc')
             #print(newOrigins)
-            cerenks= self.calculateCerenkov(newROIs,img)
             RFs = self.calculateRF(newROIs,img)
             cerenks_RFs=[]
             for i in range(len(cerenks)):
@@ -106,8 +103,6 @@ class Analysis():
             ####print(time.time()-tim)
             return cerenks_RFs
         elif doRF and not doUV:
-            img = session.get('cerenkovcalc')
-            cerenks = self.calculateCerenkov(newROIs,img)
             RFs = self.calculateRF(newROIs,newOrigins,img)
             cerenks_RFs=[]
             for i in range(len(cerenks)):
@@ -123,9 +118,6 @@ class Analysis():
             return cerenks_RFs
             
         else:
-            img = session.get('cerenkovcalc')
-            
-            cerenks = self.calculateCerenkov(newROIs,img)
             
             cerenk_answers = []
 
@@ -389,6 +381,10 @@ class Analysis():
     def organize_into_lanes(self):
         
         newArr = self.ROIs
+
+        # Bail if no ROIs
+        if len(newArr) == 0:
+            return
        
         if self.autoLane:
             thresh = np.asarray(self.predictLanes(newArr,self.n_l))[:,1].tolist()

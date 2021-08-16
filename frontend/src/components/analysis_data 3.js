@@ -23,7 +23,8 @@ import { analysisSchema, analysisValidator } from '../helpers/schema';
 import { connectEdit } from '../components/object_edit';
 
 
-const WrappedAnalysisData = ({model, ...props}) => {
+//const WrappedAnalysisData = ({model, ...props}) => {
+const AnalysisData = ({model, ...props}) => {
 
   return (
 
@@ -31,7 +32,7 @@ const WrappedAnalysisData = ({model, ...props}) => {
 
         <Grid container direction="row" >
 
-            <Grid container direction='column' xs={5}>
+            <Grid item xs={5}>
 
               <p>Analysis Information</p>
 
@@ -69,9 +70,9 @@ const WrappedAnalysisData = ({model, ...props}) => {
               </Grid>
 
             </Grid>
-            <Grid container xs={2}>
+            <Grid item xs={2}>
             </Grid>
-            <Grid container direction='column' xs={5}>
+            <Grid item xs={5}>
 
               <p>Corrections</p>
 
@@ -115,12 +116,11 @@ const WrappedAnalysisData = ({model, ...props}) => {
           </Grid>
         </Grid>
 
-        <p>For now... if you submit without choosing files, it will use sample data</p>
-
       </div>
     );
 }
 
-const AnalysisData = withRouter(connectEdit(WrappedAnalysisData, 'analysis', analysisSchema, analysisValidator));
+//const AnalysisData = withRouter(connectEdit(WrappedAnalysisData, 'analysis', analysisSchema, analysisValidator));
 
-export { AnalysisData };
+//export { AnalysisData };
+export default AnalysisData;

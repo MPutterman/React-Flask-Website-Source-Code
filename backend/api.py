@@ -12,14 +12,11 @@
 # NOTES:
 # * Need to import session from Flask, and Session from flask_session
 
-
 # TODO:
 # * Simplify error handling wth @errorhandler (can capture certain types of exceptions for global response)
 # * Be careful when doing multiple DB calls in response to a single request...
 #      If any objects are mutated, then can end up with a 'transaction already started' error...
 #      There is a way to disconnect from database (make_transient)
-# * We should move all the analysis-specific stuff out of here and into separate files that are just loaded in particular
-#   API calls when needed
 # * Incorporate Flask Mail to do email verification. Maybe also subscriptions? https://pythonhosted.org/Flask-Mail/
 # * Re-insert the @flask_login.login_required now that permissions are somewhat sorted out
 # * A few sites have recommended using '/api' at the beginning of all backend to help better separate frontend and backend
@@ -33,29 +30,11 @@
 
 import time
 import json
-from scipy.cluster.vq import vq, kmeans,whiten
 from flask import Flask, request,Response,send_file,send_from_directory,make_response,Response,session
-from skimage import io, morphology, filters,transform, segmentation,exposure
-from skimage.util import invert
-import scipy
-from kneed import KneeLocator
-from matplotlib import pyplot as plt
-from matplotlib import use,gridspec
-from skimage.measure import label
-from matplotlib.patches import Rectangle
-from matplotlib.widgets import RectangleSelector, Button, EllipseSelector
-import matplotlib.patches as pat
-from matplotlib import interactive
 from flask_session import Session
-import matplotlib
 import numpy as np
-from PIL import Image
 import PIL
-from sklearn.cluster import MeanShift,estimate_bandwidth,AffinityPropagation,KMeans
-from skimage.color import rgba2rgb
 import os
-import shutil
-from skimage import measure
 from flask_cors import CORS,cross_origin
 import flask_login
 from flask_login import LoginManager
@@ -64,231 +43,18 @@ import urllib
 import ast
 import datetime
 from dateutil import parser
-import sqlalchemy
 from analysis import Analysis
 
-
+# TODO: these, and dependent code should be moved into Analysis class
+from skimage import morphology,filters,transform, exposure
+from matplotlib import pyplot as plt
 
 # Include database layer
-from database import (
-    db_create_tables, db_add_test_data,db_cleanup,
-    retrieve_initial_analysis,db_analysis_edit,
-    object_type_valid
-)
+from database import db_create_tables, db_add_test_data, db_cleanup, object_type_valid
+
 
 from permissions import check_permission, has_permission, list_permissions
 
-'''
-def np64toint(arr):
-    for i in range(len(arr)):
-        for j in range(len(arr[i])):
-            arr[i][j]=int(arr[i][j])
-    return arr
-'''
-
-'''
-def finalize(Dark,Dark2,Flat,Flat2,Cerenkov,Cerenkov2,UV,UV2,UVFlat,UVFlat2,Bright,Bright2,BrightFlat,BrightFlat2):
-    ####print('dark')
-    Dark = makeFileArray(Dark,Dark2)
-    ####print('flat')
-    Flat = makeFileArray(Flat,Flat2)
-    ####print('cerenkov')
-    Cerenkov = makeFileArray(Cerenkov,Cerenkov2)
-    ####print('UV')
-    UV = makeFileArray(UV,UV2)
-    ###print('UVFLAt')
-    UVFlat = makeFileArray(UVFlat,UVFlat2)
-    ###print('b')
-    Bright = makeFileArray(Bright,Bright2)
-    ###print('bf')
-    BrightFlat = makeFileArray(BrightFlat,BrightFlat2)
-    if isStorage(Cerenkov):
-        Cerenkov = np.loadtxt('./SampleData/DMSO140-160')
-    if isStorage(Dark):
-        Dark= Image.open('./SampleData/masterdark.tiff')
-        Dark = np.asarray(Dark)
-        
-    if isStorage(Flat):
-        Flat= Image.open('./SampleData/masterflat.tiff')
-        Flat = np.asarray(Flat)
-    return startUp(Dark,Flat,Cerenkov,UV,UVFlat,Bright,BrightFlat)
-'''
-
-def startUp(Dark,Flat,Cerenkov,UV,UVFlat,Bright,BrightFlat):
-    
-    # TODO: NOTE: need to copy to database... if going to override bright and UV
-
-    # Use bright as UV if not exists (and vice versa)
-    #if int(isStorage(UV))  +int(isStorage(Bright)) ==1: 
-    doUV = True
-    if (UV is None and Bright is None):
-        doUV = False
-    elif (UV is None and Bright is not None):
-        UV = Bright
-    elif (UV is not None and Bright is None):
-        Bright = UV
-
-        '''    
-        if isStorage(UV):
-            UV = Bright
-            UVFlat = BrightFlat
-        else:
-            Bright = UV
-            BrightFlat = UVFlat
-    if (isStorage(UV)) and (isStorage(Bright)):
-        doUV = False
-        '''
-        
-    #if doUV:
-    #    if isStorage(UVFlat) and isStorage(BrightFlat):
-    #        UVFlat = np.zeros_like(UV)+1
-    
-
-    # TODO: look at parameters to apply corrections    
-    Cerenkov = Cerenkov-Dark
-    Cerenkov = Cerenkov/Flat
-    Cerenkov = filters.median(Cerenkov)
-    Cerenkov = transform.rotate(Cerenkov,270)
-     
-    #C2 = Cerenkov.copy()
-    #tim = time.time()
-    #t = time.time()
-
-    disk = morphology.disk(25)
-    background = morphology.opening(Cerenkov,selem=disk)
-    mean = np.mean(background)
-    
-    C2 = Cerenkov.copy()
-    Cerenkov -= background.copy()   
-    C2-=np.median(C2)
-    
-    Cerenkov-=np.median(Cerenkov)
-    if doUV:
-        Cerenkov_show= Cerenkov.copy()
-        Cerenkov_show = Cerenkov_show-np.min(Cerenkov_show)
-        Cerenkov_show = Cerenkov_show *1/np.max(Cerenkov_show)
-        Cerenkov_show = PIL.Image.fromarray((np.uint8(plt.get_cmap('viridis')(Cerenkov_show)*255)))
-    if doUV:
-        UV/=UVFlat
-        UV = transform.rotate(UV,270)
-        UV = filters.median(UV)
-        UV = (np.max(UV)-UV)
-        UV-=np.min(UV)
-        UV *= ((np.max(Cerenkov)-np.min(Cerenkov))/(np.max(UV)-np.min(UV)))
-        #timee = time.time()
-        UV -=morphology.opening(UV,morphology.disk(30))
-        UV = UV**.65
-        UV*=(np.max(Cerenkov))/(np.max(UV))
-        UV_show = UV.copy()
-#    if doUV:
-#        UV_show= UV.copy()
-        UV_show = UV_show-np.min(UV_show)
-        UV_show = UV_show *1/np.max(UV_show)
-        UV_show = PIL.Image.fromarray((np.uint8(plt.get_cmap('viridis')(UV_show)*255)))
-
-    if  not doUV:
-        display_img = C2.copy()
-    if doUV:
-        display_img=UV.copy()+C2.copy()
-        display_img_calc = Cerenkov.copy()
-    if not doUV:
-        return display_img,Cerenkov,doUV,C2
-    else:
-        return display_img,display_img_calc,doUV,Cerenkov_show,UV_show,C2,Cerenkov
-
-'''
-# NOTE 'isStorage' is counterintuitive. isStorage means it is still an (empty) file and not an array
-def isStorage(item):
-    return("FileStorage" in str(type(item)))
-'''
-
-'''
-def is_unique_key(num):
-    directory = os.listdir(os.path.join(app.config['IMAGE_UPLOAD_PATH'], ''))
-    for i in directory:
-        if str(num) in i:
-            return False
-    return True
-
-def generate_key():
-    num=1
-    while True:
-        num = int((10**11)*np.random.rand())
-        #print(num)
-        num=np.base_repr(num,base=16)
-        #print(num)
-        if is_unique_key(num):
-            break
-    return num
-''' 
-
-''' 
-# TODO: update to recognize different types of images files
-# (also maybe extract EXIF information if exists for certain types of image files)    
-def makeFileArray(fileN,fileN1):
-    try:
-        fileN1 = np.loadtxt(fileN1)
-        fileN = fileN1
-        
-    except:
-        try:
-            fileN = Image.open(fileN.stream)
-            fileN = np.asarray(fileN)
-        except:
-            pass
-    return fileN
-'''
-'''
-def add_dir(email):
-    #print('here')
-    # TODO: change file structure to
-    # /image/<equip_ip>/dark, flat, bright, radiation ??
-
-    os.mkdir(f"./users/{email}")
-    os.mkdir(f"./users/{email}/files")
-    file = open(f"./users/{email}/files/desc.txt", "w")
-    file.close()
-    os.mkdir(f"./users/{email}/files/Cerenkov")
-    os.mkdir(f"./users/{email}/files/Darkfield")
-    os.mkdir(f"./users/{email}/files/Flatfield")
-    os.mkdir(f"./users/{email}/files/UV")
-    os.mkdir(f"./users/{email}/files/UVFlat")
-    os.mkdir(f"./users/{email}/files/Brightfield")
-    os.mkdir(f"./users/{email}/files/BrightfieldFlat")
-'''
-
-'''
-def findName(name,start,end):
-    return name[name.index(start)+len(start):name.index(end)]
-def findCerenkov(name):
-    return findName(name,"c@~","cd@~")
-def findDark(name):
-    return findName(name,"cd@~","cf@~")
-def findFlat(name):
-    return findName(name,"cf@~","u@~")
-def findUV(name):
-    return findName(name,"u@~","uf@~")
-def findUVFlat(name):
-    return findName(name,"uf@~","l@~")
-def findL(name):
-    return findName(name,"l@~",".npy")
-def findFiles(lanes,cerenkName,darkName,flatName,UVName,UVFlatName):
-    list_dir = os.listdir('./database')
-    names = []
-    
-    #print(lanes)
-    for i in list_dir:
-        arr =[]
-        if (cerenkName in findCerenkov(i)) and (darkName in findDark(i)) and (flatName in findFlat(i)) and (UVName in findUV(i)) and (UVFlatName in findUVFlat(i)) and (str(lanes) in findL(i)):
-            arr.append(findCerenkov(i))
-            arr.append(findDark(i))
-            arr.append(findFlat(i))
-            arr.append(findUV(i))
-            arr.append(findUVFlat(i))
-            arr.append(findL(i))
-            names.append(arr)
-    return names
-'''
 
 # Import server configuration info
 from dotenv import load_dotenv
@@ -812,12 +578,15 @@ def ret_data():
     return({"files":findFiles(request.form["Lanes"],request.form["Cerenkov"],request.form["Darkfield"],request.form["Flatfield"],request.form["UV"],request.form["UVFlat"])})
 '''
 
+# TODO: I don't think I understand this function. How does it differ from other
+#   background subtraction in analysis_generate_working_images?
+#   Also, why doesn't the 'radii' image get corrected?
 @app.route('/fix_background/<analysis_id>')
 @cross_origin(supports_credentials=True)
 def fix_background(analysis_id):
     #print('f')
-    img = session.get('cerenkovradii')
-    #tim = time.time()
+    from filestorage import analysis_radii_path
+    img = np.load(analysis_radii_path(analysis_id))
     val = img.copy()
     img-=np.min(img)
     img+=.001
@@ -956,329 +725,363 @@ def sign_in():
     return 'kk'
 '''
 
-@app.route('/autoselect/<analysis_id>',methods=['POST','GET']) # TODO: should probably be 'GET'?
+@app.route('/api/analysis/rois_autoselect/<analysis_id>', methods=['POST','GET']) # TODO: pick one method
 @cross_origin(supports_credentials=True)
-def autoselect(analysis_id):
-    from database import retrieve_initial_analysis
-    analysis_data = retrieve_initial_analysis(analysis_id)
-    #doUV = 'UVName' in analysis_data
-    doUV = (analysis.data.uv_image_id is not None)
-    num_lanes = None
-    autolane = False
-    analysis_retrieve = analysis(analysis_data['ROIs'],num_lanes,analysis_data['origins'],analysis_id,doUV, analysis_data['doRF'],autolane)
-    img = session['cerenkovcalc']
-    imgR=session['cerenkovradii']
-    return { 'selected_ROIs': [analysis_retrieve.predict_ROIs(img,imgR)] }
+def analysis_rois_autoselect(analysis_id):
+
+    # Load analysis object
+    from database import db_object_load
+    analysis = db_object_load('analysis', analysis_id)
+
+    # Variables needed by Analysis class.  TODO: just pass minimum set
+    # - Stripped out, arg0 - analysis.ROIs, arg2, analysis.origins
+    doUV = (analysis.uv_image_id is not None) # is this needed?
+    doRF = analysis.doRF # is this needed?
+    num_lanes = None # is this needed?
+    autolane = False # is this needed?
+    analysis_retrieve = Analysis([], num_lanes, [], analysis_id, doUV, doRF, autolane)
+
+    # Retrieve files needed for analysis
+    # TODO: check if they exist? and generate if not?
+    from filestorage import analysis_compute_path, analysis_radii_path
+    img = np.load(analysis_compute_path(analysis_id))
+    imgR = np.load(analysis_radii_path(analysis_id))
+
+    # Retrieve generated ROIs. They are not organized into lanes yet, so
+    # return the list as ROI[0]
+    auto_ROIs = [analysis_retrieve.predict_ROIs(img, imgR)]
+
+    # Save the ROI information to the database
+    # TODO: previously this function obliterated the origins info... should we do that?
+
+    data = { 'ROIs': auto_ROIs }
+
+#    from database import db_analysis_rois_save
+#    new_analysis = db_analysis_rois_save(analysis_id, data)
+
+ #   return {'ROIs': new_analysis.ROIs } # reformatted as returned from database
+    return {'ROIs': auto_ROIs }
 
 
+# TODO: current there is a lot of info packed into the arguments
+#   Consider having separate route for 'autolane' etc... and this just
+#   purely update the ROIs from front-end (and group into lanes, if appropriate)
+@app.route('/api/analysis/rois_save/<analysis_id>',methods = ['POST'])
 @app.route('/analysis_edit/<analysis_id>',methods = ['POST'])
 @cross_origin(supports_credentials=True)
-def analysis_edit(analysis_id):
-    doRF = request.form['doRF']=='true'
-    doUV = request.form['doUV']=='true'
-    autoLane=request.form['autoLane']=='true' and not (doRF or doUV)
+def analysis_rois_save(analysis_id):
+
+    # Retrieve JSON data from request (preserves booleans etc.)
+    data = json.loads(request.form.get('JSON_data'))
+
+    doRF = data.get('doRF') if data.get('doRF') is not None else False #request.form['doRF']=='true'
+    doUV = False #data['doUV'] #request.form['doUV']=='true'
+    # TODO: what is reasoning for logic below?
+    autoLane_received = data.get('autoLane') if data.get('autoLane') is not None else False
+    autoLane = autoLane_received and not (doRF or doUV) # request.form['autoLane']=='true' and not (doRF or doUV)
     if autoLane:
-        num_lanes=int(request.form['n_l'])
+        num_lanes=int(data['num_lanes']) #request.form['n_l'])
     else:
         num_lanes=1
     
-    
+    print('autolane', autoLane)
+    print('num_lanes', num_lanes)
+    print ('dorf', doRF)
+
     ##print(request.form['autoLane'])
     ##print(request.form['autoLane']=='true' and (not doRF and not doUV))
     ##print(autoLane)
 
-    try:
-        newOrigins = ast.literal_eval(request.form.getlist('origins')[0])
-        
-    except:
-        newOrigins = []
+    newROIs = json.loads(data.get('ROIs')) if data.get('ROIs') is not None else []
+    newOrigins = json.loads(data.get('origins')) if data.get('origins') is not None else []
+
+    # TODO: what is the purpose of this??
     newOrigins = [newOrigins]
 
-    newROIs = (request.form.getlist('ROIs'))
+
+    #try:
+    #    newOrigins = ast.literal_eval(request.form.getlist('origins')[0])
+        
+    #except:
+    #    newOrigins = []
+    #newOrigins = [newOrigins]
+
+    #newROIs = (request.form.getlist('ROIs'))
     #print(newROIs)
     #print(newROIs[0])
     #print(newROIs[0][0])
-    newROIs = ast.literal_eval(newROIs[0])
+    #newROIs = ast.literal_eval(newROIs[0])
     #print(newROIs)
+    # TODO: should reorganize class Analysis into either all static methods, or 
+    #   or take more advantage of it's object nature and methods...
     newROIs = Analysis.flatten(newROIs)
     #print('n',newROIs)
-    analysis = Analysis(newROIs, num_lanes,newOrigins,analysis_id,doUV,doRF,autoLane)
+    analysis = Analysis(newROIs, num_lanes, newOrigins, analysis_id, doUV, doRF, autoLane)
+
+    # TODO: what does this stuff below do?  and does it work if origins is empty?
     analysis.sort2(analysis.origins,index = 0)
     analysis.origins=analysis.origins[0]
     analysis.origins = analysis.origins[::-1]
+    print ('origins before organize into lanes', analysis.origins)
+    print ('rois before organize into lanes', analysis.ROIs)
     analysis.organize_into_lanes()
-    data = {}
-    data['ROIs'] = analysis.ROIs
-    data['origins'] =analysis.origins
-    data['doRF'] =  doRF
+    print ('origins after organize into lanes', analysis.origins)
+    print ('rois after organize into lanes', analysis.ROIs)
+    newdata = {}
 
-    db_analysis_edit(data,analysis_id)
-    return{"ROIs":analysis.ROIs}
-    
-    
-    
-@app.route('/retrieve_analysis/<analysis_id>',methods=['GET'])
-@cross_origin(supports_credentials=True)
-def retrieve_analysis(analysis_id):
-    # TODO: if store data in session, should also store the analysis ID
-    # to make sure
-    # TODO: should store these at the time they are created...
-    from filestorage import analysis_compute_path, analysis_radii_path
-    session['cerenkovcalc'] = np.load(analysis_compute_path(analysis_id)) #retrieve_image_path('cerenkovcalc',analysis_id))
-    session['cerenkovradii'] = np.load(analysis_radii_path(analysis_id)) # retrieve_image_path('cerenkovradii',analysis_id))
-    analysis_retrieved = retrieve_initial_analysis(analysis_id)
+    newdata['ROIs'] = analysis.ROIs
+    newdata['origins'] = analysis.origins
+    newdata['doRF'] = doRF
+    newdata['display_image_brightness'] = data.get('display_image_brightness')
+    newdata['display_image_contrast'] = data.get('display_image_contrast')
+
+    from database import db_analysis_rois_save
+    db_analysis_rois_save(analysis_id, newdata)
+
+    # Also compute results
+    # Force autolane and num_lanes to False and None
+    doUV = False # TODO: fix to reflect actual desired value
+    new_analysis = Analysis(analysis.ROIs,None,analysis.origins,analysis_id,doUV, doRF, False)
+    # Load relevant image and send for computations
+    from filestorage import analysis_compute_path
+    img = np.load(analysis_compute_path(analysis_id))
+    results = new_analysis.results(img)
+
     return{
-        'analysis_id':analysis_id,
-        'ROIs':analysis_retrieved['ROIs'],
-        'origins':analysis_retrieved['origins'],
-        'doRF':analysis_retrieved['doRF'],
-        #'filenumber':analysis_id,
-        'name':analysis_retrieved['name'],
-        'description': analysis_retrieved['description'],
-        'owner_id': analysis_retrieved['owner_id'],
+        'ROIs': analysis.ROIs,
+        'origins': analysis.origins,
+        'results': results,
     }
-
+    
+# TODO: add error checking
 @app.route('/api/analysis/save', methods=['POST'])
 #@app.route('/time', methods = ['POST'])
 @cross_origin(supports_credentials=True)
 def analysis_save():
 
-        # Save analysis in database
-        data = json.loads(request.form.get('JSON_data'))
-        from database import db_object_save
-        # TODO: add error checking
-        analysis = db_object_save('analysis', data)
-        analysis_id = analysis.analysis_id
-        return { 'id': analysis_id }
+    # Data to be saved
+    data = json.loads(request.form.get('JSON_data'))
+
+    # Load current version of analysis (if it exists) and look for changes that affect image_cache
+    cache_dirty = False
+    from database import db_object_load
+    prev_analysis = None
+    prev_analysis_id = data.get('analysis_id')
+    if (prev_analysis_id is not None):
+        prev_analysis = db_object_load('analysis', prev_analysis_id)
+    else:
+        cache_dirty = True
+    if (prev_analysis is not None):
+        if (int(data.get('radio_image_id')) != prev_analysis.radio_image_id): cache_dirty = True
+        if (int(data.get('dark_image_id')) != prev_analysis.dark_image_id): cache_dirty = True
+        if (int(data.get('flat_image_id')) != prev_analysis.flat_image_id): cache_dirty = True
+        if (int(data.get('bright_image_id')) != prev_analysis.bright_image_id): cache_dirty = True
+        if (int(data.get('uv_image_id')) != prev_analysis.uv_image_id): cache_dirty = True
+        if (int(data.get('correct_dark')) != prev_analysis.correct_dark): cache_dirty = True
+        if (int(data.get('correct_flat')) != prev_analysis.correct_flat): cache_dirty = True
+        if (int(data.get('correct_bkgrd')) != prev_analysis.correct_bkgrd): cache_dirty = True
+        if (int(data.get('correct_filter')) != prev_analysis.correct_filter): cache_dirty = True
+        if (int(data.get('bkgrd_algorithm')) != prev_analysis.bkgrd_algorithm): cache_dirty = True
+        if (int(data.get('filter_algorithm')) != prev_analysis.filter_algorithm): cache_dirty = True
+
+    # Save analysis in database
+    from database import db_object_save
+    analysis = db_object_save('analysis', data)
+
+    # NOTE: analysis_generate_working_images may update the analysis object
+    #   but it won't change the analysis_id
+    if (cache_dirty):
+        print ("/api/analysis/save: Change in parameters detected; image cache is dirty")
+        # TODO: implement error checking for the following
+        analysis_generate_working_images(analysis.analysis_id)
+    
+    return { 'id': analysis.analysis_id }
 
 
-@app.route('/api/analysis/load/<analysis_id>', methods=['GET'])
-@cross_origin(supports_credentials=True)
-def analysis_load(analysis_id):
+# Helper function to load image files associated with an analysis
+# Return a dictionary of files
+def analysis_load_image_files(analysis_id):
 
+    from database import db_object_load
+    analysis = db_object_load('analysis', analysis_id)
+    from filestorage import image_file_upload_path
 
-        # TODO: implement checking whether this is new or updated analysis...
-        # TODO: only update what is needed, and maybe only on demand via /api/file/analysis/display ??
-        # TODO: converting files to arrays depends on file-type right now -- need to automate in future
+    # Load radio image
+    Radio = None
+    if (analysis.radio_image_id is not None):
+        radio_image = db_object_load('image', analysis.radio_image_id)
+        radio_image_path = image_file_upload_path(radio_image.image_id, radio_image.filename)
+        Radio = np.loadtxt(radio_image_path) # TODO: rename to radio_image_array
 
-        # Prepare cache files
-        from database import db_object_load
-        from filestorage import image_file_upload_path
-
-        # Load radio image
-        if (analysis.radio_image_id is None):
-            radio_image_path = './SampleData/DMSO140-160'
-            CerenkovName = 'DMSO140-160'
-        else:
-            radio_image = db_object_load('image', analysis.radio_image_id)
-            radio_image_path = image_file_upload_path(radio_image.image_id, radio_image.filename)
-            CerenkovName = radio_image.filename # TODO: rename to radio_image_name
-        Cerenkov = np.loadtxt(radio_image_path) # TODO: rename to radio_image_array
-
-        # Load dark image
-        # TODO: in future, if blank and correct_dark is false, then don't use this...
-        if (analysis.dark_image_id is None):
-            dark_image_path = './SampleData/masterdark.tiff' 
-            DarkName = 'masterdark.tiff'
-        else:
-            dark_image = db_object_load('image', analysis.dark_image_id)
-            dark_image_path = image_file_upload_path(dark_image.image_id, dark_image.filename)
-            DarkName = dark_image.filename # TODO: rename to dark_image_name
+    # Load dark image
+    Dark = None
+    if (analysis.dark_image_id is not None):
+        dark_image = db_object_load('image', analysis.dark_image_id)
+        dark_image_path = image_file_upload_path(dark_image.image_id, dark_image.filename)
         Dark = PIL.Image.open(dark_image_path) # TODO: rename to dark_image_array
         Dark = np.asarray(Dark)
 
-        # Load flat image
-        # TODO: in future, if blank and correct_flat is false, then don't use this...
-        if (analysis.flat_image_id is None):
-            flat_image_path = './SampleData/masterflat.tiff'
-            FlatName = 'masterflat.tiff'
-        else:
-            flat_image = db_object_load('image', analysis.flat_image_id)
-            flat_image_path = image_file_upload_path(flat_image.image_id, flat_image.filename)
-            FlatName = flat_image.filename # TODO: rename to flat_image_name
+    # Load flat image
+    Flat = None
+    if (analysis.flat_image_id is not None):
+        flat_image = db_object_load('image', analysis.flat_image_id)
+        flat_image_path = image_file_upload_path(flat_image.image_id, flat_image.filename)
         Flat = PIL.Image.open(flat_image_path) # TODO: rename to flat_image_array
         Flat = np.asarray(Flat)
 
-        # Load bright image
-        Bright = None
-        BrightFlat = None
-        BrightName = None
-        BrightFlatName = None
+    # Load bright image
+    Bright = None
+    BrightFlat = None
+    if (analysis.bright_image_id is not None):
+        bright_image = db_object_load('image', analysis.bright_image_id)
+        bright_image_path = image_file_upload_path(bright_image.image_id, bright_image.filename)
+        Bright = np.loadtext(bright_image_path) # TODO: rename to bright_image_array
+        # TEMP: create an all-ones flat image (since we for sure don't have a real one)
+        BrightFlat = np.zeros_like(Bright) + 1
 
-        if (analysis.bright_image_id is not None):
-            bright_image = db_object_load('image', analysis.bright_image_id)
-            bright_image_path = image_file_upload_path(bright_image.image_id, bright_image.filename)
-            Bright = np.loadtext(bright_image_path) # TODO: rename to bright_image_array
-            BrightName = bright_image.filename # TODO: rename to bright_image_name
-            # TEMP: create an all-ones flat image
-            BrightFlat = np.zeros_like(Bright) + 1
-            BrightFlatName = 'bright flat'
+    # Load uv image
+    UV = None
+    UVFlat = None
+    if (analysis.uv_image_id is not None):
+        uv_image = db_object_load('image', analysis.uv_image_id)
+        uv_image_path = image_file_upload_path(uv_image.image_id, uv_image.filename)
+        UV = np.loadtext(uv_image_path) # TODO: rename to uv_image_array
+        # TEMP: create an all-ones flat image (since we for sure don't have a real one)
+        UVFlat = np.zeros_like(UV) + 1
 
-        # Load uv image
-        UV = None
-        UVFlat = None
-        UVName = None
-        UVFlatName = None
+    return {
+        'radio': Radio,
+        'dark': Dark,
+        'flat': Flat,
+        'bright': Bright,
+        'uv': UV,
+        'brightflat': BrightFlat,   # TODO: eliminate?
+        'uvflat': UVFlat,           # TODO: eliminate?
+    }
 
-        if (analysis.uv_image_id is not None):
-            uv_image = db_object_load('image', analysis.uv_image_id)
-            uv_image_path = image_file_upload_path(uv_image.image_id, uv_image.filename)
-            UV = np.loadtext(uv_image_path) # TODO: rename to uv_image_array
-            UVName = uv_image.filename # TODO: rename to uv_image_name
-            # TEMP: create an all-ones flat image
-            UVFlat = np.zeros_like(UV) + 1
-            UVFlatName = 'uv flat'
+# Helper function to create cached images 
+# Probably portions should be moved into Analysis class
+def analysis_generate_working_images(analysis_id):
 
+    # Retrieve files
+    files = analysis_load_image_files(analysis_id)
+    Cerenkov = files['radio']
+    Dark = files['dark']
+    Flat = files['flat']
+    Bright = files['bright']
+    UV = files['uv']
+    BrightFlat = files['brightflat']
+    UVFlat = files['uvflat']
 
-        '''
-        Dark = request.files['Dark']
-        Dark2 = request.files['Dark']
-        Flat = request.files['Flat']
-        Cerenkov = request.files['Cerenkov']
-        UV = request.files['UV']
-        UVFlat = request.files['UVFlat']
-        Bright = request.files['Bright']
-        BrightFlat = request.files['BrightFlat']
-        Flat2 = request.files['Flat']
-        Cerenkov2 = request.files['Cerenkov']
-        UV2 = request.files['UV']
-        UVFlat2 = request.files['UVFlat']
-        Bright2 = request.files['Bright']
-        BrightFlat2 = request.files['BrightFlat']
-        CerenkovName=request.form['CerenkovName']
-        UVName=request.form['UVName']
-        BrightName=request.form['BrightName']
-        DarkName=request.form['DarkName']
-        UVName=request.form['UVName']
-        UVFlatName=request.form['UVFlatName']
-        BrightFlatName=request.form['BrightFlatName']
-        FlatName=request.form['FlatName']
-        '''
-        ##print('r',request.form)
+    # TODO: does 'doUV' truly mean UV, or just 'superimpose'?
+    # Use UV as Bright if Bright not exists (NOT vice versa)
 
-        
-        #analysis_id = generate_key() 
+    doUV = (UV is not None)
 
-        #img_cerenk = finalize(Dark,Dark2,Flat,Flat2,Cerenkov,Cerenkov2,UV,UV2,UVFlat,UVFlat2,Bright,Bright2,BrightFlat,BrightFlat)
+    if (Bright is None):
+        Bright = UV
+        BrightFlat = UVFlat
 
-        # Handled all of 'finalize' function above
-        # TODO: streamline this -- seems some redundancy in this file...
+    # Apply image transformations
+    # TODO: need to actually look at the analysis parameters (i.e. corrections to apply)
+    # TODO: maybe allow user to apply a rotation to whole set of images????
+    # TODO: rest of this function is super-convoluted and needs to be simplified
+    #    Also, it is not clear why the 'calc' and 'radii' images are computed differently
+    #    Only the display image should be different I think...
 
-        img_cerenk = startUp(Dark,Flat,Cerenkov,UV,UVFlat,Bright,BrightFlat)
+    # Computed the corrected radio image
+    if (Dark is not None): # if correct_dark
+        Cerenkov = Cerenkov-Dark
+    if (Flat is not None): # if correct_flat
+        Cerenkov = Cerenkov/Flat
+    # if correct_filter (also TODO: choose algorithm)
+    Cerenkov = filters.median(Cerenkov)
+    Cerenkov = transform.rotate(Cerenkov,270)
+    
+    Cerenkov_2 = Cerenkov.copy()
 
-        #    if not doUV: --->   [0]display_img, [1]Cerenkov, [2]doUV, [3]C2
-        #    else: ---------->   [0]display_img, [1]display_img_calc, [2]doUV, [3]Cerenkov_show, [4]UV_show, [5]C2, [6]Cerenkov
+    # TODO: this background should be computed before some corrections (e.g. flat)
+    # Compute background of this corrected image
+    disk = morphology.disk(25)
+    background = morphology.opening(Cerenkov,selem=disk)
+    #mean = np.mean(background)  # Doesn't appear to be used anywhere
+    Cerenkov -= background.copy()
 
+    # TODO: this is a crude background subtraction. CAREFUL!!!! only works if > half image
+    #   has background intensite
+    # TODO: QUESTION: why is there both the morphology and also 'median' background subtraction
+    #   methods?
+    Cerenkov-=np.median(Cerenkov)
+    Cerenkov_2-=np.median(Cerenkov_2)
 
-        # Save the radio image for doing calculations... ('radii')
-        Cerenkov = img_cerenk[1] ## i.e. Cerenkov if not doUV; otherwise display_img_calc
-        from filestorage import analysis_radii_path, save_array
-        save_array(Cerenkov, analysis_radii_path(analysis_id))
-        #np.save(analysis_radii_path(analysis_id), Cerenkov)
-        #os.mkdir(os.path.join(app.config['IMAGE_UPLOAD_PATH'], analysis_id))
-        #np.save(os.path.join(app.config['IMAGE_UPLOAD_PATH'], analysis_id, 'cerenkovradii.npy'), Cerenkov)
+    # QUESTION: does this mean UV (as a second selection window), or just
+    # superimposed radio and brightfield??                    
+    if doUV:
+        Display_Radio = Cerenkov.copy()
+        Display_Radio = Display_Radio-np.min(Display_Radio)
+        Display_Radio = Display_Radio *1/np.max(Display_Radio)
+        Display_Radio = PIL.Image.fromarray((np.uint8(plt.get_cmap('viridis')(Display_Radio)*255)))
+        UV/=UVFlat
+        UV = transform.rotate(UV,270)
+        UV = filters.median(UV)
+        UV = (np.max(UV)-UV)
+        UV-=np.min(UV)
+        UV *= ((np.max(Cerenkov)-np.min(Cerenkov))/(np.max(UV)-np.min(UV)))
+        UV -=morphology.opening(UV,morphology.disk(30))
+        UV = UV**.65
+        UV*=(np.max(Cerenkov))/(np.max(UV))
+        Display_UV = UV.copy()
+        Display_UV = Display_UV-np.min(Display_UV)
+        Display_UV = Display_UV *1/np.max(Display_UV)
+        Display_UV = PIL.Image.fromarray((np.uint8(plt.get_cmap('viridis')(Display_UV)*255)))
+        Display = UV.copy()+Cerenkov_2.copy()
 
-        doUV = img_cerenk[2]
+    if  not doUV:
+        Cerenkov_2 -= np.median(Cerenkov_2)
+        Display = Cerenkov_2.copy()
 
-        if doUV:
-            calc = img_cerenk[5] 
-        else:
-            calc = img_cerenk[3]
+    # Save the radio image for finding ROIs... (Cerenkov => 'radii')
+    from filestorage import analysis_radii_path, save_array
+    save_array(Cerenkov, analysis_radii_path(analysis_id))
 
-        from filestorage import analysis_compute_path, save_array
-        save_array(calc, analysis_compute_path(analysis_id))
-        #np.save(os.path.join(app.config['IMAGE_UPLOAD_PATH'], tim, 'cerenkovcalc.npy'), calc) 
+    # Save the radio image for doing calculations... (Cerenkov_2 => 'compute'/'calc')
+    from filestorage import analysis_compute_path, save_array
+    save_array(Cerenkov_2, analysis_compute_path(analysis_id))
 
-        # Generate display image        
-        # TODO: remove redundancy with 'startup', also some extraneous image copies...
-        img = img_cerenk[0]
-        img = img-np.min(img)
-        img = img *1/np.max(img)
-        img = PIL.Image.fromarray((np.uint8(plt.get_cmap('viridis')(img)*255)))
-        from filestorage import analysis_display_path, save_file
-        save_file(img, analysis_display_path(analysis_id))
-        #filepath = os.path.join(app.config['IMAGE_UPLOAD_PATH'], analysis_id, 'cerenkovdisplay.png')
-        #img.save(filepath)
-        if doUV:
-            Cerenkov_show = img_cerenk[3]
-            UV_show = img_cerenk[4]
-            from filestorage import analysis_display_radio_path, analysis_display_uv_path, analysis_compute_path, save_file
-            #Cerenkov_show.save(os.path.join(app.config['IMAGE_UPLOAD_PATH'], analysis_id, 'Cerenkov.png'))
-            #UV_show.save(os.path.join(app.config['IMAGE_UPLOAD_PATH'], analysis_id, 'UV.png'))
-            save_file(Cerenkov_show, analysis_display_radio_path(analysis_id))
-            save_file(UV_show, analysis_display_uv_path(analysis_id))
+    # Generate display image        
+    # TODO: remove redundancy with above
+    img = Display
+    img = img-np.min(img)
+    img = img *1/np.max(img)
+    img = PIL.Image.fromarray((np.uint8(plt.get_cmap('viridis')(img)*255)))
+    from filestorage import analysis_display_path, save_file
+    save_file(img, analysis_display_path(analysis_id))
 
-        # Generate initial ROIs
-        names = [CerenkovName,DarkName,FlatName,UVName,UVFlatName,BrightName,BrightFlatName]
-        initial_ROIs = []
-        initial_num_lanes = 0
-        initial_origins = []
-        initial_doRF = False
-        initial_autolane = False
-        current_analysis = Analysis(initial_ROIs,initial_num_lanes,initial_origins,analysis_id,doUV,initial_doRF,initial_autolane,names)
-        ROIs = current_analysis.predict_ROIs(calc,Cerenkov)
+    if doUV:
+        # Not currently used in front-end
+        from filestorage import analysis_display_radio_path, analysis_display_uv_path, analysis_compute_path, save_file
+        save_file(Display_Radio, analysis_display_radio_path(analysis_id))
+        save_file(Display_UV, analysis_display_uv_path(analysis_id))
 
-        #data = {}
-        #data['radio_name'] = CerenkovName
-        #data['dark_name']=DarkName
-        #data['flat_name']=FlatName
-        #data['uv_name'] = UVName
-        #data['bright_name'] = BrightName
-        #data['dark'] = request.files['Dark']
-        #data['flat']=request.files['Flat']
-        #data['radio'] = request.files['Cerenkov']
-        #data['uv'] = request.files['UV']
-        #data['bright'] = request.files['Bright']
+    # Update in database where the display image is, and when cache was updated
 
-        from database import db_analysis_image_cache
-        db_analysis_image_cache(analysis_id, f"/api/file/analysis/display/{analysis_id}")
+    from database import db_analysis_image_cache
+    db_analysis_image_cache(analysis_id, f"/api/file/analysis/display/{analysis_id}")
 
-        # TODO: NEED TO SAVE CACHE IMAGES IN DATABASE... or just rely on filesystem storage?
-        # Save analysis 'state' into the database...
-        data['ROIs'] = [ROIs]
-        data['origins'] = []
-        data['doRF'] = False
+    return True
 
-        from database import db_analysis_save_ROIs
-        db_analysis_save_ROIs(data, analysis_id)
-        
-        return { 'id': analysis_id }        
-
-# Retrieve a file
-# TODO: add permission checks
-@app.route('/api/file/<object_type>/<file_type>/<object_id>', methods=['GET'])
+# TODO: maybe change this so it just finds one ROI and doesn't depend on others?
+#   also maybe don't have it save to the database, until clicking on 'submit lane info'?
+@app.route('/api/analysis/roi_build/<analysis_id>/<x>/<y>/<shift>',methods = ['POST', 'GET'])
 @cross_origin(supports_credentials=True)
-def get_file(object_type, file_type, object_id):
-    from filestorage import get_pathname
-    filename = get_pathname(object_type, file_type, object_id)
-    if (filename is None):
-        return { 'error': 'Invalid file request' }, HTTPStatus['NOT_FOUND']
-    # Return file
-    # TODO: temp prevent cache for now... later set appropriate caching parameters for each type
-    response = make_response(send_file(filename, cache_timeout=0))
-    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
-    response.headers['Pragma'] = 'no-cache'
-    return response
-
-'''    
-# TODO: add something similar for thumbnails of the image objects
-@app.route('/img/<filename>',methods = ['GET'])
-@cross_origin(supports_credentials=True)
-def give(filename):
-    filen = retrieve_image_path('cerenkovdisplay',filename)
-    print(filen)
-    return send_file(filen)
-'''
-
-@app.route('/radius/<filename>/<x>/<y>/<shift>',methods = ['POST', 'GET'])
-@cross_origin(supports_credentials=True)
-def findRadius(filename,x,y,shift):
-    ROIs = request.form.getlist('ROIs')
-    ROIs = ast.literal_eval(ROIs[0])
+def analysis_roi_build(analysis_id,x,y,shift):
+    ROIs = json.loads(request.form.get('ROIs')) if request.form.get('ROIs') else []
+    #ROIs = request.form.getlist('ROIs')
+    #ROIs = ast.literal_eval(ROIs[0])
     print(ROIs)
     
-    #tim = time.time()
-    img = session.get('cerenkovradii')
+    from filestorage import analysis_radii_path
+    img = np.load(analysis_radii_path(analysis_id))
     rowRadius = 0
     colRadius = 0
     num_zeros = 0
@@ -1313,14 +1116,17 @@ def findRadius(filename,x,y,shift):
         rowRadius,colRadius = 0,0
     rowRadius,colRadius = min(max(rowRadius+3,14),55),min(max(colRadius+3,14),55)
     
-    
+    if (ROIs == []): ROIs = [[]]
+    # TODO: change to roi.id, roi.x, roi.y, roi.rx, roi.ry
     ROIs[0].append([int(y),int(x),int(rowRadius),int(colRadius)])
     ROIs = Analysis.flatten(ROIs)
     print('2',ROIs)
+    # TODO:  I think we should return the reorganized lane list also... or don't return
+    #   num_lanes (just the ROI info).  It's a bit strange to return all ROIs as if
+    #   they are one lane, but then return a non-1 value for num_lanes...
     num_lanes = Analysis.numLanes_finder(ROIs)
     return{"col":col,"row":row,"colRadius":colRadius,"rowRadius":rowRadius,"n_l":num_lanes}
     
-
 
 '''
 @app.route('/UV/<filename>',methods = ['GET'])
@@ -1354,26 +1160,40 @@ def data():
     return {'Key':filename}
 '''
 
-@app.route('/results/<filename>',methods = ['GET'])
-@cross_origin(supports_credentials=True)
-def results(filename):
-        analysis_data = retrieve_initial_analysis(filename)
-        analysis_retrieve = Analysis(analysis_data['ROIs'],None,analysis_data['origins'],filename,'UVName' in analysis_data, analysis_data['doRF'],False)
-        analysis_results = analysis_retrieve.results()
 
+@app.route('/api/analysis/results/<analysis_id>',methods = ['GET'])
+@cross_origin(supports_credentials=True)
+def analysis_results(analysis_id):
+        from database import db_object_load
+        analysis = db_object_load('analysis', analysis_id)
+        doUV = False # TODO: fix to reflect actual desired value
+        autolane = False
+        # TODO: doRF should always be true (at least attempt)
+        analysis_retrieve = Analysis(analysis.ROIs,None,analysis.origins,analysis_id,doUV, analysis.doRF,autolane)
+
+        # Load relevant image and send for computations
+        from filestorage import analysis_compute_path
+        img = np.load(analysis_compute_path(analysis_id))
+        analysis_results = analysis_retrieve.results(img)
         #print(analysis_results)
-        return{"arr":analysis_results}
+        return{ 'results': analysis_results}
 
-'''
-@app.route('/upload_data/<filename>',methods=['POST'])
+# Retrieve a file
+# TODO: add permission checks
+@app.route('/api/file/<object_type>/<file_type>/<object_id>', methods=['GET'])
 @cross_origin(supports_credentials=True)
-def upload_data(filename):
-    analysis = retrieve_initial_analysis(filename)
-    data = request.form.to_dict()
-    data['user_id'] = flask_login.current_user.get_id()
-    db_analysis_save(data,filename)
-    return 'yes'
-'''
+def get_file(object_type, file_type, object_id):
+    from filestorage import get_pathname
+    filename = get_pathname(object_type, file_type, object_id)
+    if (filename is None):
+        return { 'error': 'Invalid file request' }, HTTPStatus['NOT_FOUND']
+    # Return file
+    # TODO: temp prevent cache for now... later set appropriate caching parameters for each type
+    response = make_response(send_file(filename, cache_timeout=0))
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    return response
+
     
 if __name__ == '__main__':
     # TODO: consider what should go here, in 'before_app_first_request' or at the top of this file

@@ -1,34 +1,37 @@
-// GLOBAL TODO:
-// * Default values for id numbers are currently a mix of '' or null.  Make this consistent.
-// * Need to resolve timezone handling difference (backend ok, frontend incorrect assigns current local time as UTC)
-// * How to constraint time for datetime selector in Autoform (i.e. to show only the date)
-
+// MAJOR TODO:
+// * Integrate 'fix background' into the backend 'analysis_generate_working_images'
+//     function.  It should _not_ be a separate API route.
+// * More cleanup of backend Analysis class to clarify whether it is an object instance
+//     or set of class methods.
+// * Move remaining computational stuff out of api.py into analysis.py
+// * Clarify whether 'doUV' mean superimpose bright+Cerenkov, or whether there is
+//     a second set of UV ROIs...
+//
 // TODO:
+// * How to show only date selector?
+// * Bug if 'search' for a radio image, screen goes blank (only if none exist?)
 // * Add feature to export as .csv text file, excel file, etc.
 // * Add feature to export a full PDF report?  E.g. with image, etc..
-// * Update to use callAPI when backend updated
-// * I've probably broken things related to "doUV". (In general, someone wouldn't select origins etc without 
-//   a brightfield or UV image... but if they want to, might as well allow it.)
 // * When change origins and ROIs, need to reset something so 'autolane' will work correctly.
 // * I'm not sure how "n_l" and autolane work together.
-// * Upload to database seems not working. Maybe instead of "save" we instead have a "delete from database" button?
-// -- During testing I had a lot of issue trying to re-analyze the same analysis ID... I think we should instead save it
-// -- automatically so the images and ROIs are always available.
 // * Regarding RF values, I think we should always compute these if origins are defined for at least one lane.  
-//   Maybe we can have a client-side option to show or hide those results if needed
+//   Maybe we can have a client-side option to show or hide those results if needed. But there is a use
+//   case where we don't need it (e.g. Cerenkov image of chip). So maybe we should store the value in DB.
 // * There are some interesting graphical libraries, e.g. https://docs.bokeh.org/en/latest/docs/gallery.html#gallery (python)
 //     that may allow use to do interesting things like live line plots, lasso-based ROI selection, etc...
 //     Also more react-specific stuff here: https://stackshare.io/bokeh/alternatives
+// * Limitation -- all the "do_UV" functionality was removed. Typically the user won't be 
+//     selecting origins if there is no bright or UV image
 
 import React from "react";
-import axios from "axios";
 import { withRouter } from "react-router";
 import { backend_url } from '../helpers/api';
+import { callAPI } from '../helpers/api';
 
 import Button from "@material-ui/core/Button";
 import Slider from "@material-ui/core/Slider";
-import Paper from "@material-ui/core/Paper";
 import Grid from "@material-ui/core/Grid";
+import Box from "@material-ui/core/Box";
 import RadioGroup from "@material-ui/core/RadioGroup";
 import Radio from "@material-ui/core/Radio";
 import FormControl from "@material-ui/core/FormControl";
@@ -37,16 +40,21 @@ import FormLabel from "@material-ui/core/FormLabel";
 import FormGroup from "@material-ui/core/FormGroup";
 import TextField from "@material-ui/core/TextField";
 import Checkbox from "@material-ui/core/Checkbox";
-import Busy from '../components/busy';
 import Accordion from '@material-ui/core/Accordion';
 import AccordionSummary from '@material-ui/core/AccordionSummary';
 import AccordionDetails from '@material-ui/core/AccordionDetails';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { withStyles, makeStyles } from '@material-ui/core/styles';
 import AnalysisResults from './analysis_results';
-import { AnalysisData } from './analysis_data 3';
+import AnalysisData from './analysis_data 3';
 //import {useKeypress} from '../hooks/Keypress';
 import {useEventListener} from '../hooks/useEventListener';
+import { ServerImage } from '../components/server_file';
+
+import { analysisSchema, analysisValidator } from '../helpers/schema';
+import { connectEdit } from '../components/object_edit';
+import { SubmitField } from 'uniforms-material';
+import { useThrobber } from '../contexts/throbber';
 
 // FUTURE: embed results in ROI info...
 // ROI_list: list of {id, x, y, rx, ry, intensity}
@@ -60,7 +68,9 @@ import {useEventListener} from '../hooks/useEventListener';
 ////    Maybe a different results table if there are unallocated ROIs
 // TODO: need a new function to separate overlapping ROIs?
 
-export const Analysis = (props) => {
+const WrappedAnalysisEdit = ({model, ...props}) => {
+
+    const setBusy = useThrobber();
 
     // Define step sizes (in pixels) to increment position or radius (via keypresses)
     const STEP_X = 4;
@@ -74,6 +84,7 @@ export const Analysis = (props) => {
     // State variables
     // TODO: check if all of these need to be state variables (i.e. affect rendering)
     // TODO: this repeats a lot of what's in 'analysis_data'... figure out which component should handle state
+    /*
     const initialDataState = {
         id: props.match.params.id,
         owner_id: null,
@@ -97,27 +108,49 @@ export const Analysis = (props) => {
         algorithm_filter: null,
         image_computed_id: null, // Need this in the front end??
     };
-
+    */
+//
     const initialLaneState = {
         autoLane: false,  // LEGACY? not sure this is needed...
-        num_lanes: 0, // number of lanes
+        num_lanes: 0, // number of lanes  # TODO: should add to database?
         origins: [],
         ROIs: [],
         selectedROI: { lane: UNDEFINED, band: UNDEFINED},
         is_dirty: false,
     };
 
+    // TODO: note: autolane and num_lane aren't in the database. Should they be?
+    React.useEffect(() => {
+        if (model.auto_lane !== null && model.auto_lane !== undefined) {
+           setLaneState((prev) => ({ ...prev, autoLane: model.auto_lane, }));
+        }
+        if (model.num_lanes !== null && model.num_lanes !== undefined) {
+           setLaneState((prev) => ({ ...prev, num_lanes: model.num_lanes, }));
+        }
+        if (model.origins !== null && model.origins !== undefined) {
+           setLaneState((prev) => ({ ...prev, origins: model.origins, }));
+        }
+        if (model.ROIs !== null && model.ROIs !== undefined) {
+            console.log('capturing new ROIs from model', model.ROIs);
+           setLaneState((prev) => ({ ...prev, ROIs: model.ROIs,}));
+        }
+    }, [model.auto_lane, model.num_lanes, model.origins, model.ROIs])
+
     const initialLegacyState = {
-        do_RF: false,  // LEGACY: phase this out 
-        do_UV: false, // LEGACY: phase this out
+        doRF: false,  // LEGACY: phase this out 
         results_loaded: false, // TODO: will come from ROIs later
         results: [],            // TODO: will come from ROIs later
     };
 
-    const initialUIState = {
-        updating: false,  
-        // TODO: need different flags for each thing that is updating?
-    }   
+    // TODO: in future results come from ROI states
+    React.useEffect(() => {
+        if (model.doRF !== null && model.doRF !== undefined) {
+            setLegacyState((prev) => ({...prev, doRF: model.doRF}));
+        }
+        if (model.results !== null && model.results !== undefined) {
+            setLegacyState((prev) => ({...prev, results: model.results}));
+        }
+    }, [model.doRF, model.results])
 
     const initialImageState = {
         id: null, // Display image
@@ -128,6 +161,15 @@ export const Analysis = (props) => {
         size_y: 682, // TODO: get these from the Image of the 'display image' record
     }
 
+    React.useEffect(() => {
+        if (model.display_image_contrast !== null && model.display_image_contrast !== undefined) {
+            setImageState((prev) => ({...prev, contrast: model.display_image_contrast}));
+        }
+        if (model.display_image_brightness !== null && model.display_image_brightness !== undefined) {
+            setImageState((prev) => ({...prev, brightness: model.display_image_brightness}));
+        }
+    }, [model.display_image_brightness, model.display_image_contrast])
+    
     const [selectMode, setSelectMode] = React.useState("roi");
 
     // TODO: NEED A BETTER STRUCTURE FOR ALL THIS DATA!! AND BETTER NAMES...
@@ -135,24 +177,33 @@ export const Analysis = (props) => {
     // Be careful, it's not that simple:
     // setDict(prevDict => ({...prevDict, keyToUpdate: [...prevDict.keyToChange, "newValue"]}))
 
-    const [dataState, setDataState] = React.useState(initialDataState);
+//    const [dataState, setDataState] = React.useState(initialDataState);
     const [laneState, setLaneState] = React.useState(initialLaneState);
     const [legacyState, setLegacyState] = React.useState(initialLegacyState);
+    // TODO: maybe the 'display' image will have to be its own DB type to provide
+    //   these values, or need a backend method to populate them (e.g. size, etc...)
     const [imageState, setImageState] = React.useState(initialImageState);
-    const [uiState, setUIState] = React.useState(initialUIState);
 
     // TODO: something not working right on redirect after submit files for /analysis/new
     // Not triggering this useEffect... does the redirect not refresh the props/params?
+
+/*
     React.useEffect(() => {
         console.log("In useEffect [props.match.params.id]");
         loadAnalysis(dataState.id);
     }, [dataState.id])
+*/
+
+    // When the model changes (from wrapped form), set some variables
+    React.useEffect(() => {
+
+    }, [model])
 
     // TODO: this will call /api/analysis/load (which returns analysis data, params, and results)
     // TODO: add error checking if record not found
+    /*
     async function loadAnalysis(id) {
       if (!id) return;
-      setUIState({updating: true,});
       return axios
           .get(backend_url('retrieve_analysis/' + id)) // TODO: change to /api/analysis/load
           .then((res) => {
@@ -160,7 +211,6 @@ export const Analysis = (props) => {
             console.log ('response =>', res);
             setLegacyState(prev => ({...prev,
               do_RF: res.data.doRF,
-              do_UV: res.data.doUV,
             }));
             setImageState(prev => ({...prev,
               uri: id,  // TODO: this is just temporary to set a non-empty value (need to get from server)
@@ -176,22 +226,11 @@ export const Analysis = (props) => {
               autoLane: res.data.autoLane,
               num_lanes: res.data.n_l,
             }));
-            setUIState({updating: false,})
             
             return res; // TODO: why return this?
           });
     }
-
-    // TODO: merge into main request from Panel 1 (i.e. if corr_bkgd is set, and an algorithm is chosen)
-    // QUESTION: there apeared to be a chance in filename for the <img> tag after calling this?
-    const fixBackground = ()=>{
-      return axios.get(backend_url('fix_background/'+dataState.id))
-      .then((res)=>{
-        setUIState(prev=>({...prev, background_corrected:''}));
-      })
-      .catch('An Error Occurred')
-    };
-
+*/
 
 
   // Build an ROI around the specified x,y point
@@ -200,22 +239,25 @@ export const Analysis = (props) => {
     // Make API call
     // Note: send ROI list back to server.  QUESTION: is this to ensure no overlap?
     // TODO: update API call to pass the x, y, shift data as part of formData
-    let formData = new FormData();
-    formData.append('ROIs',JSON.stringify(laneState.ROIs)); 
-    let requestConfig = { headers: {"Content-Type": "multipart/form-data"},};
-    return axios.post(backend_url(`radius/${dataState.id}/${x}/${y}/${shift}`), formData, requestConfig)
+    var data = {
+        'ROIs': JSON.stringify(laneState.ROIs),
+    };
+    callAPI('POST', `api/analysis/roi_build/${model.analysis_id}/${x}/${y}/${shift}`, data)
       .then((res) => {
         // Add the new ROI info (assign initially to lane '0')
         // QUESTION: is n_l changed by the server?
         // TODO: maybe the server should regenerate the lane list as much as possible?
         console.log ("response from /radius", res);
         return setLaneState(prev => {
-          let newROIs = JSON.parse(JSON.stringify(prev.ROIs)); // hack to make a true DEEP copy, [...prev.ROIs only first level are copied, rest are referenced]
-          newROIs[0].push([ res.data.row, res.data.col, res.data.rowRadius, res.data.colRadius]);
+          var newROIs = [];
+          if (prev.ROIs) newROIs = JSON.parse(JSON.stringify(prev.ROIs)); // hack to make a true DEEP copy, [...prev.ROIs only first level are copied, rest are referenced]
+          const ROI_to_add = [ res.data.row, res.data.col, res.data.rowRadius, res.data.colRadius];
+          if (!newROIs[0]) newROIs[0] = [ROI_to_add];
+          else newROIs[0].push(ROI_to_add);
           return {...prev,
             ROIs: newROIs,
-            num_lanes: res.data.n_l,
-            selectedROI: {lane: 0, band: prev.ROIs[0].length-1+1},
+            num_lanes: res.data.n_l, // TODO: rename to num_lanes in api_call
+            selectedROI: {lane: 0, band: (!Array.isArray(prev.ROIs) || !prev.ROIs[0]) ? 0 : prev.ROIs[0].length-1+1},
           };
         });
       });
@@ -371,12 +413,12 @@ export const Analysis = (props) => {
     }
   }; 
 
-  // Clear all ROIs
+  // Clear all ROIs.  Just a local change until save to backend
   const clearROIs = () => {
     setLaneState(prev => ({...prev, ROIs: [], selectedROI:{lane:UNDEFINED, band:UNDEFINED},}));
   };
 
-  // Clear all origins
+  // Clear all origins. Just a local change until save to backend
   const clearOrigins = () => {
     setLaneState(prev => ({...prev, origins: [], }));
   };
@@ -384,22 +426,17 @@ export const Analysis = (props) => {
   // Re-autoselect the ROIs
   // TODO: add similar functions (or combine here) for origins and lanes?
   async function autoSelect() {
-    let formData=new FormData()
-    
-    let config = {
-      headers: {
-          "Content-Type": "multipart/form-data",
-      },
-    };
-    return axios.post(backend_url('autoselect/'+dataState.id), formData, config)
-    .then((res) => {
-      setLaneState(prev => ({...prev,
-        ROIs: res.data.selected_ROIs,
-        selectedROI: {lane: UNDEFINED, band: UNDEFINED},
-      }));
-      return res; // TODO: why return response?
-      // TODO: also add a request for updated results as well...
-    })
+      return callAPI('POST', `/api/analysis/rois_autoselect/${model.analysis_id}`, {})
+      .then((res) => {
+          console.log('response from autoselect', res.data);
+          setLaneState(prev => ({...prev,
+              ROIs: res.data.ROIs,
+              selectedROI: {lane: UNDEFINED, band: UNDEFINED},
+          }));
+          // TODO: update the number of lanes? or leave this as a 'control' for autolane?
+          return res; // TODO: why return response?
+          // TODO: also add a request for updated results as well...
+      })
   }
 
   const onClickOrigin = (e, i) => {
@@ -433,51 +470,39 @@ export const Analysis = (props) => {
     // TODO: eventually update this to return true if origins are _fully_ defined (i.e. origins and solvent fronts).
     // For now, if we have at least 3 points, assume the origins are properly defined.
   const originsDefined = () => {
-    return laneState.origins.length >= 3;
+    return Array.isArray(laneState.origins) && laneState.origins.length >= 3;
   };
 
-  // TODO: call this somewhere. Used to be a button "Refresh Results"...  basically to save the data to database...
-  async function add_data() {
-    return axios.post(backend_url('upload_data/'+dataState.id)).then(res=>{alert(res.data.Status)});
-    // TODO: trigger an update of other elements
-    /// it really depends what was uploaded... if just a flat image, then ROIs can stay the same-ish... if it is the main
-    /// data image uploaded, may have to regenerate all ROIs, etc...
-  }
-
+  // TODO: combine these API calls into one?
   async function submitParams() {
     console.log(laneState.origins);
-    setUIState({updating: true});
-    let data = new FormData();
+    setBusy(true);
     console.log('ROIs', laneState.ROIs);
-    data.append("ROIs", JSON.stringify(laneState.ROIs));
-    data.append('doUV', legacyState.do_UV);
-    data.append("origins", JSON.stringify(laneState.origins));
-    data.append("n_l", laneState.num_lanes); // phase this out later...
-    data.append("doRF", legacyState.do_RF); // phase this out later
-    data.append("autoLane", !originsDefined());
-    return axios
-      .post(backend_url('analysis_edit/' + dataState.id), data, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      })
+    const data = {
+      ROIs: JSON.stringify(laneState.ROIs),
+      origins: JSON.stringify(laneState.origins),
+      num_lanes: laneState.num_lanes, // phase this out later...
+      doRF: legacyState.doRF, // phase this out later
+      autoLane: !originsDefined(),
+      // TODO: need to save this into database, and make use of it in here
+      display_image_brightness: imageState.brightness,
+      display_image_contrast: imageState.contrast,
+    };
+
+    callAPI('POST', `/api/analysis/rois_save/${model.analysis_id}`, data)
       .then((res) => {
+        // Save the returned ROI results
         setLaneState(prev => ({...prev,
           ROIs: res.data.ROIs,
-          num_lanes: res.data.ROIs.length, /// TODO: is this correct, I added it...
+          origins: res.data.origins,
+          num_lanes: res.data.ROIs ? res.data.ROIs.length : 0, /// TODO: is this correct? is it needed here?
         }));
-        
-        return axios.get(backend_url('results/'+dataState.id),)
-        .then(res2=>{
-          setLegacyState(prev => ({ ...prev,
-            results: res2.data.arr,
-            results_loaded: true,
-          }));
-          setUIState(prev => ({ ...prev,
-            updating: false,
-          }));
-        })
-        
+        // Also save the returned analysis results /// TODO: or have a model that retrieves it directly?
+        setLegacyState(prev => ({ ...prev,
+          results: res.data.results,
+          results_loaded: true,
+        }));
+        setBusy(false);
       }).catch('An Error Occurred');
   }
 
@@ -508,9 +533,6 @@ export const Analysis = (props) => {
         
         <div>
 
-          {/* Full-screen loading spinner effect */}
-          <Busy busy={uiState.updating}/>
-
           {/* Panel - analysis information and files */}
 
           <Accordion defaultExpanded>
@@ -519,7 +541,10 @@ export const Analysis = (props) => {
             </AccordionSummary>
             <AccordionDetails>
 
-              <AnalysisData dataState={dataState} setDataState={setDataState} {...props} />
+              <AnalysisData model={model} /*dataState={dataState} setDataState={setDataState} */ {...props} />
+              <Box />
+              <SubmitField size='small' >Save</SubmitField>
+
 
             </AccordionDetails>
           </Accordion>
@@ -532,7 +557,7 @@ export const Analysis = (props) => {
             </AccordionSummary>
             <AccordionDetails>
 
-          {imageState.uri ? (
+          {model.display_image_url ? (
 
           <Grid container direction='column' spacing={3}>
 
@@ -542,7 +567,8 @@ export const Analysis = (props) => {
               
                 {/* Show main image (after all corrections) and set up listener for mouse click */}
 
-                <img
+                <ServerImage
+                  url={model.display_image_url}
 		              className = 'noselect'    
                   id="img"
                   style={{
@@ -553,13 +579,13 @@ export const Analysis = (props) => {
                       "brightness(" + (100 + imageState.brightness) + "%) " + 
                       "contrast(" + (100 + imageState.contrast) + "%) ",
                   }}
-                  src={backend_url('img/' + dataState.id)} // + background_corrected)}
+//                  src={backend_url('img/' + dataState.id)} // + background_corrected)}
                   onClick={(e) => {
                     e.preventDefault();
                     onClickImage(e);}}
                   alt=''
                 />
-
+                
                 {/* Draw ROIs if available */}
 
 
@@ -567,7 +593,7 @@ export const Analysis = (props) => {
 
                   return(
                     
-                    <div>
+                    <div key={`roi-lane-${Lane}`}>
                       
                   {Lane.map((x,i)=>{
                     return(
@@ -624,7 +650,7 @@ export const Analysis = (props) => {
                   );
                 }) : ( <></> )}
 
-                <Button color="primary" variant="contained" onClick={fixBackground}> Perform background correction </Button>
+                {/*<Button color="primary" variant="contained" onClick={fixBackground}> Perform background correction </Button>*/}
 
             </Grid>
 
@@ -664,7 +690,7 @@ export const Analysis = (props) => {
               </div>
 
               <Button color="primary" variant="contained" onClick={clearROIs}> Clear all ROIs </Button>
-              <Button color="primary" variant="contained" onClick={autoSelect}> Autoselect ROIs </Button>
+              <Button color="primary" variant="contained" onClick={autoSelect}> Autoselect / reset ROIs </Button>
               <Button color="primary" variant="contained" onClick={clearOrigins}> Clear all origins </Button>
 
             </Grid>
@@ -722,11 +748,11 @@ export const Analysis = (props) => {
                         //color="primary"
                         //variant="contained"
                         disabled={!originsDefined()}
-                        checked={legacyState.do_RF}
-                        value={legacyState.do_RF ? 'on' : 'off'}
+                        checked={legacyState.doRF /*legacyState.do_RF*/}
+                        value={legacyState.doRF /*legacyState.do_RF*/ ? 'on' : 'off'}
                         //checked={this.state.do_RF}
                         onChange={(event) => {
-                          setLegacyState(prev=>({...prev, do_RF: event.target.checked,}));
+                          setLegacyState(prev=>({...prev, doRF: event.target.checked,}));
                         }}
                         name="enable_RF"
                       />}
@@ -745,11 +771,11 @@ export const Analysis = (props) => {
                         //color="primary"
                         //variant="contained"
                         //disabled={this.originsDefined}
-                        disabled
-                        checked={!originsDefined()}
-                        //onChange={(event) => {
-                        //  this.state.autoLane = event.target.checked;
-                        //}}
+                        disabled={originsDefined()}
+                        defaultValue={!originsDefined()}
+                        onChange={(event) => {
+                          setLaneState(prev => ({ ...prev, autoLane: event.target.checked}));
+                        }}
                         name="enable_auto_lane"
                       />}
                       label="Enable automatic lane selection"
@@ -762,7 +788,7 @@ export const Analysis = (props) => {
                       name = {'#Lanes'}
                       step={1} 
                       valueLabelDisplay="on"
-                      marks={true}
+                      marks='true' //{true} Native HTML elements only accept strings
                       defaultValue={laneState.num_lanes}
                       min={0}
                       max={12}
@@ -776,7 +802,7 @@ export const Analysis = (props) => {
 
                 </Grid>
 
-                <Button color="primary" variant="contained" onClick={submitParams}> Refresh results table </Button>
+                <Button color="primary" variant="contained" onClick={submitParams}> Save ROI info </Button>
 
             </Grid>
           ) : (
@@ -797,7 +823,7 @@ export const Analysis = (props) => {
               <AnalysisResults
                 results={legacyState.results}
                 results_loaded={legacyState.results_loaded}
-                do_RF={legacyState.do_RF}
+                doRF={legacyState.doRF}
               />
 
 {/*}
@@ -859,5 +885,6 @@ export const Analysis = (props) => {
     );
 }
 
+const AnalysisEdit = withRouter(connectEdit(WrappedAnalysisEdit, 'analysis', analysisSchema, analysisValidator));
 
-export default withRouter(Analysis);
+export { AnalysisEdit };

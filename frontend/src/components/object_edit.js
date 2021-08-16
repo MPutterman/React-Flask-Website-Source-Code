@@ -185,6 +185,7 @@ return (props) => {
                     setBusy(false);
                     return false;
                 } else {
+                    console.log('loaded model', response.data);
                     setModel(response.data);
                     setLoaded(true);
                     setBusy(false);
@@ -224,7 +225,7 @@ return (props) => {
         setBusy(true);
 
         // TODO: consider separating API calls for create and save...
-        return callAPI('POST', `${object_type}/save`, data)
+        return callAPI('POST', `/api/${object_type}/save`, data)
         .then((response) => {
 
             if (response.error) {

@@ -53,7 +53,7 @@ import About from './components/about';
 import Contact from './components/contact';
 import NotFound from './components/notfound';
 
-import Analysis from './components/analysis';
+import { AnalysisEdit } from './components/analysis';
 import Database from './components/database'
 import Submission from './components/submission'
 import { UserView, OrgView, EquipView, PlateView, CoverView, ImageView, AnalysisView } from './components/object_view';
@@ -91,10 +91,9 @@ const AppWrapped = (props) => {
           <ErrorHandler>
             <Switch>
 
-                <PrivateRoute path='/analysis/new'><Analysis new={true} /></PrivateRoute>
-                <PrivateRoute path='/analysis/edit/:id'><Analysis /></PrivateRoute>
+                <PrivateRoute path='/analysis/new'><AnalysisEdit new={true} /></PrivateRoute>
+                <PrivateRoute path='/analysis/edit/:id'><AnalysisEdit /></PrivateRoute>
                 <PrivateRoute path='/analysis/search'><AnalysisSearch /></PrivateRoute>
-                <PrivateRoute path='/analysis/:analysis_id'><Analysis /></PrivateRoute>
 
 
                 <PrivateRoute path='/org/view/:id'><OrgView /></PrivateRoute>
