@@ -1,4 +1,12 @@
 # TODO:
+# * Change format of ROIs and origins (see discussions)
+#      - Store ROIs as flat list of { id, x, y, rx, ry, signal } -- signal must be recomputed whenever image cache is regenerated
+#      - Store lanes as flat list (id, name?, roi_list(ids), origin_id (or origin_x, origin_y), solvent_front (x,y, or a function y(x))
+#      - Store origins as flat list (id, x, y), or just absorb into lane?
+#      - RF and 'results' can be computed from this info by frontend... (or cached in a file, or stored in ROI...
+#      ------- BUT, there are lots of things that can 'dirty' the 'result' value... any change in 
+#              analysis parameters that changes 'compute' image. Any change in other ROIs in the lane including self...)
+#      - NOTE: probably don't need 'Lane' etc classes since none of these would be shared across other analyses etc...
 # * Currently images (radio, dark, bright) are in different formats... this should be reconsidered in the future
 # * Enforce adding of extension to upload files
 # * Auto-create a thumbnail of uploaded Image files...
@@ -8,14 +16,13 @@
 # * An alternative design strategy would be to put owner_id, modified, created, deleted into a separate table
 #     to basically track ownership/permissions, deletion status, and edit history
 # * Be careful of string versus number IDs!!!
-# * Convert all DateTime database types to 'TZDateTime'
 # * I am getting rid of 'org_list' from User (instead using org_id).  But haven't yet finished removing the old code.
 # * Store image_type as string instead of enum?
 # * SQLAlchemy PickleType does NOT detect changes to a portion of the object (e.g. dict) and will not properly
 #     commit to database when a partial change is made. For now we rewrite the
 #     whole thing whenever we make a change. Need to look into how to use 'MutableDict' or other approaches
 #     to make this more efficient or intutive
-# * If an Image is updated (e.g. replace image)... then should dependent analyses be recomputed... Problably
+# * If an Image is updated (e.g. replace image)... then should dependent analyses be recomputed??... Problably
 #     Should prevent updating the image after saving to prevent issues...
 
 # Package dependencies:
@@ -42,14 +49,12 @@ from sqlalchemy import select
 from dotenv import load_dotenv
 import os
 import json
-#import copy
 from urllib.parse import quote
-#from sqlalchemy.dialects.postgresql import ARRAY
 import enum
 from flask_login import UserMixin
 import time
 import flask_login
-from datetime import datetime, timezone # TODO: probably should move time handling to API
+from datetime import datetime, timezone # TODO: probably should move time handling to API (e.g. 'modified' etc.)
 from dateutil.parser.isoparser import isoparse
 import werkzeug
 
@@ -146,18 +151,8 @@ org_cover_map = Table('org_cover_map', Base.metadata,
     Column('org_id', Integer, ForeignKey('organization.org_id'), primary_key=True),
     Column('cover_id', Integer, ForeignKey('cover.cover_id'), primary_key=True),
 )
-# analysis_lane_map=Table('analysis_lane_map', Base.metadata,
-#     Column('analysis_id', Integer, ForeignKey('analysis.analysis_id'), primary_key=True),
-#     Column('lane_id', Integer, ForeignKey('lane.lane_id'), primary_key=True),
-# )
-# lane_ROI_map = Table('lane_ROI_map', Base.metadata,
-#     Column('lane_id', Integer, ForeignKey('lane.lane_id'), primary_key=True),
-#     Column('ROI_id', Integer, ForeignKey('ROI.ROI_id'), primary_key=True),
-# )
-
 
 # Define data classes
-
 
 class User(UserMixin, Base):
     __tablename__ = 'user'
@@ -263,43 +258,6 @@ class Equipment(Base):
                 for col in columns
         }
 
-
-'''
-# TODO: since each analysis requires always the same set of cached
-# images, should we combine them into a single table?
-class CachedImage(Base):
-    __tablename__='cachedimage'
-    analysis = relationship('Analysis',back_populates='cachedimages')
-    analysis_id = Column(String(12),ForeignKey('analysis.analysis_id'))
-    # Track when the record was last modified. If any changes to the Image record
-    # (using Image.modified field) after the modified date here (for the one or multiple
-    # files on which it depends, then regenerate the cached image. This will use methods of api.py.
-    modified = Column(DateTime(timezone=True))
-    image_id = Column(Integer, primary_key=True)
-    image_type = Column(String(64), nullable=False)
-    image_path=Column(String(128))
-   
-    #def isCached (analysis_id) // classMethod
-    #def load (image?_id) // classMethod
-    #  --- -check modified dates. If cache newer, return cached image. If image_recrod newer
-    #  ------ then regenerate cached image (and updated modified field). Then load
-    #  ------ the new image
-    # def save (image data/object)
-'''
-
-'''
-class ROI(Base):
-    __tablename__='ROI'
-    ROI_id = Column(Integer,primary_key=True) 
-    ROI_number = Column(Integer)  # TODO: I think we can delete this
-    x=Column(Integer)
-    y=Column(Integer)
-    rx=Column(Integer)#radius in x direction (in pixels)
-    ry=Column(Integer)#radius in y direction (in pixels)
-    lane_id = Column(Integer,ForeignKey('lane.lane_id'))
-    lane = relationship("Lane",back_populates='ROI_list')
-'''
-
 class Analysis(Base):
     # TODO: Add created, modified fields (handled internally)
     __tablename__ = 'analysis'
@@ -310,7 +268,6 @@ class Analysis(Base):
     equip_id = Column(Integer, ForeignKey('equipment.equip_id')) # TODO: maybe redundant, but convenient for now
     plate_id = Column(Integer, ForeignKey('plate.plate_id'))
     cover_id = Column(Integer, ForeignKey('cover.cover_id'))
-    #user=relationship("User",secondary=user_analysis_map)
     radio_image_id = Column(Integer, ForeignKey('image.image_id'))
     dark_image_id = Column(Integer, ForeignKey('image.image_id'))
     flat_image_id = Column(Integer, ForeignKey('image.image_id'))
@@ -325,23 +282,16 @@ class Analysis(Base):
     # Internally-generated
     display_image_url = Column(String(2048))
     image_cache_modified = Column(TZDateTime)
-    lanes_modified = Column(TZDateTime)
+    lanes_modified = Column(TZDateTime) # TODO: implement
     # user adjustable
     display_image_contrast = Column(Integer)
     display_image_brightness = Column(Integer)
-
     # Fields related to lane state
     # TODO: do we need number of lanes stored?  Do we need some kind of
     #   flag to indicate whether we should re-generate ROIs if any image is updated?
     doRF = Column(Boolean)
     ROIs = Column(PickleType, default=[], nullable=False)
     origins = Column(PickleType, default=[], nullable=False)
-    #cachedimages=relationship('CachedImage',back_populates='analysis')
-    #origin_list = relationship('Origin',back_populates='analysis')
-    #lane_list = relationship("Lane", back_populates="analysis")
-    #origin_list2 = Column(Text, default='[[]]', nullable=False) #PickleType, default={}, nullable=False) -- will serialize
-    #lane_list2 = Column(Text, default='[[]]', nullable=False) #PickleType, default={}, nullable=False) -- will serialize
-    #images= relationship('Image',secondary=analysis_image_map) # TODO: remove
     owner_id = Column(Integer, ForeignKey('user.user_id'))
     created = Column(TZDateTime) 
     modified = Column(TZDateTime)
@@ -355,81 +305,6 @@ class Analysis(Base):
                 for col in columns
         }
 
-    '''
-    def as_dict(self):
-        # Returns full represenation of model.
-        columns = class_mapper(self.__class__).mapped_table.c
-        data = {}
-        for col in columns:
-            data[col.name] = getattr(self, col.name)
-        data['ROIs'] = json.loads(self.lane_list2)
-        data['origins'] = json.loads(self.origin_list2)
-        return data
-    
-    @property
-    def ROIs(self):
-        return json.loads(self.lane_list2)
-    @property
-    def origins(self):
-        return json.loads(self.origin_list2)
-    '''
-'''    
-class Origin(Base):
-    __tablename__='origin'
-    origin_id =Column(Integer,primary_key=True)
-
-    x=Column(Integer)
-    y=Column(Integer)
-    
-    analysis = relationship("Analysis", back_populates="origin_list")
-    analysis_id = Column(Integer,ForeignKey('analysis.analysis_id'))
-    @staticmethod
-    def build_origins(origins):
-        origin_list = []
-        for i in range(len(origins)):
-            origin_to_add = Origin(y=origins[i][0],x = origins[i][1])
-            origin_list.append(origin_to_add)
-        return origin_list
-    @staticmethod
-    def build_arr(origin_list):
-        origins = []
-        for orig in origin_list:
-            origin_to_add = [orig.y,orig.x]
-            origins.append(origin_to_add)
-        return origins
-class Lane(Base):
-    __tablename__ = 'lane'
-    lane_id = Column(Integer, primary_key=True)
-    analysis_id = Column(Integer, ForeignKey('analysis.analysis_id'))
-    analysis = relationship("Analysis", back_populates="lane_list")
-    lane_number=Column(Integer)
-    lane_label=Column(String(128)) # Future feature
-    origin_x=Column(Integer) # x-coordinate of origin (pixels)
-    origin_y=Column(Integer) # y-coordinate of origin (pixels)
-    ROI_list = relationship('ROI',back_populates='lane')
-
-    @staticmethod
-    def build_lanes(data):
-        lane_list = []
-        for i in range(len(data)):
-            ROI_list = []
-            for j in range(len(data[i])):
-                ROI_to_add=ROI(ROI_number = j, x=data[i][j][1],y=data[i][j][0],ry=data[i][j][2],rx=data[i][j][3])
-                ROI_list.append(ROI_to_add)
-            lane_to_add=Lane(ROI_list = ROI_list, lane_number = j)
-            lane_list.append(lane_to_add)
-        return lane_list
-    @staticmethod
-    def build_arr(lane_list):
-        ROIs = []
-        for i in range(len(lane_list)):
-            lane= []
-            for j in range(len(lane_list[i].ROI_list)):
-                roi = [lane_list[i].ROI_list[j].y,lane_list[i].ROI_list[j].x,lane_list[i].ROI_list[j].ry,lane_list[i].ROI_list[j].rx]
-                lane.append(roi)
-            ROIs.append(lane)
-        return ROIs
-'''
 
 class ImageType(enum.Enum):
     flat = 1
@@ -560,15 +435,6 @@ def db_add_test_data():
     db_session.add(User(first_name = 'NA', last_name = 'NA', email = 'NA',org_list=[org1,org2],user_id='1433625970'))
     db_session.commit()
     #print('Finished')
-
-
-# TODO: We can also try adding new data types:
-# analysis_image_map (or store it wholly in analysis) -- having a map would let you load any analysis that had used the same image... or the same flat field image....
-# analysis: analysis_id, <various> image_id, background_method, filter_method
-# STORE AS PICKLED WITHIN ANALYSIS (NO NEED FOR OWN ID)
-# --- lane: name/sample, analysis_id, origin_x, origin_y, end_x, end_y  [This is not perfect, because the end is defined as a line in image, not per lane.  But it COULD be.]
-# --- roi: lane_id, <geometry description>
-# --- QUESTION... would we store the results inside the ROIs?, e.g. fields 'result_radio, 'result_rf'
 
 
 # -----------------------
@@ -1194,29 +1060,16 @@ def find_path(image_type,analysis_id):
     return f'./UPLOADS/{analysis_id}/{image_type}{ending}'
 '''
 
-# TODO: add error checking
 # Save ROI and origin info
 # Returns an analysis object
+# TODO: add error checking
+# TODO: should this affect 'modified' flag?  Probably
 def db_analysis_rois_save(analysis_id, data):
-    #db_session.begin()  # TODO: why does this cause "transaction is already begun" error?
-    #images = []
-    #for image_type in ['dark','flat','radio','uv','bright']:
-    #    if data[f'{image_type}_name']:
-    #        img = Image(name = data[f'{image_type}_name'], image_type = find_image_type(image_type),image_path = find_path(image_type,analysis_id))
-    #        images.append(img) 
-    #cachedimages=[]
-    #for image_type in ['cerenkovdisplay','cerenkovcalc','cerenkovradii']:
-    #    img = CachedImage(image_type = image_type,image_path=find_path(image_type,analysis_id))
-    #    cachedimages.append(img)
     analysis = db_object_load('analysis', analysis_id)
     # Only update fields provided
     if data.get('ROIs') is not None:
-        #####analysis.lane_list = Lane.build_lanes(data['ROIs'])
-        #analysis.lane_list2 = json.dumps(data['ROIs'])
         analysis.ROIs = data['ROIs']
     if data.get('origins') is not None:
-        ######analysis.origin_list = Origin.build_origins(data['origins'])
-        #analysis.origin_list2 = json.dumps(data['origins'])
         analysis.origins = data['origins']
     if data.get('doRF') is not None:
         analysis.doRF = data['doRF']
@@ -1224,32 +1077,6 @@ def db_analysis_rois_save(analysis_id, data):
         analysis.display_image_brightness = data['display_image_brightness']
     if data.get('display_image_contrast') is not None:
         analysis.display_image_contrast = data['display_image_contrast']
-
-    #analysis = Analysis(images=images,lane_list=lane_list,cachedimages = cachedimages,analysis_id = analysis_id, origin_list = origin_list,doRF=doRF, name=data['name'], description=data['description'], owner_id=data['user_id'])
-    #db_session.add(analysis)
-    #user = db_object_load('user', analysis.owner_id)
-    #user.analysis_list.append(analysis)
     db_session.commit()
     return True
-
-    # Before returning, build the ROIs and origins arrays
-    # Build ROI list
-    #####analysis.ROIs=Lane.build_arr(analysis.lane_list)
-    #analysis.ROIs = json.loads(analysis.lane_list2)
-    #if (not analysis.ROIs): analysis.ROIs = [[]]
-    # Build origin list
-    ######analysis.origins=Origin.build_arr(analysis.origin_list)
-    #analysis.origins = json.loads(analysis.origin_list2)
-    #if (not analysis.origins): analysis.origins = [[]]
-
-    return analysis
-    #if data['user_id'] is not None:
-    #    user_id = data['user_id']
-    #else:
-    #    user_id='1433625970'
-    #user = User.query.filter(User.user_id==user_id).one()
-    #user.analysis_list.append(analysis)
-    #db_session.add(user)
-    #db_session.flush()
-    #db_session.commit()
 

@@ -751,15 +751,16 @@ def analysis_rois_autoselect(analysis_id):
     # return the list as ROI[0]
     auto_ROIs = [analysis_retrieve.predict_ROIs(img, imgR)]
 
-    # Save the ROI information to the database
+    # Save the ROI information to the database??
     # TODO: previously this function obliterated the origins info... should we do that?
 
     data = { 'ROIs': auto_ROIs }
 
-#    from database import db_analysis_rois_save
-#    new_analysis = db_analysis_rois_save(analysis_id, data)
+    #    from database import db_analysis_rois_save
+    #    new_analysis = db_analysis_rois_save(analysis_id, data)
 
- #   return {'ROIs': new_analysis.ROIs } # reformatted as returned from database
+    # TODO: also return results??
+
     return {'ROIs': auto_ROIs }
 
 
@@ -788,34 +789,15 @@ def analysis_rois_save(analysis_id):
     print('num_lanes', num_lanes)
     print ('dorf', doRF)
 
-    ##print(request.form['autoLane'])
-    ##print(request.form['autoLane']=='true' and (not doRF and not doUV))
-    ##print(autoLane)
-
     newROIs = json.loads(data.get('ROIs')) if data.get('ROIs') is not None else []
     newOrigins = json.loads(data.get('origins')) if data.get('origins') is not None else []
 
-    # TODO: what is the purpose of this??
+    # TODO: what is the purpose of this (i.e. adding extra array dimension and removing later)
     newOrigins = [newOrigins]
 
-
-    #try:
-    #    newOrigins = ast.literal_eval(request.form.getlist('origins')[0])
-        
-    #except:
-    #    newOrigins = []
-    #newOrigins = [newOrigins]
-
-    #newROIs = (request.form.getlist('ROIs'))
-    #print(newROIs)
-    #print(newROIs[0])
-    #print(newROIs[0][0])
-    #newROIs = ast.literal_eval(newROIs[0])
-    #print(newROIs)
     # TODO: should reorganize class Analysis into either all static methods, or 
     #   or take more advantage of it's object nature and methods...
     newROIs = AnalysisHelper.flatten(newROIs)
-    #print('n',newROIs)
     analysis = AnalysisHelper(newROIs, num_lanes, newOrigins, analysis_id, doUV, doRF, autoLane)
 
     # TODO: what does this stuff below do?  and does it work if origins is empty?
