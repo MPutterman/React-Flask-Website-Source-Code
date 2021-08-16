@@ -854,17 +854,19 @@ def analysis_save():
     else:
         cache_dirty = True
     if (prev_analysis is not None):
-        if (int(data.get('radio_image_id')) != prev_analysis.radio_image_id): cache_dirty = True
-        if (int(data.get('dark_image_id')) != prev_analysis.dark_image_id): cache_dirty = True
-        if (int(data.get('flat_image_id')) != prev_analysis.flat_image_id): cache_dirty = True
-        if (int(data.get('bright_image_id')) != prev_analysis.bright_image_id): cache_dirty = True
-        if (int(data.get('uv_image_id')) != prev_analysis.uv_image_id): cache_dirty = True
-        if (int(data.get('correct_dark')) != prev_analysis.correct_dark): cache_dirty = True
-        if (int(data.get('correct_flat')) != prev_analysis.correct_flat): cache_dirty = True
-        if (int(data.get('correct_bkgrd')) != prev_analysis.correct_bkgrd): cache_dirty = True
-        if (int(data.get('correct_filter')) != prev_analysis.correct_filter): cache_dirty = True
-        if (int(data.get('bkgrd_algorithm')) != prev_analysis.bkgrd_algorithm): cache_dirty = True
-        if (int(data.get('filter_algorithm')) != prev_analysis.filter_algorithm): cache_dirty = True
+        # Compare previous and newly saved analysis to see if any fields changed that affect
+        # display images or computation images ('compute'/'calc' and 'radii')
+        if (data.get('radio_image_id') != prev_analysis.radio_image_id): cache_dirty = True
+        if (data.get('dark_image_id') != prev_analysis.dark_image_id): cache_dirty = True
+        if (data.get('flat_image_id') != prev_analysis.flat_image_id): cache_dirty = True
+        if (data.get('bright_image_id') != prev_analysis.bright_image_id): cache_dirty = True
+        if (data.get('uv_image_id') != prev_analysis.uv_image_id): cache_dirty = True
+        if (data.get('correct_dark') != prev_analysis.correct_dark): cache_dirty = True
+        if (data.get('correct_flat') != prev_analysis.correct_flat): cache_dirty = True
+        if (data.get('correct_bkgrd') != prev_analysis.correct_bkgrd): cache_dirty = True
+        if (data.get('correct_filter') != prev_analysis.correct_filter): cache_dirty = True
+        if (data.get('bkgrd_algorithm') != prev_analysis.bkgrd_algorithm): cache_dirty = True
+        if (data.get('filter_algorithm') != prev_analysis.filter_algorithm): cache_dirty = True
 
     # Save analysis in database
     from database import db_object_save
@@ -1107,7 +1109,7 @@ def analysis_roi_build(analysis_id,x,y,shift):
     #   num_lanes (just the ROI info).  It's a bit strange to return all ROIs as if
     #   they are one lane, but then return a non-1 value for num_lanes...
     num_lanes = AnalysisHelper.numLanes_finder(ROIs)
-    return{"col":col,"row":row,"colRadius":colRadius,"rowRadius":rowRadius,"n_l":num_lanes}
+    return{"col":col,"row":row,"colRadius":colRadius,"rowRadius":rowRadius,"num_lanes":num_lanes}
     
 
 '''
