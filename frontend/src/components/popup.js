@@ -1,9 +1,10 @@
 import React from 'react';
 import Popover from '@material-ui/core/Popover';
-import Typography from '@material-ui/core/Typography';
+import Paper from '@material-ui/core/Paper';
+import Box from '@material-ui/core/Box';
 import IconButton from '@material-ui/core/IconButton';
 
-export default function Popup({message, button_label, element_id, ...props}) {
+export default function Popup({button_label, element_id, children, ...props}) {
   const [anchorEl, setAnchorEl] = React.useState(null);
 
   const handleClick = (event) => {
@@ -23,6 +24,7 @@ export default function Popup({message, button_label, element_id, ...props}) {
          {button_label ?? 'Open Popup'}
       </IconButton>
       <Popover
+        p={2}
         id={id}
         open={open}
         anchorEl={anchorEl}
@@ -36,7 +38,11 @@ export default function Popup({message, button_label, element_id, ...props}) {
           horizontal: 'center',
         }}
       >
-        <Typography>{message}</Typography>
+        <Paper>
+            <Box p={3} width='400px'>
+                {children}
+            </Box>
+        </Paper>
       </Popover>
     </div>
   );
