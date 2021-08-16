@@ -900,27 +900,6 @@ def db_image_save(data):
         db_session.commit()
     return image
 
-'''
-# TODO: later remove duplicate code. COPIED FROM api.py
-def makeFileArray(fileN,fileN1):
-    import time
-    import numpy as np
-    from PIL import Image
-    tim = time.time()
-    try:
-        fileN1 = np.loadtxt(fileN1)
-        fileN = fileN1
-        
-    except:
-        try:
-            fileN = Image.open(fileN.stream)
-            fileN = np.asarray(fileN)
-        except:
-            pass
-    ####print(time.time()-tim)
-    return fileN
-'''
-
 # Analysis-related utility functions
 
 def find_image_type(image_type):
@@ -951,28 +930,7 @@ def convert_image_type_to_string(native_type):
     else:
         return 'unknown'
 
-'''
-def find_images(data):
-    images = []
-    for image_type in ['dark','flat','radio','uv','bright']:
-        if data[f'{image_type}_name']:
-            data = data[image_type]
-            id=data[f'{image_type}_id']
-            captured=data[f'{image_type}_captured']
-            owner_id=data[f'{image_type}_owner_id']
-            created=data[f'{image_type}_created']
-            modified=data[f'{image_type}_modified']
-            exp_time = data[f'{image_type}_exp_time']
-            exp_temp=data[f'{image_type}_exp_temp']
-            name = data[f'{image_type}_name']
-            description=data[f'{image_type}_description']
-            path = find_path(image_type,data['analysis_id'])
-            image = Image(
-                image_id = id, image_type = find_image_type(image_type),captured = captured, owner_id = owner_id, created = created, modified = modified, exp_time = exp_time, exp_temp=exp_temp, name=name,image_path=path, description=description
-                )                                
-            images.append(image)
-    return images
-'''
+
 def db_analysis_image_cache(analysis_id, url):
     analysis = db_object_load('analysis', analysis_id)
     analysis.display_image_url = url
@@ -984,81 +942,7 @@ def db_analysis_load(analysis_id):
     # Note cannot call db_object_load (would be recursive call)
     analysis = Analysis.query.filter(Analysis.analysis_id==analysis_id).one()
     db_session.commit()
-    # TODO: make a copy before adding fields?
-    # Build ROI list
-    ######analysis.ROIs=Lane.build_arr(analysis.lane_list)
-    #analysis.ROIs = json.loads(analysis.lane_list2)
-    #print ('analysis ROIs after decode: ', analysis.ROIs)
-    #print ('decode directly (not assign to object): ',  json.loads(analysis.lane_list2))
-    # Build origin list
-    ######analysis.origins=Origin.build_arr(analysis.origin_list)
-    #analysis.origins = json.loads(analysis.origin_list2)
-    print ('analysis loaded... as_dict', analysis.as_dict())
     return analysis
-
-'''
-def analysis_info(analysis_id):
-    db_session.begin()
-    analysis = Analysis.query.filter(Analysis.analysis_id == analysis_id).one()
-    db_session.commit()
-    return analysis.as_dict()
-'''
-
-'''
-def retrieve_image_path(image_type,analysis_id):
-    if 'cerenkov' in  image_type:
-        image = CachedImage.query.filter(CachedImage.image_type ==find_image_type(image_type), CachedImage.analysis_id==analysis_id).one()
-    else:
-        image = Image.query.filter(Image.image_type==find_image_type(image_type), Image.analysis_id==analysis_id).one()
-    return image.image_path
-'''
-
-# TODO: by eliminating the following function, we don't update the user.analysis_list (but I don't think we need it)
-'''
-def db_analysis_save(data,analysis_id):
-    #db_session.begin()
-    if data['user_id']:
-        user_id = data['user_id']
-    else:
-        user_id = '1433625970'
-    data['analysis_id']=analysis_id
-    images= find_images(data)
-    analysis = Analysis.query.filter(Analysis.analysis_id==analysis_id).one()
-    
-    analysis.images = images
-    user = User.query.filter(User.user_id==user_id).one()
-    user.analysis_list.append(analysis)
-    db_session.add(user)
-    db_session.commit()
-#    db_session.close()
-'''
-
-def db_analysis_edit(data,analysis_id):
-    
-    analysis = db_object_load('analysis', analysis_id) # Analysis.query.filter(Analysis.analysis_id==analysis_id).one()
-    analysis.doRF = data['doRF']
-    ####analysis.lane_list = Lane.build_lanes(data['ROIs'])
-    analysis.lane_list2 = json.dumps(data['ROIs'])
-    ####analysis.origin_list = Origin.build_origins(data['origins'])
-    analysis.origin_list2 = json.dump2(data['origins'])
-    db_session.add(analysis)
-    db_session.commit()
-#    db_session.close()
-
-'''
-# TODO: this handling should be used at time of file generation
-# ... and should be split for uploads and cached...
-def find_path(image_type,analysis_id):
-    if image_type =='cerenkovdisplay':
-        ending = '.png'
-    elif image_type =='dark' or image_type=='flat':
-        ending = '.tiff'
-    elif image_type=='radio':
-        ending='.txt'
-    else:
-        ending='.npy'
-    return f'./UPLOADS/{analysis_id}/{image_type}{ending}'
-'''
 
 # Save ROI and origin info
 # Returns an analysis object
