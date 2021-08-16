@@ -751,15 +751,8 @@ def analysis_rois_autoselect(analysis_id):
     # return the list as ROI[0]
     auto_ROIs = [analysis_retrieve.predict_ROIs(img, imgR)]
 
-    # Save the ROI information to the database??
-    # TODO: previously this function obliterated the origins info... should we do that?
-
-    data = { 'ROIs': auto_ROIs }
-
-    #    from database import db_analysis_rois_save
-    #    new_analysis = db_analysis_rois_save(analysis_id, data)
-
-    # TODO: also return results??
+    # TODO: should we save this to database or update results?
+    # Currently doesn't do
 
     return {'ROIs': auto_ROIs }
 
@@ -804,11 +797,7 @@ def analysis_rois_save(analysis_id):
     analysis.sort2(analysis.origins,index = 0)
     analysis.origins=analysis.origins[0]
     analysis.origins = analysis.origins[::-1]
-    print ('origins before organize into lanes', analysis.origins)
-    print ('rois before organize into lanes', analysis.ROIs)
     analysis.organize_into_lanes()
-    print ('origins after organize into lanes', analysis.origins)
-    print ('rois after organize into lanes', analysis.ROIs)
     newdata = {}
 
     newdata['ROIs'] = analysis.ROIs
@@ -816,9 +805,6 @@ def analysis_rois_save(analysis_id):
     newdata['doRF'] = doRF
     newdata['display_image_brightness'] = data.get('display_image_brightness')
     newdata['display_image_contrast'] = data.get('display_image_contrast')
-
-    from database import db_analysis_rois_save
-    db_analysis_rois_save(analysis_id, newdata)
 
     # Also compute results
     # Force autolane and num_lanes to False and None
@@ -828,6 +814,12 @@ def analysis_rois_save(analysis_id):
     from filestorage import analysis_compute_path
     img = np.load(analysis_compute_path(analysis_id))
     results = new_analysis.results(img)
+
+    newdata['results'] = results
+
+    # Save all info to the database (including results)
+    from database import db_analysis_rois_save
+    db_analysis_rois_save(analysis_id, newdata)
 
     return{
         'ROIs': analysis.ROIs,
@@ -1144,7 +1136,7 @@ def data():
     return {'Key':filename}
 '''
 
-
+'''
 @app.route('/api/analysis/results/<analysis_id>',methods = ['GET'])
 @cross_origin(supports_credentials=True)
 def analysis_results(analysis_id):
@@ -1161,6 +1153,7 @@ def analysis_results(analysis_id):
         analysis_results = analysis_retrieve.results(img)
         #print(analysis_results)
         return{ 'results': analysis_results}
+'''
 
 # Retrieve a file
 # TODO: add permission checks

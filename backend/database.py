@@ -292,6 +292,8 @@ class Analysis(Base):
     doRF = Column(Boolean)
     ROIs = Column(PickleType, default=[], nullable=False)
     origins = Column(PickleType, default=[], nullable=False)
+    results = Column(PickleType, default=[], nullable=False)
+    # Standard fields
     owner_id = Column(Integer, ForeignKey('user.user_id'))
     created = Column(TZDateTime) 
     modified = Column(TZDateTime)
@@ -961,6 +963,8 @@ def db_analysis_rois_save(analysis_id, data):
         analysis.display_image_brightness = data['display_image_brightness']
     if data.get('display_image_contrast') is not None:
         analysis.display_image_contrast = data['display_image_contrast']
+    if data.get('results') is not None:
+        analysis.results = data['results']
     db_session.commit()
     return True
 

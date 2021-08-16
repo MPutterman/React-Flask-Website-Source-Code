@@ -432,6 +432,17 @@ const schema = new SimpleSchema ({
     'origins.$.$': {
         type: SimpleSchema.Integer,
     },
+    results: {
+        label: 'Results',
+        type: Array,
+        required: false,
+    },
+    'results.$': {
+        type: Array,
+    },
+    'results.$.$': {
+        type: Number,
+    },
 
 });
 schema.extend(metaSchema);

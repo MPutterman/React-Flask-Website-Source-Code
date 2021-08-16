@@ -144,7 +144,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
 
     const initialLegacyState = {
         doRF: false,  // LEGACY: phase this out 
-        results_loaded: false, // TODO: will come from ROIs later
         results: [],            // TODO: will come from ROIs later
     };
 
@@ -497,7 +496,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
         // Also save the returned analysis results /// TODO: or have a model that retrieves it directly?
         setLegacyState(prev => ({ ...prev,
           results: res.data.results,
-          results_loaded: true,
         }));
         setBusy(false);
       }).catch('An Error Occurred');
@@ -830,61 +828,10 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
 
               <AnalysisResults
                 results={legacyState.results}
-                results_loaded={legacyState.results_loaded}
+                results_loaded={legacyState.results.length > 0}
                 doRF={legacyState.doRF}
               />
 
-{/*}
-              {legacyState.results_loaded ? ( 
-
-                <TableContainer component={Paper}>
-                  <Table>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell id="tc">
-                          ROIS
-                        </TableCell>
-                        {legacyState.results[0].map((band, i) => {
-                          return (
-                            <TableCell id="tc" key={i} align="right">
-                              Lane {i + 1}{" "}
-                            </TableCell>
-                          );
-                        })}
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {legacyState.results.map((lane, i) => {
-                        return (
-                          <TableRow key={i}>
-                            <TableCell id="tc" component="th" scope="row">
-                              <strong>Band {i + 1}</strong>
-                              <br/>Integration
-                              {legacyState.do_RF && (
-                                <><br/>RF value</>
-                              )}          
-                            </TableCell>
-                            {lane.map((band, j) => {
-                              return (
-                                <TableCell id="tc" key={j} align="right">
-                                  <br/>
-                                  {(band[0] * 100).toFixed(1)}%<br/>
-                                  {band.length > 1 ? " " + band[1].toFixed(2) : ""}
-                                </TableCell>
-                              );
-                            })}
-                          </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-
-              ) : (
-                <p>Results table not yet available</p>
-              )}
-
-*/}
         </AccordionDetails>
         </Accordion>
 
