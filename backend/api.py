@@ -814,7 +814,7 @@ def analysis_rois_save(analysis_id):
     #print(newROIs)
     # TODO: should reorganize class Analysis into either all static methods, or 
     #   or take more advantage of it's object nature and methods...
-    newROIs = Analysis.flatten(newROIs)
+    newROIs = AnalysisHelper.flatten(newROIs)
     #print('n',newROIs)
     analysis = AnalysisHelper(newROIs, num_lanes, newOrigins, analysis_id, doUV, doRF, autoLane)
 
@@ -1091,7 +1091,7 @@ def analysis_roi_build(analysis_id,x,y,shift):
     #print(shift)
     if (shift=='0'):
         for i in range(3):
-            center  = Analysis.find_RL_UD(img,[(row,col)])
+            center  = AnalysisHelper.find_RL_UD(img,[(row,col)])
             row = center[0][0]
             col=center[0][1]
     val =1.35*(np.mean(img[:,150:len(img[0])-150]))
@@ -1119,12 +1119,12 @@ def analysis_roi_build(analysis_id,x,y,shift):
     if (ROIs == []): ROIs = [[]]
     # TODO: change to roi.id, roi.x, roi.y, roi.rx, roi.ry
     ROIs[0].append([int(y),int(x),int(rowRadius),int(colRadius)])
-    ROIs = Analysis.flatten(ROIs)
+    ROIs = AnalysisHelper.flatten(ROIs)
     print('2',ROIs)
     # TODO:  I think we should return the reorganized lane list also... or don't return
     #   num_lanes (just the ROI info).  It's a bit strange to return all ROIs as if
     #   they are one lane, but then return a non-1 value for num_lanes...
-    num_lanes = Analysis.numLanes_finder(ROIs)
+    num_lanes = AnalysisHelper.numLanes_finder(ROIs)
     return{"col":col,"row":row,"colRadius":colRadius,"rowRadius":rowRadius,"n_l":num_lanes}
     
 
