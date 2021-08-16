@@ -1,4 +1,5 @@
 // TODO:
+// * BUG: if there are results, but CLIENT-side filtering has zero results, then get a blank screen
 // * As we implement filters, think whether re-use strategy makes sense
 //     (i.e. would using a HOC to tack on back-end make sense)?
 // * Filtering provided by properties (e.g. for modal searches), but also
