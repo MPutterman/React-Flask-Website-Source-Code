@@ -39,8 +39,8 @@ const AnalysisResults = (props) => {
                   <TableRow key={`band-${i}`}>
                     <TableCell id="tc" component="th" scope="row">
                       <strong>Band {i + 1}</strong>
-                      <br/>Integration
-                      {props.do_RF && (
+                      <br/>Signal
+                      {props.doRF && (
                         <><br/>RF value</>
                       )}          
                     </TableCell>
