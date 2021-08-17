@@ -214,7 +214,7 @@ function IDInput({ name, error, onChange, value, label, ref, required, readOnly,
 
   const handleClear = () => {
       setNameField('');
-      onChange('');
+      onChange(null);
   }
 
   return (
