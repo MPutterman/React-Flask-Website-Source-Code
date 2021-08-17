@@ -707,22 +707,24 @@ def db_user_load_by_email(email):
     return user
 
 def db_user_password_change(user_id, new_password):
-    user = User.query.filter_by(user_id=user_id).one()
+    user = User.query.filter_by(user_id=user_id).scalar()
+    if user is None: return False
     user.password_hash = User.hash(new_password)
     db_session.commit()
     return True
 
 def db_prefs_save(user_id, data):
-    #db_session.begin()
-    user = User.query.filter_by(user_id=user_id).one()
+    user = User.query.filter_by(user_id=user_id).scalar()
+    if user is None: return False
     user.prefs = data
     db_session.commit()
     return True
 
 def db_prefs_load(user_id):
-    user = User.query.filter_by(user_id=user_id).one()
+    user = User.query.filter_by(user_id=user_id).scalar()
+    if user is None: return False
     db_session.commit()
-    return user.prefs
+    return user.prefs 
 
 # Load all favorites or a set of favorites of one object type
 # Return a dict (all favorites), an array (a specific type of favorites), or None
@@ -736,7 +738,7 @@ def db_favorites_load(user_id, object_type=None):
         return user.favorites
 
 # Delete all favorites or a set of favorites of one object type
-# Return boolean
+# Return boolean (True if success; False if error)
 def db_favorites_clear(user_id, object_type=None):
     user = db_object_load('user', user_id)
     if (user is None): return False
@@ -943,12 +945,6 @@ def db_analysis_image_cache(analysis_id, url_radio, url_bright=None):
     analysis.image_cache_modified = datetime.now(timezone.utc)
     db_session.commit()
 
-
-def db_analysis_load(analysis_id):
-    # Note cannot call db_object_load (would be recursive call)
-    analysis = Analysis.query.filter(Analysis.analysis_id==analysis_id).one()
-    db_session.commit()
-    return analysis
 
 # Save ROI and origin info
 # Returns an analysis object
