@@ -76,7 +76,7 @@ const UserPrefs = (props) => {
         },
         "general.default_searchresult_pagesize": {
             label: 'Default number of entries per page in searh results',
-            type: Number,
+            type: SimpleSchema.Integer,
             allowedValues: config.search.pagesize_options,
         },
         analysis: {
@@ -137,10 +137,22 @@ const UserPrefs = (props) => {
             type: String, // TODO: change to selector
             allowedValues: config.analysis.filter_algorithm_options,
         },
+        "analysis.default_radio_opacity": {
+            label: 'Default opacity (%) of radio image',
+            type: SimpleSchema.Integer,
+            min: 0,
+            max: 100,
+        },
+        "analysis.default_bright_opacity": {
+            label: 'Default opacity (%) of brightfield image',
+            type: SimpleSchema.Integer,
+            min: 0,
+            max: 100,
+        }
+
         //default_bright_image_exposure_time: '',   // OMIT FOR NOW
         //default_bright_image_exposure_temp: '',   // OMIT FOR NOW
-        //favorite_plate_types: [],                  // list of plate_ids
-        //favorite_cover_types: [],                  // list of cover_ids
+
     }, {
         requiredByDefault: false,
     });

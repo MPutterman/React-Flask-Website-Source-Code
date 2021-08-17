@@ -55,6 +55,17 @@ export const initialState = {
     analysis: {
         bkgrd_algorithm_options: ['None', '1st order', '2nd order', '3rd order',],
         filter_algorithm_options: ['None', 'median 3x3',],
+        default_radio_opacity: 80,
+        default_bright_opacity: 20,
+        brightness_min: -100, // What should this be?
+        brightness_max: 500, // What should this be?
+        brightness_step: 1,
+        contrast_min: -100, // What should this be?
+        contrast_max: 500, // What should this be?
+        contrast_step: 1,
+        opacity_min: 0,
+        opacity_max: 100,
+        opacity_step: 1,
     },
 }
 

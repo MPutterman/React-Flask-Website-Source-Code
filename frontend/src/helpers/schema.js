@@ -334,25 +334,25 @@ const schema = new SimpleSchema ({
     correct_dark: {
         label: 'Use dark correction?',
         type: Boolean,
-        required: true,
+        required: false,
         defaultValue: prefs ? prefs.analysis.default_use_dark_correction : false,
     },
     correct_flat: {
         label: 'Use flat correction?',
         type: Boolean,
-        required: true,
+        required: false,
         defaultValue: prefs ? prefs.analysis.default_use_flat_correction : false,
     },
     correct_bkgrd : {
         label: 'Use background correction?',
         type: Boolean,
-        required: true,
+        required: false,
         defaultValue: prefs ? prefs.analysis.default_use_bkgrd_correction : false,
     },
     correct_filter: {
         label: 'Use filter correction?',
         type: Boolean,
-        required: true,
+        required: false,
         defaultValue: prefs ? prefs.analysis.default_use_filter_correction : false,
     },
     dark_image_id: {
@@ -391,23 +391,46 @@ const schema = new SimpleSchema ({
         type: SimpleSchema.Integer,
         required: false,
     },
-    display_image_brightness: {
-        label: 'Brightness',
-        type: Number,
-        min: 0,
-        max: 1000, // TODO: What should be allowed range?
+    radio_brightness: {
+        label: 'Brightness (radio)',
+        type: SimpleSchema.Integer,
+        min: config.analysis.brightness_min,
+        max: config.analysis.brightness_max,
         required: false,
     },
-    display_image_contrast: {
-        label: 'Brightness',
-        type: Number,
-        min: 0,
-        max: 1000, // TODO: what should be allowed range?
+    radio_contrast: {
+        label: 'Contrast (radio)',
+        type: SimpleSchema.Integer,
+        min: config.analysis.contrast_min,
+        max: config.analysis.contrast_max,
         required: false,
     },
-    display_image_url: {
-        label: 'Display image URL',
-        type: String,
+    radio_opacity: {
+        label: 'Opacity (radio)',
+        type: SimpleSchema.Integer,
+        min: config.analysis.opacity_min,
+        max: config.analysis.opacity_max,
+        required: false,
+    },
+    bright_brightness: {
+        label: 'Brightness (brightfield)',
+        type: SimpleSchema.Integer,
+        min: config.analysis.brightness_min,
+        max: config.analysis.brightness_max,
+        required: false,
+    },
+    bright_contrast: {
+        label: 'Contrast (brightfield)',
+        type: SimpleSchema.Integer,
+        min: config.analysis.contrast_min,
+        max: config.analysis.contrast_max,
+        required: false,
+    },
+    bright_opacity: {
+        label: 'Opacity (brightfield)',
+        type: SimpleSchema.Integer,
+        min: config.analysis.opacity_min,
+        max: config.analysis.opacity_max,
         required: false,
     },
     display_radio_url: {
@@ -416,7 +439,7 @@ const schema = new SimpleSchema ({
         required: false,
     },
     display_bright_url: {
-        label: 'Display image URL (bright)',
+        label: 'Display image URL (brightfield)',
         type: String,
         required: false,
     },

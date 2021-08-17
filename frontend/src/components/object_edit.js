@@ -295,6 +295,9 @@ return (props) => {
                 model={model}
                 onValidate={validatorFunction ? validatorFunction : defaultValidator}
             >
+
+            <ErrorsField />
+            
                 {/*<fieldset disabled={true} readOnly={true} style={{border: '0 none',}}>*/}
                 <Card>
                 <CardHeader

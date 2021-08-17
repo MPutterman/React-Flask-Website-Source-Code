@@ -803,8 +803,12 @@ def analysis_rois_save(analysis_id):
     newdata['ROIs'] = analysis.ROIs
     newdata['origins'] = analysis.origins
     newdata['doRF'] = doRF
-    newdata['display_image_brightness'] = data.get('display_image_brightness')
-    newdata['display_image_contrast'] = data.get('display_image_contrast')
+    newdata['radio_brightness'] = data.get('radio_brightness')
+    newdata['radio_contrast'] = data.get('radio_contrast')
+    newdata['radio_opacity'] = data.get('radio_opacity')
+    newdata['bright_brightness'] = data.get('bright_brightness')
+    newdata['bright_contrast'] = data.get('bright_contrast')
+    newdata['bright_opacity'] = data.get('bright_opacity')
 
     # Also compute results
     # Force autolane and num_lanes to False and None
@@ -937,6 +941,7 @@ def analysis_load_image_files(analysis_id):
 
 # Helper function to create cached images 
 # Probably portions should be moved into Analysis class
+# TODO: make sure we are capture full bpp data received from various image formats....
 def analysis_generate_working_images(analysis_id):
 
     # Retrieve files

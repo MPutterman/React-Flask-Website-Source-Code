@@ -280,14 +280,17 @@ class Analysis(Base):
     correct_bkgrd = Column(Boolean)
     correct_filter = Column(Boolean)
     # Internally-generated
-    display_image_url = Column(String(2048))
     display_radio_url = Column(String(2048))
     display_bright_url = Column(String(2048))
     image_cache_modified = Column(TZDateTime)
     lanes_modified = Column(TZDateTime) # TODO: implement
     # user adjustable
-    display_image_contrast = Column(Integer)
-    display_image_brightness = Column(Integer)
+    radio_contrast = Column(Integer)
+    radio_brightness = Column(Integer)
+    radio_opacity = Column(Integer)
+    bright_contrast = Column(Integer)
+    bright_brightness = Column(Integer)
+    bright_opacity = Column(Integer)
     # Fields related to lane state
     # TODO: do we need number of lanes stored?  Do we need some kind of
     #   flag to indicate whether we should re-generate ROIs if any image is updated?
@@ -939,7 +942,6 @@ def convert_image_type_to_string(native_type):
 
 def db_analysis_image_cache(analysis_id, url_radio, url_bright=None):
     analysis = db_object_load('analysis', analysis_id)
-    analysis.display_image_url = url_radio
     analysis.display_radio_url = url_radio
     analysis.display_bright_url = url_bright
     analysis.image_cache_modified = datetime.now(timezone.utc)
@@ -959,10 +961,18 @@ def db_analysis_rois_save(analysis_id, data):
         analysis.origins = data['origins']
     if data.get('doRF') is not None:
         analysis.doRF = data['doRF']
-    if data.get('display_image_brightness') is not None:
-        analysis.display_image_brightness = data['display_image_brightness']
-    if data.get('display_image_contrast') is not None:
-        analysis.display_image_contrast = data['display_image_contrast']
+    if data.get('radio_brightness') is not None:
+        analysis.radio_brightness = data['radio_brightness']
+    if data.get('radio_contrast') is not None:
+        analysis.radio_contrast = data['radio_contrast']
+    if data.get('radio_opacity') is not None:
+        analysis.radio_opacity = data['radio_opacity']
+    if data.get('bright_brightness') is not None:
+        analysis.bright_brightness = data['bright_brightness']
+    if data.get('bright_contrast') is not None:
+        analysis.bright_contrast = data['bright_contrast']
+    if data.get('bright_opacity') is not None:
+        analysis.bright_opacity = data['bright_opacity']
     if data.get('results') is not None:
         analysis.results = data['results']
     db_session.commit()
