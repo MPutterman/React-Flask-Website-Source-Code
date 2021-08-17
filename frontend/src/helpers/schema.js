@@ -419,7 +419,10 @@ const schema = new SimpleSchema ({
         type: Array,
     },
     'ROIs.$.$': {
-        type: SimpleSchema.Integer,
+        type: Array,
+    },
+    'ROIs.$.$.$': {
+        type: Number, // Coordinate or radius (integers), or ______
     },
     origins: {
         label: 'Origins',
@@ -430,7 +433,7 @@ const schema = new SimpleSchema ({
         type: Array,
     },
     'origins.$.$': {
-        type: SimpleSchema.Integer,
+        type: SimpleSchema.Integer, // Coordinates
     },
     results: {
         label: 'Results',
@@ -441,6 +444,9 @@ const schema = new SimpleSchema ({
         type: Array,
     },
     'results.$.$': {
+        type: Array,
+    },
+    'results.$.$.$': {
         type: Number,
     },
 
