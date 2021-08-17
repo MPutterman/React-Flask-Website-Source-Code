@@ -93,22 +93,11 @@ const AnalysisData = ({model, ...props}) => {
 
             <Box display="flex" flexDirection="row">
                 <Box width='50%' pr={1}>
-                    <AutoField name="correct_dark" />
-                    <ErrorField name="correct_dark" />
-                </Box>
-                <Box width='50%' pl={1}>
                     <AutoField name="dark_image_id"
                         component={IDInputField} objectType='image'
                         filter={[{field:'image_type', value:'dark'}, {field:'equip_id', value:'equip_id', operator:'field'}]}
                     />
                     <ErrorField name="dark_image_id" />
-                </Box>
-            </Box>
-
-            <Box display="flex" flexDirection="row">
-                <Box width='50%' pr={1}>
-                    <AutoField name="correct_flat" />
-                    <ErrorField name="correct_flat" />
                 </Box>
                 <Box width='50%' pl={1}>
                     <AutoField name="flat_image_id"
@@ -121,19 +110,8 @@ const AnalysisData = ({model, ...props}) => {
 
             <Box display="flex" flexDirection="row">
                 <Box width='50%' pr={1}>
-                    <AutoField name="correct_bkgrd" />
-                    <ErrorField name="correct_bkgrd" />
-                </Box>
-                <Box width='50%' pl={1}>
                     <AutoField name="bkgrd_algorithm" />
                     <ErrorField name="bkgrd_algorithm" />
-                </Box>
-            </Box>
-
-            <Box display="flex" flexDirection="row">
-                <Box width='50%' pr={1}>
-                    <AutoField name="correct_filter" />
-                    <ErrorField name="correct_filter" />
                 </Box>
                 <Box width='50%' pl={1}>
                     <AutoField name="filter_algorithm" />
@@ -141,6 +119,22 @@ const AnalysisData = ({model, ...props}) => {
                 </Box>
             </Box>
 
+{/*
+            <Box display="flex" flexDirection="row">
+                <Box width='50%' pr={1}>
+                    <AutoField name="correct_dark" />
+                    <ErrorField name="correct_dark" />
+                    <AutoField name="correct_flat" />
+                    <ErrorField name="correct_flat" />
+                    <AutoField name="correct_bkgrd" />
+                    <ErrorField name="correct_bkgrd" />
+                    <AutoField name="correct_filter" />
+                    <ErrorField name="correct_filter" />
+                </Box>
+                <Box width='50%' pl={1}>
+                </Box>
+            </Box>
+*/}
         </div>
     );
 }
