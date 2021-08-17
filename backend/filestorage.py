@@ -85,9 +85,13 @@ def analysis_display_radio_path(analysis_id):
     return os.path.join(app.config['ANALYSIS_WORKING_PATH'], str(analysis_id), 'display-radio.png')
     # path/<analysis_id>/display.png
 
+def analysis_display_bright_path(analysis_id):
+    return os.path.join(app.config['ANALYSIS_WORKING_PATH'], str(analysis_id), 'display-bright.png')
+    # path/<analysis_id>/display-bright.png
+
 def analysis_display_uv_path(analysis_id):
     return os.path.join(app.config['ANALYSIS_WORKING_PATH'], str(analysis_id), 'display-uv.png')
-    # path/<analysis_id>/display.png
+    # path/<analysis_id>/display-uv.png
 
 def analysis_compute_path(analysis_id):
     return os.path.join(app.config['ANALYSIS_WORKING_PATH'], str(analysis_id), 'compute.npy')
@@ -113,6 +117,8 @@ def get_pathname(object_type, file_type, object_id):
         pathname = analysis_display_path(object_id)
     elif (object_type == 'analysis' and file_type == 'display-radio'): # TODO: need this?
         pathname = analysis_display_radio_path(object_id)
+    elif (object_type == 'analysis' and file_type == 'display-bright'): # TODO: need this?
+        pathname = analysis_display_bright_path(object_id)
     elif (object_type == 'analysis' and file_type == 'display-uv'): # TODO: need this?
         pathname = analysis_display_uv_path(object_id)
     elif (object_type == 'analysis' and file_type == 'compute'):

@@ -623,11 +623,11 @@ def fix_background(analysis_id):
     ## TODO: these images should be 16-bit... this might be truncating
     ## them...
     img = PIL.Image.fromarray((np.uint8(plt.get_cmap('viridis')(img)*255)))
-    from filestorage import analysis_display_path, save_file
-    save_file(img, analysis_display_path(analysis_id))
+    from filestorage import analysis_display_radio_path, save_file
+    save_file(img, analysis_display_radio_path(analysis_id))
 
     from database import db_analysis_image_cache
-    db_analysis_image_cache(analysis_id, f"/api/file/analysis/display/{analysis_id}")
+    db_analysis_image_cache(analysis_id, f"/api/file/analysis/display-radio/{analysis_id}")
 
     #filepath = analysis_display_path(analysis_id) #retrieve_image_path('cerenkovdisplay',analysis_id)
     #os.remove(filepath)
@@ -911,7 +911,7 @@ def analysis_load_image_files(analysis_id):
     if (analysis.bright_image_id is not None):
         bright_image = db_object_load('image', analysis.bright_image_id)
         bright_image_path = image_file_upload_path(bright_image.image_id, bright_image.filename)
-        Bright = np.loadtext(bright_image_path) # TODO: rename to bright_image_array
+        Bright = np.loadtxt(bright_image_path) # TODO: rename to bright_image_array
         # TEMP: create an all-ones flat image (since we for sure don't have a real one)
         BrightFlat = np.zeros_like(Bright) + 1
 
@@ -1030,8 +1030,8 @@ def analysis_generate_working_images(analysis_id):
     img = img-np.min(img)
     img = img *1/np.max(img)
     img = PIL.Image.fromarray((np.uint8(plt.get_cmap('viridis')(img)*255)))
-    from filestorage import analysis_display_path, save_file
-    save_file(img, analysis_display_path(analysis_id))
+    from filestorage import analysis_display_radio_path, save_file
+    save_file(img, analysis_display_radio_path(analysis_id))
 
     if doUV:
         # Not currently used in front-end
@@ -1039,10 +1039,26 @@ def analysis_generate_working_images(analysis_id):
         save_file(Display_Radio, analysis_display_radio_path(analysis_id))
         save_file(Display_UV, analysis_display_uv_path(analysis_id))
 
+    # TEMP MIKE ADDED: Create brightfield display image
+    if Bright is not None:
+        b = Bright
+        # TODO: apply corrections
+        b = b - np.min(b)  # subtract min, so lowest signal has zero value
+        b = b * 1/np.max(b) # divide by max so all all numbers are between 0 and 1
+        b = b * 255 # scale to full range of 8-bit image [[[[ DO browsers support 16-bit png??]]]]
+        b = transform.rotate(b,270)
+        b = PIL.Image.fromarray(np.uint8(b))
+        from filestorage import analysis_display_bright_path, save_file
+        save_file(b, analysis_display_bright_path(analysis_id))
+
     # Update in database where the display image is, and when cache was updated
 
     from database import db_analysis_image_cache
-    db_analysis_image_cache(analysis_id, f"/api/file/analysis/display/{analysis_id}")
+    db_analysis_image_cache(
+        analysis_id,
+        f"/api/file/analysis/display-radio/{analysis_id}",
+        f"/api/file/analysis/display-bright/{analysis_id}" if Bright is not None else None
+    )
 
     return True
 

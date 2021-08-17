@@ -570,6 +570,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                 </Grid>
                 <Grid item>
                   <SubmitField size='small' >Save</SubmitField>
+                  (This button will discard any ROI/origin info)
                 </Grid>
               </Grid>
 
@@ -595,17 +596,19 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
               
                 {/* Show main image (after all corrections) and set up listener for mouse click */}
 
+                {model.display_bright_url ? (
                 <ServerImage
-                  url={model.display_image_url}
+                  url={model.display_bright_url}
 		              className = 'noselect'    
-                  id="img"
+                  id="img-bright"
                   style={{
-                    position: "relative",
+                    position: "absolute",
                     marginTop: "0",
                     marginLeft: "0",
                     filter:
-                      "brightness(" + (100 + imageState.brightness) + "%) " + 
-                      "contrast(" + (100 + imageState.contrast) + "%) ",
+                      //"brightness(" + (100 + imageState.brightness) + "%) " + 
+                      //"contrast(" + (100 + imageState.contrast) + "%) " +
+                      "opacity(20%)"
                   }}
 //                  src={backend_url('img/' + dataState.id)} // + background_corrected)}
                   onClick={(e) => {
@@ -613,7 +616,28 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                     onClickImage(e);}}
                   alt=''
                 />
-                
+                ) : ( <></> )}
+
+                <ServerImage
+                  url={model.display_radio_url}
+		              className = 'noselect'    
+                  id="img-radio"
+                  style={{
+                    position: "relative",
+                    marginTop: "0",
+                    marginLeft: "0",
+                    filter:
+                      "brightness(" + (100 + imageState.brightness) + "%) " + 
+                      "contrast(" + (100 + imageState.contrast) + "%) " +
+                      "opacity(60%)"
+                  }}
+//                  src={backend_url('img/' + dataState.id)} // + background_corrected)}
+                  onClick={(e) => {
+                    e.preventDefault();
+                    onClickImage(e);}}
+                  alt=''
+                />
+
                 {/* Draw ROIs if available */}
 
 

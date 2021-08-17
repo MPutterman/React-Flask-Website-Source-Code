@@ -410,6 +410,16 @@ const schema = new SimpleSchema ({
         type: String,
         required: false,
     },
+    display_radio_url: {
+        label: 'Display image URL (radio)',
+        type: String,
+        required: false,
+    },
+    display_bright_url: {
+        label: 'Display image URL (bright)',
+        type: String,
+        required: false,
+    },
     ROIs: {
         label: 'ROIs',
         type: Array,

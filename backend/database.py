@@ -281,6 +281,8 @@ class Analysis(Base):
     correct_filter = Column(Boolean)
     # Internally-generated
     display_image_url = Column(String(2048))
+    display_radio_url = Column(String(2048))
+    display_bright_url = Column(String(2048))
     image_cache_modified = Column(TZDateTime)
     lanes_modified = Column(TZDateTime) # TODO: implement
     # user adjustable
@@ -933,9 +935,11 @@ def convert_image_type_to_string(native_type):
         return 'unknown'
 
 
-def db_analysis_image_cache(analysis_id, url):
+def db_analysis_image_cache(analysis_id, url_radio, url_bright=None):
     analysis = db_object_load('analysis', analysis_id)
-    analysis.display_image_url = url
+    analysis.display_image_url = url_radio
+    analysis.display_radio_url = url_radio
+    analysis.display_bright_url = url_bright
     analysis.image_cache_modified = datetime.now(timezone.utc)
     db_session.commit()
 
