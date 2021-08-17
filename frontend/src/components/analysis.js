@@ -9,7 +9,9 @@
 //
 // TODO:
 // * How to show only date selector?
-// * Bug if 'search' for a radio image, screen goes blank (only if none exist?)
+// * Allow selection of color palette for image? (Maybe less processing in backend... just convert to monochromatic PNG?)
+//     Are there client-side ways to do this?
+//     Some good palettes: https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html
 // * Add feature to export as .csv text file, excel file, etc.
 // * Add feature to export a full PDF report?  E.g. with image, etc..
 // * When change origins and ROIs, need to reset something so 'autolane' will work correctly.
@@ -56,6 +58,7 @@ import { connectEdit } from '../components/object_edit';
 import { SubmitField } from 'uniforms-material';
 import { useThrobber } from '../contexts/throbber';
 import { useAlerts } from '../contexts/alerts';
+import { useConfirm } from 'material-ui-confirm';
 import Popup from '../components/popup';
 import HelpIcon from '@material-ui/icons/Help';
 import { useForm } from 'uniforms';
@@ -77,6 +80,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
     const setBusy = useThrobber();
     const setAlert = useAlerts();
     const form = useForm();
+    const confirm = useConfirm();
 
     // Define step sizes (in pixels) to increment position or radius (via keypresses)
     const STEP_X = 4;
@@ -137,7 +141,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
            setLaneState((prev) => ({ ...prev, origins: model.origins, }));
         }
         if (model.ROIs !== null && model.ROIs !== undefined) {
-            console.log('capturing new ROIs from model', model.ROIs);
            setLaneState((prev) => ({ ...prev, ROIs: model.ROIs, num_lanes: model.ROIs.length}));
         }
     }, [model.auto_lane, /*model.num_lanes,*/ model.origins, model.ROIs])
@@ -238,7 +241,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
         // Add the new ROI info (assign initially to lane '0')
         // QUESTION: is n_l changed by the server?
         // TODO: maybe the server should regenerate the lane list as much as possible?
-        console.log ("response from /radius", res);
         return setLaneState(prev => {
           var newROIs = [];
           if (prev.ROIs) newROIs = JSON.parse(JSON.stringify(prev.ROIs)); // hack to make a true DEEP copy, [...prev.ROIs only first level are copied, rest are referenced]
@@ -406,32 +408,57 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
 
   // Clear all ROIs.  Just a local change until save to backend
   const clearROIs = () => {
-    setLaneState(prev => ({...prev, ROIs: [], selectedROI:{lane:UNDEFINED, band:UNDEFINED},}));
+      if (laneState.ROIs.length > 0) {
+          confirm ({/*title:<title>, description:<description>*/})
+          .then(() => {
+              setLaneState(prev => ({...prev, ROIs: [], selectedROI:{lane:UNDEFINED, band:UNDEFINED},}));
+          });
+      } else {
+          setLaneState(prev => ({...prev, ROIs: [], selectedROI:{lane:UNDEFINED, band:UNDEFINED},}));
+      }
   };
 
   // Clear all origins. Just a local change until save to backend
   const clearOrigins = () => {
-    setLaneState(prev => ({...prev, origins: [], }));
+      if (laneState.origins.length > 0) {
+          confirm ({/*title:<title>, description:<description>*/})
+          .then(() => {
+              setLaneState(prev => ({...prev, origins: [], }));
+          });
+      } else {
+          setLaneState(prev => ({...prev, origins: [], }));
+      }
   };
 
   // Reset image brightness and contrast
   const resetImage = () => {
-    setImageState(prev => ({...prev, contrast: initialImageState.contrast, brightness: initialImageState.brightness, }));
+      setImageState(prev => ({...prev, contrast: initialImageState.contrast, brightness: initialImageState.brightness, }));
   };
 
-  // Re-autoselect the ROIs
-  // TODO: add similar functions (or combine here) for origins and lanes?
+
+  // Autoselect the ROIs. Just a local change until save to backend
+  async function autoSelectWrapper() {
+      if (laneState.ROIs.length > 0) {
+          confirm ({/*title:<title>, description:<description>*/})
+          .then(() => {
+              return autoSelect();
+          });          
+      } else {
+          return autoSelect();
+      }
+  }
+
   async function autoSelect() {
       return callAPI('POST', `/api/analysis/rois_autoselect/${model.analysis_id}`, {})
-      .then((res) => {
-          console.log('response from autoselect', res.data);
-          setLaneState(prev => ({...prev,
-              ROIs: res.data.ROIs,
-              selectedROI: {lane: UNDEFINED, band: UNDEFINED},
-          }));
-          // TODO: update the number of lanes? or leave this as a 'control' for autolane?
-          return res; // TODO: why return response?
-          // TODO: also add a request for updated results as well...
+      .then((response) => {
+          if (response.error) {
+              setAlert({severity: 'warning', message: `Error autoselecting ROIs: ${response.data.error}`});
+          } else {
+              setLaneState(prev => ({...prev,
+                  ROIs: response.data.ROIs,
+                  selectedROI: {lane: UNDEFINED, band: UNDEFINED},
+              }));
+          }
       })
   }
 
@@ -560,9 +587,9 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
 
           {model.display_image_url ? (
 
-          <Grid container direction='column' spacing={3}>
+          <Grid container direction='column' spacing={1}>
 
-            <Grid container direction="row" spacing={3}>
+            <Grid container direction="row" spacing={1}>
 
               <Grid item>
               
@@ -655,9 +682,9 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
 
             </Grid>
 
-            <Grid container direction="column" style={{width: '250px'}}>
+            <Grid container direction="row" fullWidth>
 
-              <Grid item>
+              <Grid item xs={8}>
               <FormControl component="fieldset">
                 <RadioGroup name="select-mode"
                   value={selectMode}
@@ -676,6 +703,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                                 [s / S] jog down (top or bottom side)<br/> 
                                 [d / D] jog right (left or right side)<br/>
                           </Popup>
+                          <Button size='small' variant='outlined' onClick={autoSelectWrapper}> Autoselect ROIs </Button>
+                          <Button size='small' variant='outlined' onClick={clearROIs}> Clear ROIs </Button>
                       </Box>}
                   />
                   <FormControlLabel value="origin" control={<Radio />} label={
@@ -687,62 +716,63 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                               points to define a solvent front line at the top of the TLC plate. These solvent front points 
                               are assumed to be the highest two points chosen.
                           </Popup>
+                          <Button size='small' variant='outlined' onClick={clearOrigins}> Clear origins </Button>
                       </Box>}
                   />
                 </RadioGroup>
               </FormControl>
 
-              <Button size='small' color="primary" variant="contained" onClick={clearROIs}> Clear all ROIs </Button>
-              <Button size='small' color="primary" variant="contained" onClick={autoSelect}> Autoselect / reset ROIs </Button>
-              <Button size='small' color="primary" variant="contained" onClick={clearOrigins}> Clear all origins </Button>
-              <Button size='small' color="primary" variant="contained" onClick={resetImage}> Reset brightness/contrast </Button>
-
             </Grid>
 
-            <Grid item>
-                <Grid item>
-                  <p>Brightness</p>
-                  <Slider
-                    color='secondary'
-                    name="brightness"
-                    label="Brightness"
-                    valueLabelDisplay="auto"
-                    step={1}
-                    marks={true}
-                    defaultValue={initialImageState.brightness}
-                    value={imageState.brightness}
-                    min={-100}
-                    max={500}
-                    onChange={(e, value) => {
-                      setImageState(prev=>({...prev, brightness: value}));
-                    }}
-                  />
-                </Grid>
+            <Grid item xs={4}>
+                <Box display="flex" flexDirection="row">
+                    <Box width='20%'>
+                        Brightness:
+                    </Box>
+                    <Box width='80%'>
+                        <Slider
+                            color='secondary'
+                            name="brightness"
+                            label="Brightness"
+                            valueLabelDisplay="auto"
+                            step={1}
+                            marks={true}
+                            defaultValue={initialImageState.brightness}
+                            value={imageState.brightness}
+                            min={-100}
+                            max={500}
+                            onChange={(e, value) => {
+                                setImageState(prev=>({...prev, brightness: value}));
+                            }}
+                        />
+                    </Box>
+                </Box>
+                <Box display="flex" flexDirection="row" width='100%'>
+                    <Box width='20%'>
+                        Contrast:
+                    </Box>
+                    <Box width='80%'>
+                        <Slider
+                            color="secondary"
+                            name="contrast"
+                            label="Contrast"
+                            valueLabelDisplay="auto"
+                            step={1}
+                            marks={true}
+                            defaultValue={initialImageState.contrast}
+                            value={imageState.contrast}
+                            min={-100}
+                            max={500}
+                            onChange={(e, value) => {
+                                setImageState(prev=>({...prev, contrast: value}));
+                            }}
+                        /> 
+                    </Box>
+                </Box> 
+                <Button size='small' variant="outlined" onClick={resetImage}>Reset</Button>
 
-                <Grid item>
-                  <p>Contrast</p>
-                  <Slider
-                    color="secondary"
-                    name="contrast"
-                    label="Contrast"
-                    valueLabelDisplay="auto"
-                    step={1}
-                    marks={true}
-                    defaultValue={initialImageState.contrast}
-                    value={imageState.contrast}
-                    min={-100}
-                    max={500}
-                    onChange={(e, value) => {
-                      setImageState(prev=>({...prev, contrast: value}));
-                    }}
-                  />  
-                </Grid>
-
-            </Grid>
-
+            </Grid>  
           </Grid>
-        </Grid>
-
             <Grid container direction="row">
                   <Grid item>
                     {/* Compute RF values? Only enable if origins have been defined. 
@@ -807,7 +837,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                   </Grid>
 
                 </Grid>
-
+            </Grid>
                 <Button color="primary" variant="contained" onClick={submitParams}> Save ROI info </Button>
 
             </Grid>
