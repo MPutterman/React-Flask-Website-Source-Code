@@ -37,13 +37,13 @@ const UserFavorites = (props) => {
 
     return (
         <>
-            <UserSearch filter={['favorites']} />
-            <OrgSearch filter={['favorites']} />
-            <EquipSearch filter={['favorites']} />
-            <PlateSearch filter={['favorites']} />
-            <CoverSearch filter={['favorites']} />
-            <ImageSearch filter={['favorites']} />
-            <AnalysisSearch filter={['favorites']} />
+            <UserSearch title='Followed Users' filter={['favorites']} />
+            <OrgSearch title='Followed Organizations' filter={['favorites']} />
+            <EquipSearch title='Favorite Equipment' filter={['favorites']} />
+            <PlateSearch title='Favorite TLC Plates' filter={['favorites']} />
+            <CoverSearch title='Favorite TLC Covers' filter={['favorites']} />
+            <ImageSearch title='Favorite Images' filter={['favorites']} />
+            <AnalysisSearch title='Favorite Analyses' filter={['favorites']} />
         </>
     )
 

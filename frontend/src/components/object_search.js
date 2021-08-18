@@ -18,7 +18,7 @@
 //
 // Usage:
 //   Composed into object-specific search components.
-//   Render: <ObjectSearch objectType columns filters onSelect />
+//   Render: <ObjectSearch objectType columns filters onSelect title />
 //
 // RESOURCES:
 // * https://material-ui.com/api/data-grid/ (DataGrid documentation)
@@ -153,8 +153,7 @@ const ObjectSearch = (props) => {
                             <ObjectIcon objectType={object_type} fontSize='large' />
                         </Avatar>
                     }
-                    title={`SEARCH ${objectTitle(object_type).toUpperCase()}`}
-                    //subheader={`${model.name || ''}`}
+                    title={props.title ? props.title : `SEARCH ${objectTitle(object_type).toUpperCase()}`}
                     action={
                         <FormControlLabel
                             control={<Checkbox defaultChecked={filter.includes('favorites')} onChange={onFavoritesChange} />}
