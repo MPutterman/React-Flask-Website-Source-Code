@@ -64,6 +64,7 @@ const UserPrefs = (props) => {
         "general.redirect_after_login": {
             label: 'Redirect after login (relative URL)',
             type: String,
+            defaultValue: config.general.redirect_after_login,
         },
         "general.timezone": {
             label: 'Time zone',
@@ -78,6 +79,7 @@ const UserPrefs = (props) => {
             label: 'Default number of entries per page in searh results',
             type: SimpleSchema.Integer,
             allowedValues: config.search.pagesize_options,
+            defaultValue: config.search.default_pagesize,
         },
         analysis: {
             label: 'Category - Analysis preferences',
@@ -138,16 +140,18 @@ const UserPrefs = (props) => {
             allowedValues: config.analysis.filter_algorithm_options,
         },
         "analysis.default_radio_opacity": {
-            label: 'Default opacity (%) of radio image',
+            label: 'Default opacity of radio image',
             type: SimpleSchema.Integer,
             min: 0,
             max: 100,
+            defaultValue: config.analysis.default_radio_opacity,
         },
         "analysis.default_bright_opacity": {
-            label: 'Default opacity (%) of brightfield image',
+            label: 'Default opacity of brightfield image',
             type: SimpleSchema.Integer,
             min: 0,
             max: 100,
+            defaultValue: config.analysis.default_bright_opacity,
         }
 
         //default_bright_image_exposure_time: '',   // OMIT FOR NOW
@@ -321,6 +325,14 @@ const UserPrefs = (props) => {
                             <ErrorField name="analysis.default_use_filter_correction" />
                             <AutoField name="analysis.default_filter" />
                             <ErrorField name="analysis.default_filter" />
+                            <AutoField name="analysis.default_radio_opacity"
+                                InputProps={{endAdornment:(<InputAdornment position="end">%</InputAdornment>)}}
+                             />
+                            <ErrorField name="analysis.default_radio_opacity" />
+                            <AutoField name="analysis.default_bright_opacity"
+                                InputProps={{endAdornment:(<InputAdornment position="end">%</InputAdornment>)}}
+                             />
+                            <ErrorField name="analysis.default_bright_opacity" />
                         </Grid>
                     </AccordionDetails>
                 </Accordion>
