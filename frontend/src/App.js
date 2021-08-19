@@ -55,7 +55,6 @@ import NotFound from './components/notfound';
 
 import { AnalysisEdit } from './components/analysis';
 import Database from './components/database'
-import Submission from './components/submission'
 import { UserView, OrgView, EquipView, PlateView, CoverView, ImageView, AnalysisView } from './components/object_view';
 import { UserSearch, OrgSearch, EquipSearch, PlateSearch, CoverSearch, ImageSearch, AnalysisSearch } from "./components/object_search";
 import UserLogin from "./components/user_login"; 
