@@ -16,6 +16,8 @@
 //     still show things like '*' for required fields.  Also a few cases where the public should not
 //     see all the fields, e.g. a user profile.  Hmm... Maybe MOST objects can be the same but UserProfile
 //     is a different view?
+// * Additional fields not working well -- date format issues, checkbox missing label, need to find a way to 
+//     get name lookup for owner_id
 
 import React from "react";
 import { callAPI } from '../helpers/api';
@@ -29,14 +31,20 @@ import CardHeader from '@material-ui/core/CardHeader';
 import CardContent from '@material-ui/core/CardContent';
 import CardActions from '@material-ui/core/CardActions';
 import Avatar from '@material-ui/core/Avatar';
+import Accordion from '@material-ui/core/Accordion';
+import AccordionSummary from '@material-ui/core/AccordionSummary';
+import AccordionDetails from '@material-ui/core/AccordionDetails';
+import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import Grid from '@material-ui/core/Grid';
 import TextField from '@material-ui/core/TextField';
+import IDInputField from '../components/idfield';
+import Checkbox from '@material-ui/core/Checkbox';
 import IDIcon from '@material-ui/icons/Fingerprint';
 import { useErrorResponse } from '../contexts/error';
 import { StatusCodes } from 'http-status-codes';
 import { useAlerts } from '../contexts/alerts';
 import { useConfirm } from 'material-ui-confirm';
-import Busy from '../components/busy';
+import { useThrobber } from '../contexts/throbber';
 import { ObjectEditButton, ObjectDeleteButton, ObjectRestoreButton, ObjectPurgeButton } from '../helpers/object_utils';
 import { hasPermission, listPermissions } from '../helpers/object_utils';
 import { objectIcon, objectTitle } from '../helpers/object_utils';
@@ -80,6 +88,7 @@ return (props) => {
     // Hooks / contexts
     const setAlert = useAlerts();
     const setErrorResponse = useErrorResponse();
+    const setBusy = useThrobber();
 
     // Data model
     const id = props.objectID ? props.objectID : (props.match.params.id ? props.match.params.id : null);
@@ -108,24 +117,10 @@ return (props) => {
         }
     }, [id])
 
-/*
-    // Set name property
-    // TODO: QUESTION: do this, or use an 'onNameChange' callback?
-    // TODO: or maybe just have the backend create this for us... (only user has this issue)
-    React.useEffect(() => {
-        if (Object.keys(model).length > 0) {
-            if (object_type == 'user') {
-                setName(`${model.first_name} ${model.last_name}`);
-            } else {
-                setName(model.name);
-            }
-        }
-    }, [model])
-*/
-
     // Retrieve user with specified id from the database
     function objectLoad(id) {
         if (id) {
+            setBusy(true);
             callAPI('GET', `${object_type}/load/${id}`) // change to api/object/load/id
             .then((response) => {
 
@@ -134,12 +129,14 @@ return (props) => {
                 // TODO: handle some specific errors (e.g. unauthorized) or add error details?
                 setErrorResponse({code: response.status, details: response.data.error ? response.data.error : '' });
                 setLoaded(true);
+                setBusy(false);
                 return false;
 
               } else {
 
                 setModel(response.data);
                 setLoaded(true);
+                setBusy(false);
                 return true;
               
               }
@@ -150,9 +147,6 @@ return (props) => {
     }
 
     return (
-
-        <>
-        <Busy busy={!loaded} />
 
         <Card>
             <CardHeader
@@ -168,17 +162,45 @@ return (props) => {
             />
             <CardContent>
 
+                <h3>Please note: Many 'view' are not yet implemented -- you can use the 'edit' route instead</h3>
+
                 <WrappedView id={id} model={model} />
 
-                <Divider />
-                Metadata:
-                <Grid fullWidth container direction='row' justifyContent='space-between'>
-                    <TextField label={`${objectTitle(object_type)} ID`} value={id || ''} />
-                    <TextField label="Owner ID" value={model.owner_id || ''} />
-                    <TextField label="Created" value={model.created || ''} />
-                    <TextField label="Last modified" value={model.modified || ''} />
-                    <TextField label="Is deleted?" value={model.is_deleted} />
-                </Grid>
+                <Accordion /*defaultExpanded*/ elevation={10}>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                        <span>Additional read-only fields</span>
+                    </AccordionSummary>
+                    <AccordionDetails>
+
+{/*              <Box border={1} p={2} style={{background:"#222225"}}> */}
+                    <Box>
+                        <Box display="flex" flexDirection="row">
+                            <Box width='9%' pr={1}>
+                                <TextField readOnly disabled
+                                    label={`${object_type}_id`}
+                                    value={model[`${object_type}_id`] || ''}
+                                />
+                            </Box>
+                            <Box width='28%' px={1}>
+                                <TextField label="Last modified" value={model.modified || ''} type="date" readOnly disabled />
+                            </Box>
+                            <Box width='28%' px={1}>
+                                <TextField label="Created" value={model.created || ''} type="date" readOnly disabled />
+                            </Box>
+                            <Box width='35%' pl={1}>
+                                {/* TODO: want IDInputField, to lookup name... but it needs to be in a form */}
+                                <TextField label="Owner ID" value={model.owner_id || ''} readOnly disabled />
+                            </Box>
+                        </Box>
+                        <Box display="flex" flexDirection="row">
+                            <Box width='25%'>
+                                <Checkbox label="Is deleted?" value={model.is_deleted ? 'checked' : 'unchecked'} readOnly disabled />
+                            </Box>
+                        </Box>
+                    </Box>
+
+                </AccordionDetails>
+            </Accordion>
 
             </CardContent>
 
@@ -192,8 +214,6 @@ return (props) => {
             </CardActions>
 
         </Card>
-
-        </>
 
     )
     
