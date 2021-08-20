@@ -1,3 +1,6 @@
+// Keeps track of the session info from backend, including authentication status,
+// current user, and the current user's preferences and favorites.
+
 // CREDITS and RESOURCES:
 // The following links provided a lot of good ideas how to implement authentication.
 // * https://marmelab.com/react-admin/Authentication.html
@@ -13,12 +16,10 @@
 //   Maybe it is safer just to reload the session from backend server, rather than try to
 //   guess the actual state.  Doing so would greatly simplify the code here and have only minor
 //   performance impact (only when logging in or out)
-// * Separate profile out of the user_id? 
 // * Implement a way to 'dirty' the prefs (or the whole session) when prefs are saved. Trigger reload of
 //     these values from backend.
 // * Add 'roles'
-// * For now, favorites are stored in user table and session. Performance impact should be 
-//     small if only a relatively small number of preferences is stored
+// * If a user has a lot of favorites, performance may become impacted
 
 import React, { useReducer, useEffect } from "react";
 import { callAPI } from '../helpers/api';
@@ -87,7 +88,9 @@ export const defaultUserPrefs = {
         redirect_after_login: '/',                 // relative url
         timezone: '',
         theme: 'dark',
-        default_searchresult_pagesize: 10,      // Any way to bring in config here?      
+    },
+    search: {
+        default_pagesize: 10,                   // Any way to bring in config here?
     },
     analysis: {
         default_equip: null,                       // equip_id

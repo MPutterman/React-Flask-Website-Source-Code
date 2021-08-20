@@ -2,8 +2,8 @@
 // Note after saving preferences we tell the auth context to refresh the session.
 
 // TODO:
-// * After saving preferences we trigger a session reload. Would be more efficient just to mark prefs 
-//     as dirty.
+// * After saving preferences we trigger a session reload. Would be more efficient just to mark prefs as dirty.
+// * After reset defaults, doesn't refresh form
 // * Add preference?: list of favorite plate_types
 // * Add preference?: list of favorite cover_types
 // * Add option to reset preferences to site defaults?  (I -think- form reset will return to state of model (from database))
@@ -14,8 +14,6 @@
 // * useEffect seems to get called twice after Submit. Why?
 // * Implement some checking on the server, e.g. see if selected images equip and image ids are valid,
 //     and that Images are of the correct 'type' (dark/flat).
-// * Implement 'reset defaults' button -- either delete prefs entry from profile, and/or load
-//     current site defaults...  Need to ask for confirmation
 
 import React from "react";
 import { withRouter } from "react-router";
@@ -26,12 +24,17 @@ import ButtonGroup from "@material-ui/core/ButtonGroup";
 import Accordion from "@material-ui/core/Accordion";
 import AccordionSummary from "@material-ui/core/AccordionSummary";
 import AccordionDetails from "@material-ui/core/AccordionDetails";
+import Card from '@material-ui/core/Card';
+import CardHeader from '@material-ui/core/CardHeader';
+import CardContent from '@material-ui/core/CardContent';
+import CardActions from '@material-ui/core/CardActions';
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
 import { useAuthState, useAuthDispatch, defaultUserPrefs, authRefreshSession } from '../contexts/auth';
 import { useConfigState } from '../contexts/config';
 import Busy from '../components/busy';
 import { useAlerts } from '../contexts/alerts';
 import { useThrobber } from '../contexts/throbber';
+import { useConfirm } from 'material-ui-confirm';
 import { callAPI } from '../helpers/api';
 import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField,} from 'uniforms-material';
 import { id_exists } from '../helpers/validation_utils';
@@ -50,6 +53,7 @@ const UserPrefs = (props) => {
     const config = useConfigState();
     const setAlert = useAlerts();
     const setBusy = useThrobber();
+    const confirm = useConfirm();
 
     const initialUserPrefs = defaultUserPrefs; // Defaults currently stored in auth.js
 
@@ -75,7 +79,11 @@ const UserPrefs = (props) => {
             type: String,
             allowedValues: config.general.theme_options,
         },
-        "general.default_searchresult_pagesize": {
+        search: {
+            label: 'Category - Search preferences',
+            type: Object,
+        },
+        "search.default_pagesize": {
             label: 'Default number of entries per page in searh results',
             type: SimpleSchema.Integer,
             allowedValues: config.search.pagesize_options,
@@ -177,6 +185,16 @@ const UserPrefs = (props) => {
         loadUserPrefs();
     }, [prefs]);
 
+
+    // Clears out prefs
+    async function resetDefaults(e) {
+        confirm ({/*title:<title>, description:<description>*/})
+        .then(() => {
+            return saveUserPrefs({}); 
+        })
+    };
+
+
     async function onSubmit(data, e)  {
       saveUserPrefs(data);
     };
@@ -259,7 +277,7 @@ const UserPrefs = (props) => {
 
     return (
 
-          <div className="UserPrefForm" style={{ margin: 'auto', maxWidth: '500px',}}>
+        <Card style={{ margin: 'auto', maxWidth: '500px',}}>
 
             <AutoForm
               schema={bridge}
@@ -268,6 +286,10 @@ const UserPrefs = (props) => {
               model={currentUserPrefs}
               onValidate={onValidate}
             >
+
+            <CardHeader />
+            <CardContent>
+
                 <Accordion defaultExpanded={true} square variant='elevation' elevation={8}>
                     <AccordionSummary expandIcon={<ExpandMoreIcon/>}>General preferences</AccordionSummary>
                     <AccordionDetails >
@@ -278,11 +300,20 @@ const UserPrefs = (props) => {
                             <ErrorField name="general.timezone" />
                             <AutoField name="general.theme" />
                             <ErrorField name="general.theme" />
-                            <AutoField name="general.default_searchresult_pagesize" />
-                            <ErrorField name="general.default_searchresult_pagesize" />
                         </Grid>
                     </AccordionDetails>
                 </Accordion>
+
+                <Accordion defaultExpanded={true} square variant='elevation' elevation={8}>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon/>}>Search preferences</AccordionSummary>
+                    <AccordionDetails >
+                        <Grid container direction="column">
+                            <AutoField name="search.default_pagesize" />
+                            <ErrorField name="search.default_pagesize" />
+                        </Grid>
+                    </AccordionDetails>
+                </Accordion>
+
                 <Accordion defaultExpanded={true} square variant='elevation' elevation={8}>
                     <AccordionSummary expandIcon={<ExpandMoreIcon/>}>Analysis preferences (Defaults for New Analysis)</AccordionSummary>
                     <AccordionDetails >
@@ -335,15 +366,18 @@ const UserPrefs = (props) => {
                     </AccordionDetails>
                 </Accordion>
 
-                <ButtonGroup variant='contained'>
-                    <SubmitField>Save Changes</SubmitField>
-                    <Button onClick={() => formRef.reset()}>Cancel</Button>
-                    <Button>Reset Defaults</Button>
-                </ButtonGroup>
+            </CardContent>
+
+            <CardActions disableSpacing style={{ width: '100%', justifyContent: 'flex-end' }}>
+                <SubmitField size='small' >Save</SubmitField>
+                <Button size='small' type="reset" onClick={() => formRef.reset()}>Cancel</Button>
+                <Button size='small' onClick={(e) => resetDefaults()}>Reset Defaults</Button>
+            </CardActions>
 
             </AutoForm>
 
-          </div>
+            </Card>
+
         );
     
 }
