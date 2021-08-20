@@ -31,6 +31,7 @@ import { useAuthState, useAuthDispatch, defaultUserPrefs, authRefreshSession } f
 import { useConfigState } from '../contexts/config';
 import Busy from '../components/busy';
 import { useAlerts } from '../contexts/alerts';
+import { useThrobber } from '../contexts/throbber';
 import { callAPI } from '../helpers/api';
 import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField,} from 'uniforms-material';
 import { id_exists } from '../helpers/validation_utils';
@@ -48,10 +49,9 @@ const UserPrefs = (props) => {
     const dispatch = useAuthDispatch();
     const config = useConfigState();
     const setAlert = useAlerts();
+    const setBusy = useThrobber();
 
     const initialUserPrefs = defaultUserPrefs; // Defaults currently stored in auth.js
-
-    const [busy, setBusy] = React.useState(false); 
 
     const [currentUserPrefs, setCurrentUserPrefs] = React.useState(initialUserPrefs);
 
@@ -260,8 +260,6 @@ const UserPrefs = (props) => {
     return (
 
           <div className="UserPrefForm" style={{ margin: 'auto', maxWidth: '500px',}}>
-
-            <Busy busy={busy} />
 
             <AutoForm
               schema={bridge}
