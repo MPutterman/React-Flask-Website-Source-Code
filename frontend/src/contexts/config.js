@@ -1,5 +1,8 @@
 // Manage global site configuration
-// TODO: Do we need dynamic setting of config variables?  If not, this can be a simple import.
+//
+// TODO:
+// * Do we need dynamic setting of config variables?  If not, this can be a simple import.
+// * Do we need the reducer portion?
 
 import React from "react";
 
