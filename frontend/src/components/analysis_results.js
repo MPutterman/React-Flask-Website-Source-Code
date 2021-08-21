@@ -61,7 +61,7 @@ const AnalysisResults = (props) => {
         </TableContainer>
 
       ) : (
-        <p>Results table not yet available</p>
+        <p>No results available</p>
       )}
       </>
                   

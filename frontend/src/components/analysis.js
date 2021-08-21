@@ -22,7 +22,7 @@
 // * There are some interesting graphical libraries, e.g. https://docs.bokeh.org/en/latest/docs/gallery.html#gallery (python)
 //     that may allow use to do interesting things like live line plots, lasso-based ROI selection, etc...
 //     Also more react-specific stuff here: https://stackshare.io/bokeh/alternatives
-
+// * Disable more image control functions before the image_url are populated
 
 import React from "react";
 import { withRouter } from "react-router";
