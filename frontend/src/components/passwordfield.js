@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { HTMLFieldProps, connectField } from 'uniforms';
-import { Button, IconButton, InputAdornment, TextField } from "@material-ui/core";
+import { IconButton, InputAdornment, TextField } from "@material-ui/core";
 import { VisibilityOff, Visibility } from "@material-ui/icons";
 
 

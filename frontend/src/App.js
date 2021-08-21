@@ -54,7 +54,6 @@ import Contact from './components/contact';
 import NotFound from './components/notfound';
 
 import { AnalysisEdit } from './components/analysis';
-import Database from './components/database'
 import { UserView, OrgView, EquipView, PlateView, CoverView, ImageView, AnalysisView } from './components/object_view';
 import { UserSearch, OrgSearch, EquipSearch, PlateSearch, CoverSearch, ImageSearch, AnalysisSearch } from "./components/object_search";
 import UserLogin from "./components/user_login"; 
@@ -83,7 +82,7 @@ const AppWrapped = (props) => {
     const { prefs } = useAuthState();
 
     return (
-        <ThemeProvider theme={(prefs?.general?.theme == "light") ? lightMode : darkMode}>
+        <ThemeProvider theme={(prefs?.general?.theme === "light") ? lightMode : darkMode}>
         <ConfirmProvider defaultOptions={{confirmationButtonProps: { autoFocus: true }}}>
         <CssBaseline />
         <Router>

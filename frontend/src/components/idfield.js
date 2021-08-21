@@ -45,11 +45,8 @@ import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
 import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
-import Box from '@material-ui/core/Box';
-import Input from '@material-ui/core/Input';
 import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
-import ButtonGroup from '@material-ui/core/ButtonGroup';
 import IconButton from '@material-ui/core/IconButton';
 import ClearIcon from '@material-ui/icons/Clear';
 import SelectIcon from '@material-ui/icons/Search';
@@ -98,7 +95,7 @@ function IDInput({ name, error, onChange, value, label, ref, required, readOnly,
           let newFilter = [];
           // console.log('In idfield useEffect. Incoming props.filter = ', copyFilter);
           copyFilter.forEach( element => {
-              if (element.operator == 'field') {
+              if (element.operator === 'field') {
                   if (form.model[element.value]) {
                       newFilter.push({field: element.field, value: form.model[element.value]});
                   }
@@ -128,7 +125,7 @@ function IDInput({ name, error, onChange, value, label, ref, required, readOnly,
       } else {
           setNameField('');
       }
-  }, [value, refresh]);
+  }, [value, refresh, props.objectType]);
 
 
   const allowEdit = () => {
@@ -320,7 +317,7 @@ function IDInput({ name, error, onChange, value, label, ref, required, readOnly,
                 'plate': <PlateSelect onSelect={setPendingModel} {...props} filter={filter} />,
                 'cover': <CoverSelect onSelect={setPendingModel} {...props} filter={filter} />,
                 'image': <ImageSelect onSelect={setPendingModel} {...props} filter={filter} />,
-                //'analysis': <AnalysisSelect onSelect={setPendingModel} {...props} filter={filter} />,
+                'analysis': <AnalysisSelect onSelect={setPendingModel} {...props} filter={filter} />,
                 'default': <></>,
             } [props.objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
             </ErrorHandler>
