@@ -1,5 +1,8 @@
 // Implement a generic object_edit (and object_create) form
 //
+// CREDITS:
+// * Password input field: https://www.npmjs.com/package/material-ui-password
+//
 // TODO:
 // * Make some custom fields for date once work out picker (with 'X' icon to clear the date)
 // * Bug ImageEdit: if submit BEFORE selecting file... sets a validation error that cannot be removed,
@@ -74,6 +77,7 @@ import Avatar from '@material-ui/core/Avatar';
 import { hasPermission, listPermissions } from '../helpers/object_utils';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import Typography from '@material-ui/core/Typography';
+import PasswordInputField from '../components/passwordfield';
 
 // Image edit form
 // Usage:
@@ -529,19 +533,16 @@ const WrappedUserRegistration = ({model, ...props}) => {
         </Box>
         <Box display="flex" flexDirection="row">
             <Box width='50%' pr={1}>
-                <AutoField name="password"  />
+                <AutoField name="password" component={PasswordInputField} />
                 <ErrorField name="password" />
             </Box>
             <Box width='50%' pl={1}>
-                <AutoField name="password_confirm" />
+                <AutoField name="password_confirm" component={PasswordInputField} />
                 <ErrorField name="password_confirm" />
             </Box>
         </Box>
         <AutoField name="org_id" component={IDInputField} objectType='org' />
         <ErrorField name="org_id" />
-
-        <AutoField name="org_list" />
-        <ErrorField name="org_list" />
 
         </>
 
@@ -551,9 +552,9 @@ const WrappedUserRegistration = ({model, ...props}) => {
 
 // * Separate user create (register) and user edit (profile).  Currently separate components, 
 //     but maybe can do it with one by looking at 'create' state....
-// * Add email validation (via email send link) and change password functions, and forgot password
+// * Add email validation (via email send link)
+// * Add a forgot password feature
 // * Add request membership for an organization?
-// * Add show/hide toggle to password field?
 // * Make a tabbed interface for user profile? E.g. if owner, add prefs tab, show roles info (admin, or org-admin)
 // * TODO: when save user data, need to update session in backend... but also need to force frontend to refresh**
 //      Use authRefreshSession(dispatch)???  May need a way to inject a callback
@@ -741,7 +742,7 @@ const userTransform = (mode, model) => {
     if (mode === 'form') {
         // Make a name property available
         // TODO: this doesn't seem recognized by the subtitle in the outer form...
-        new_model.name = new_model.first_name + ' ' + new_model.last_name;
+        new_model.name = (new_model.first_name ?? '') + ' ' + (new_model.last_name ?? '');
     }
     if (mode === 'validate') { /* Nothing to do */ }
     if (mode === 'submit') {

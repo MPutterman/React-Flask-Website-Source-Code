@@ -1,5 +1,8 @@
 // Show a form to change user password. Ask for current password and the new password.
-// TODO: add visibility on/off
+//
+// CREDITS:
+// * Password field component: https://www.npmjs.com/package/material-ui-password
+
 
 import React from "react";
 import { withRouter } from "react-router";
@@ -7,11 +10,10 @@ import Button from "@material-ui/core/Button";
 import { AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField,} from 'uniforms-material';
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
-import Visibility from '@material-ui/icons/Visibility';
-import VisibilityOff from '@material-ui/icons/VisibilityOff';
 import { callAPI } from '../helpers/api';
 import { useAlerts } from '../contexts/alerts';
-import Busy from '../components/busy';
+import { useThrobber } from '../contexts/throbber';
+import PasswordInputField from '../components/passwordfield';
 
 // User password change form
 
@@ -21,7 +23,7 @@ const UserPasswordChange = (props) => {
 
     // Support for alerts and busy indicator
     const setAlert = useAlerts();
-    const [busy, setBusy] = React.useState(false);
+    const setBusy = useThrobber();
 
     // Schema for automated form
     const schema = new SimpleSchema ({
@@ -48,7 +50,7 @@ const UserPasswordChange = (props) => {
             uniforms: { type: 'password', },
             custom() {
                 if (this.value !== this.field("new_password").value) {
-                return "New passwords must match";
+                    return "New passwords must match";
                 }
             },
         },
@@ -93,17 +95,17 @@ const UserPasswordChange = (props) => {
     return (
         <>
         <div className="UserPasswordChangeForm" style = {{ maxWidth: '250px', margin: 'auto', }}>
-            <Busy busy={busy} />
             <AutoForm schema={bridge} onSubmit={onSubmit} ref={ref => (formRef = ref)}>
-                <AutoField name="password" />
+                <AutoField name="password" component={PasswordInputField} />
                 <ErrorField name="password" />
-                <AutoField name="new_password" />
+                <AutoField name="new_password" component={PasswordInputField} />
                 <ErrorField name="new_password" />
-                <AutoField name="new_password_confirm" />
+                <AutoField name="new_password_confirm" component={PasswordInputField} />
                 <ErrorField name="new_password_confirm" />
 
                 <SubmitField size='small'>Submit</SubmitField>
                 <Button size='small' type="reset" onClick={() => formRef.reset()}>Clear Form</Button>
+                
             </AutoForm>
 
         </div>
