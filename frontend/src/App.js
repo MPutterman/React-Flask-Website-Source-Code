@@ -20,7 +20,7 @@ import "./App.css";
 
 // Import configuration, authentication/preferences
 import { ConfigProvider } from './contexts/config';
-import { AuthContext } from './contexts/auth';
+import { AuthContext, useAuthState } from './contexts/auth';
 
 // Import error handler
 import { ErrorHandler } from './contexts/error';
@@ -80,8 +80,10 @@ const App = (props) => {
 
 const AppWrapped = (props) => {
 
+    const { prefs } = useAuthState();
+
     return (
-        <ThemeProvider theme={darkMode}>
+        <ThemeProvider theme={(prefs?.general?.theme == "light") ? lightMode : darkMode}>
         <ConfirmProvider defaultOptions={{confirmationButtonProps: { autoFocus: true }}}>
         <CssBaseline />
         <Router>
