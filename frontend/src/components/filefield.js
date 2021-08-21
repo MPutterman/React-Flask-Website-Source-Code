@@ -28,7 +28,9 @@ import { useForm } from 'uniforms';
 
 export type FileInputFieldProps = HTMLFieldProps<string, HTMLDivElement>;
 
-function FileInput({ onChange, name, value, label, error, ref, required, ...props }: FileInputFieldProps) {
+function FileInput({
+    buttonLabel, filenameField,
+    onChange, name, value, label, error, ref, required, ...props }: FileInputFieldProps) {
 
     const form = useForm();
     const [filename, setFilename] = React.useState('');
@@ -49,7 +51,7 @@ function FileInput({ onChange, name, value, label, error, ref, required, ...prop
     const onChangeFile = ({ target: { files } }) => {
         if (files && files[0]) {
             setFilename(files[0].name);
-            if (props.filenameField) form.onChange(props.filenameField, files[0].name);
+            if (filenameField) form.onChange(filenameField, files[0].name);
             onChange(files[0]);
             //console.log('FileIDField: changing file: =>', files[0]);
         }
@@ -68,13 +70,12 @@ function FileInput({ onChange, name, value, label, error, ref, required, ...prop
               error={!!(error)}
               required={required}
               label='File to upload'
-              {...props}
               InputProps={{
                 startAdornment:(
                   <InputAdornment position="start">
                     <Button size='small' variant='outlined' component='span'>
-                      {props.buttonLabel ? (
-                        <span>{props.buttonLabel}</span>
+                      {buttonLabel ? (
+                        <span>{buttonLabel}</span>
                       ) : (
                         <span>Choose file</span>
                       )}
@@ -102,20 +103,6 @@ function FileInput({ onChange, name, value, label, error, ref, required, ...prop
         style={{ display: 'none' }}
         type="file"
 
-/*
-        InputProps={{
-          startAdornment:(
-            <InputAdornment position="start">
-              <Button variant='outlined' component='span'>
-                {props.buttonLabel ? (
-                  <span>{props.buttonLabel}</span>
-                ) : (
-                  <span>Choose file</span>
-                )}
-              </Button>
-            </InputAdornment>
-          ),}}
-*/
       />
       </>
     );

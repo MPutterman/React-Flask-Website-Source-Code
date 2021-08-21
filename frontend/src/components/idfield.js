@@ -67,8 +67,16 @@ import { ImageEdit as ImageCreate, ImageEdit } from '../components/object_edit';
 //import { AnalysisEdit as AnalysisCreate, AnalysisEdit } from '../components/object_edit';
 
 export type IDInputFieldProps = HTMLFieldProps<string, HTMLDivElement>;
+// - objectType<String> = user, image, equip, org, plate, cover
+// - selectTitle<String> = text to display as title on 'Select' popup
+// - createTitle<String> = text to display as title on 'Create' popup
+// - editTitle<String> = text to display as title on 'Edit' popup
+// - filter<Array> = array of dict with 'field', 'value', and 'operator' to constrain
 
-function IDInput({ name, error, onChange, value, label, ref, required, readOnly, disabled, ...props }: IDInputFieldProps) {
+function IDInput({
+  objectType, titleSelect, titleCreate, titleEdit, filter:incoming_filter,
+  name, error, onChange, value, label, ref, required, readOnly, disabled, ...props
+}: IDInputFieldProps) {
 
   const [pendingModel, setPendingModel] = React.useState({});
   const [nameField, setNameField] = React.useState('');
@@ -84,14 +92,14 @@ function IDInput({ name, error, onChange, value, label, ref, required, readOnly,
 
   const form = useForm();
 
-  // If props.filter is provided, check if any use the special 'field' operator, and rewrite those
+  // If props.filter (incoming_filter) is provided, check if any use the special 'field' operator, and rewrite those
   // entries into 'regular' filter entries for handling by the subforms. Ignore fields if value is '' or null.
   // Do this here because this component is definitely a child of the Form component and can access useForm()
   // whereas the ultimate 'create' and 'select' sub-components may not always be rendered inside an outer form
   // and useForm() will throw an error.
   React.useEffect(() => {
-      if (props.filter) {
-          const copyFilter = [...props.filter];
+      if (incoming_filter) {
+          const copyFilter = [...incoming_filter];
           let newFilter = [];
           // console.log('In idfield useEffect. Incoming props.filter = ', copyFilter);
           copyFilter.forEach( element => {
@@ -106,7 +114,7 @@ function IDInput({ name, error, onChange, value, label, ref, required, readOnly,
           setFilter(newFilter);
           // console.log ('In idfield useEffect. Rewritten props.filter = ', newFilter);
       }
-  }, [props.filter, form.model]); // Need to pass in form.model as a dependency
+  }, [incoming_filter, form.model]); // Need to pass in form.model as a dependency
 
 
   // Whenever value of ID field changes, lookup the corresponding 'name' to display.
@@ -115,7 +123,7 @@ function IDInput({ name, error, onChange, value, label, ref, required, readOnly,
   React.useEffect(() => {
       if (value || refresh) {
           setRefresh(false);
-          name_lookup(props.objectType, value)
+          name_lookup(objectType, value)
           .then((name) => {
               setNameField(name);
           })
@@ -125,7 +133,7 @@ function IDInput({ name, error, onChange, value, label, ref, required, readOnly,
       } else {
           setNameField('');
       }
-  }, [value, refresh, props.objectType]);
+  }, [value, refresh, objectType]);
 
 
   const allowEdit = () => {
@@ -275,7 +283,7 @@ function IDInput({ name, error, onChange, value, label, ref, required, readOnly,
       <Dialog fullWidth open={openEdit} onClose={handleCloseEdit} >
         <Throbber>
         <DialogTitle id="dialog-edit">
-            {props.editTitle ? ( <span>{props.editTitle}</span> ) : ( <span>Edit record</span> )}
+            {titleEdit ? ( <span>{titleEdit}</span> ) : ( <span>Edit record</span> )}
         </DialogTitle>
         <DialogContent>
             <ErrorHandler>
@@ -288,7 +296,7 @@ function IDInput({ name, error, onChange, value, label, ref, required, readOnly,
                 'image': <ImageEdit objectID={value} onSave={setPendingModel} {...props} />,
                 //'analysis': <AnalysisEdit objectID={value} onSave={setPendingModel} {...props} />,
                 'default': <></>,
-            } [props.objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
+            } [objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
             </ErrorHandler>
         </DialogContent>
         <DialogActions>
@@ -306,7 +314,7 @@ function IDInput({ name, error, onChange, value, label, ref, required, readOnly,
       <Dialog fullWidth open={openSelect} onClose={handleCloseSelect} >
         <Throbber>
         <DialogTitle id="dialog-select">
-            {props.selectTitle ? ( <span>{props.selectTitle}</span> ) : ( <span>Select record</span> )}
+            {titleSelect ? ( <span>{titleSelect}</span> ) : ( <span>Select record</span> )}
         </DialogTitle>
         <DialogContent>
             <ErrorHandler>
@@ -319,7 +327,7 @@ function IDInput({ name, error, onChange, value, label, ref, required, readOnly,
                 'image': <ImageSelect onSelect={setPendingModel} {...props} filter={filter} />,
                 'analysis': <AnalysisSelect onSelect={setPendingModel} {...props} filter={filter} />,
                 'default': <></>,
-            } [props.objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
+            } [objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
             </ErrorHandler>
         </DialogContent>
         <DialogActions>
@@ -339,7 +347,7 @@ function IDInput({ name, error, onChange, value, label, ref, required, readOnly,
       <Dialog fullWidth open={openCreate} onClose={handleCloseCreate} >
         <Throbber>
         <DialogTitle id="dialog-select">
-            {props.createTitle ? ( <span>{props.createTitle}</span> ) : ( <span>Create new record</span> )}
+            {titleCreate ? ( <span>{titleCreate}</span> ) : ( <span>Create new record</span> )}
         </DialogTitle>
         <DialogContent>
             <ErrorHandler>
@@ -352,7 +360,7 @@ function IDInput({ name, error, onChange, value, label, ref, required, readOnly,
                 'image': <ImageCreate create={true} onSave={setPendingModel} {...props} filter={filter} />,
                 //'analysis': <AnalysisCreate create={true} onSave={setPendingModel} {...props} filter={filter} />,
                 'default': <></>,
-            } [props.objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
+            } [objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
             </ErrorHandler>
         </DialogContent>
         <DialogActions>
