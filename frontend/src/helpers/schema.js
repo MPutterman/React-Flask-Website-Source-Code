@@ -331,30 +331,6 @@ const schema = new SimpleSchema ({
         type: SimpleSchema.Integer,
         required: true,
     },
-    correct_dark: {
-        label: 'Use dark correction?',
-        type: Boolean,
-        required: false,
-        defaultValue: prefs ? prefs.analysis.default_use_dark_correction : false,
-    },
-    correct_flat: {
-        label: 'Use flat correction?',
-        type: Boolean,
-        required: false,
-        defaultValue: prefs ? prefs.analysis.default_use_flat_correction : false,
-    },
-    correct_bkgrd : {
-        label: 'Use background correction?',
-        type: Boolean,
-        required: false,
-        defaultValue: prefs ? prefs.analysis.default_use_bkgrd_correction : false,
-    },
-    correct_filter: {
-        label: 'Use filter correction?',
-        type: Boolean,
-        required: false,
-        defaultValue: prefs ? prefs.analysis.default_use_filter_correction : false,
-    },
     dark_image_id: {
         label: 'Dark Image',
         type: SimpleSchema.Integer,
