@@ -500,7 +500,7 @@ const schema = new SimpleSchema ({
         regEx: SimpleSchema.RegEx.EmailWithTLD,
         custom() {
             if (this.value !== this.field("email").value) {
-            return "Emails must match";
+                return "Emails must match";
             }
         },
     },
@@ -521,7 +521,7 @@ const schema = new SimpleSchema ({
         },
         custom() {
             if (this.value !== this.field("password").value) {
-            return "Passwords must match";
+                return "Passwords must match";
             }
         },
     },
