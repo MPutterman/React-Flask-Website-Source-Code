@@ -12,8 +12,6 @@ import { VisibilityOff, Visibility } from "@material-ui/icons";
 
 export type PasswordFieldProps = HTMLFieldProps<string, HTMLDivElement>;
 
-//function PasswordInput({ /*onChange, name, value, label, error, required, readOnly, disabled, ...*/props }: PasswordFieldProps) {
-
 export function PasswordField ({onChange, name, error, ...props}: PasswordFieldProps) {
 
     const [show, setShow] = React.useState(false);
