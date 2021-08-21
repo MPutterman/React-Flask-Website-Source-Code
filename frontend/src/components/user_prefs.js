@@ -40,7 +40,7 @@ import { id_exists } from '../helpers/validation_utils';
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import IDInputField from '../components/idfield';
-import TimezoneSelect, { i18nTimezones } from 'react-timezone-select';
+//import TimezoneSelect, { i18nTimezones } from 'react-timezone-select';
 import InputAdornment from '@material-ui/core/InputAdornment';
 
 const UserPrefs = (props) => {
@@ -112,34 +112,18 @@ const UserPrefs = (props) => {
             label: 'Default exposure temperature',
             type: Number, // TODO: somehow warn if equipment doesn't support cooling?
         },
-        "analysis.default_use_flat_correction": {
-            label: 'Turn on flat correction by default?',
-            type: Boolean,
-        },
         "analysis.default_flat_image": {
             label: 'Default flat image',
             type: String, // image_id
-        },
-        "analysis.default_use_dark_correction": {
-            label: 'Turn on dark correction by default?',
-            type: Boolean,
         },
         "analysis.default_dark_image": {
             label: 'Default dark image',
             type: String, // image_id
         },
-        "analysis.default_use_bkgrd_correction": {
-            label: 'Turn on background correction by default?',
-            type: Boolean,
-        },
         "analysis.default_bkgrd_algorithm": {
             label: 'Default background correction algorithm',
             type: String, // TODO: change to selector
             allowedValues: config.analysis.bkgrd_algorithm_options,
-        },
-        "analysis.default_use_filter_correction": {
-            label: 'Turn on filter correction by default?',
-            type: Boolean,
         },
         "analysis.default_filter": {
             label: 'Default filter correction',
@@ -331,26 +315,18 @@ const UserPrefs = (props) => {
                                 InputProps={{endAdornment:(<InputAdornment position="end">&deg;C</InputAdornment>)}}
                             />
                             <ErrorField name="analysis.default_exposure_temp" />
-                            <AutoField name="analysis.default_use_dark_correction" />
-                            <ErrorField name="analysis.default_use_dark_correction" />
                             <AutoField name="analysis.default_dark_image"
                                 component={IDInputField} objectType="image"
                                 filter={[{field:'image_type', value:'dark'},]}
                             /> {/* Also filter by equip_id? */}
                             <ErrorField name="analysis.default_dark_image" /> 
-                            <AutoField name="analysis.default_use_flat_correction" />
-                            <ErrorField name="analysis.default_use_flat_correction" />
                             <AutoField name="analysis.default_flat_image"
                                 component={IDInputField} objectType="image"
                                 filter={[{field:'image_type', value:'flat'},]}
                             /> {/* Also filter by equip_id? */}
                             <ErrorField name="analysis.default_flat_image" />
-                            <AutoField name="analysis.default_use_bkgrd_correction" />
-                            <ErrorField name="analysis.default_use_bkgrd_correction" />
                             <AutoField name="analysis.default_bkgrd_algorithm" />
                             <ErrorField name="analysis.default_bkgrd_algorithm" />
-                            <AutoField name="analysis.default_use_filter_correction" />
-                            <ErrorField name="analysis.default_use_filter_correction" />
                             <AutoField name="analysis.default_filter" />
                             <ErrorField name="analysis.default_filter" />
                             <AutoField name="analysis.default_radio_opacity"

@@ -28,7 +28,7 @@ import { id_exists } from '../helpers/validation_utils';
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import IDInputField from '../components/idfield';
-import TimezoneSelect, { i18nTimezones } from 'react-timezone-select';
+//import TimezoneSelect, { i18nTimezones } from 'react-timezone-select';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import { UserSearch, OrgSearch, EquipSearch, PlateSearch, CoverSearch, ImageSearch, AnalysisSearch } from '../components/object_search';
 
