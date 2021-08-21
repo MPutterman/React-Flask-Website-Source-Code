@@ -1,5 +1,4 @@
 // TODO:
-// * Why does the field display just slightly above others?
 // * A bug during validation... sometimes shows an error that won't go away if submit without selecting
 //      file.  A warning came up of duplicate key 'file'. Maybe an interal MUI field is using 'file'
 //      as an html id element?
@@ -60,6 +59,8 @@ function FileInput({ onChange, name, value, label, error, ref, required, ...prop
         <>
         <label htmlFor={name}>
             <TextField
+              {...props}
+              margin="dense"
               disabled
               fullWidth
               id={`${name}-label`}

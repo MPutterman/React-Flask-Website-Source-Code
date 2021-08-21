@@ -19,7 +19,6 @@
 // * Incorporate some permissions. E.g. if not permission to edit the item, show in view mode.
 //     E.g. if not allowed to create iteams, don't show Create button.
 // * Update to support multiple selection?
-// * Why does field sit at just slightly higher height than other input fields?
 // * Allow editing ID field directly (typing)? This has some complications:
 //    - We would probably want to load the name of the corresponding record,
 //      which would require async request. Would we do it onChange or onBlur?
@@ -33,7 +32,6 @@
 //     one is hanging (not part of any analysis/object).  Should 'clear' delete the object
 //     (if it is not used anywhere else), and maybe disable 'create' if ID is already defined?
 // * Add a 'disabled' or 'readOnly' mode that disabled/removes buttons when only want to show the ID and Name
-// * Figure out how to make width adjustable
 
 // Main imports
 import React from 'react';
@@ -225,7 +223,9 @@ function IDInput({ name, error, onChange, value, label, ref, required, readOnly,
           width={readOnly || disabled ? 75 : 280}
       />
 */}
-      <TextField 
+      <TextField
+          {...props} 
+          margin="dense"
           fullWidth
           size="small"
           id={name + '-name'}
