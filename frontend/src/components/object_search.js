@@ -166,7 +166,7 @@ const ObjectSearch = (props) => {
                     <DataGrid
                         rows={objectList}
                         columns={columns}
-                        pageSize={prefs ? prefs.general.default_searchresult_pagesize : config.search.default_pagesize}
+                        pageSize={prefs ? prefs.search.default_pagesize : config.search.default_pagesize}
                         autoHeight
                         loading={!loaded}
                         density="compact"
