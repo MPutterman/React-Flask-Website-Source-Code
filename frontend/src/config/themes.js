@@ -7,7 +7,7 @@ export const darkMode = createTheme({
     props: {
         MuiTextField: {
             // The properties to apply
-            variant: 'filled   '
+            variant: 'filled'
         },
         MuiCheckbox: {
             variant: 'outlined'
