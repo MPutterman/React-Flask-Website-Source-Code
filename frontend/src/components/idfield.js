@@ -43,7 +43,6 @@ import { Throbber } from '../contexts/throbber';
 import Dialog from '@material-ui/core/Dialog';
 import DialogActions from '@material-ui/core/DialogActions';
 import DialogContent from '@material-ui/core/DialogContent';
-import DialogContentText from '@material-ui/core/DialogContentText';
 import DialogTitle from '@material-ui/core/DialogTitle';
 import TextField from '@material-ui/core/TextField';
 import Button from '@material-ui/core/Button';
@@ -64,7 +63,7 @@ import { EquipEdit as EquipCreate, EquipEdit } from '../components/object_edit';
 import { PlateEdit as PlateCreate, PlateEdit } from '../components/object_edit';
 import { CoverEdit as CoverCreate, CoverEdit } from '../components/object_edit';
 import { ImageEdit as ImageCreate, ImageEdit } from '../components/object_edit';
-//import { AnalysisEdit as AnalysisCreate, AnalysisEdit } from '../components/object_edit';
+import { AnalysisEdit as AnalysisCreate, AnalysisEdit } from '../components/analysis'; //object_edit';
 
 export type IDInputFieldProps = HTMLFieldProps<string, HTMLDivElement>;
 // - objectType<String> = user, image, equip, org, plate, cover
@@ -73,9 +72,12 @@ export type IDInputFieldProps = HTMLFieldProps<string, HTMLDivElement>;
 // - editTitle<String> = text to display as title on 'Edit' popup
 // - filter<Array> = array of dict with 'field', 'value', and 'operator' to constrain
 
+// Destructure to collect many props NOT to pass to child components
 function IDInput({
-  objectType, titleSelect, titleCreate, titleEdit, filter:incoming_filter,
-  name, error, onChange, value, label, ref, required, readOnly, disabled, ...props
+  /*objectType,*/ titleSelect, titleCreate, titleEdit, filter:incoming_filter,
+  name, error, onChange, value, label, ref, required, readOnly, disabled,
+  showInlineError, errorMessage, fieldType, autoValue, decimal, valueLabelDisplay, changed,
+  ...props
 }: IDInputFieldProps) {
 
   const [pendingModel, setPendingModel] = React.useState({});
@@ -121,9 +123,9 @@ function IDInput({
   // Also do this when 'refresh' flag is set. (E.g. if open the edit dialog, the user
   // might change this field.)
   React.useEffect(() => {
-      if (value || refresh) {
+      if ((value || refresh) && (props.objectType !== undefined)) {
           setRefresh(false);
-          name_lookup(objectType, value)
+          name_lookup(props.objectType, value)
           .then((name) => {
               setNameField(name);
           })
@@ -133,7 +135,7 @@ function IDInput({
       } else {
           setNameField('');
       }
-  }, [value, refresh, objectType]);
+  }, [value, refresh, props.objectType]);
 
 
   const allowEdit = () => {
@@ -159,6 +161,7 @@ function IDInput({
   }
  
   const handleOpenSelect = () => {
+    console.log('Opening search window, value of objectType:', props.objectType);
     setOpenSelect(true);
   };
 
@@ -222,12 +225,7 @@ function IDInput({
 
   return (
     <div className="IDInputField">
-{/*
-      <Box display="flex" flexDirection="row">
-      <Box
-          width={readOnly || disabled ? 75 : 280}
-      />
-*/}
+
       <TextField
           {...props} 
           margin="dense"
@@ -288,15 +286,15 @@ function IDInput({
         <DialogContent>
             <ErrorHandler>
             {{
-                'user': <UserEdit objectID={value} onSave={setPendingModel} {...props} />,
-                'org': <OrgEdit objectID={value} onSave={setPendingModel} {...props} />,
-                'equip': <EquipEdit objectID={value} onSave={setPendingModel} {...props} />,
-                'plate': <PlateEdit objectID={value} onSave={setPendingModel} {...props} />,
-                'cover': <CoverEdit objectID={value} onSave={setPendingModel} {...props} />,
-                'image': <ImageEdit objectID={value} onSave={setPendingModel} {...props} />,
-                //'analysis': <AnalysisEdit objectID={value} onSave={setPendingModel} {...props} />,
+                'user': <UserEdit objectID={value} onSave={setPendingModel} filter={filter} />,
+                'org': <OrgEdit objectID={value} onSave={setPendingModel} filter={filter} />,
+                'equip': <EquipEdit objectID={value} onSave={setPendingModel} filter={filter} />,
+                'plate': <PlateEdit objectID={value} onSave={setPendingModel} filter={filter} />,
+                'cover': <CoverEdit objectID={value} onSave={setPendingModel} filter={filter} />,
+                'image': <ImageEdit objectID={value} onSave={setPendingModel} filter={filter} />,
+                'analysis': <AnalysisEdit objectID={value} onSave={setPendingModel} filter={filter} />,
                 'default': <></>,
-            } [objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
+            } [props.objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
             </ErrorHandler>
         </DialogContent>
         <DialogActions>
@@ -319,15 +317,15 @@ function IDInput({
         <DialogContent>
             <ErrorHandler>
             {{
-                'user': <UserSelect onSelect={setPendingModel} {...props} filter={filter} />,
-                'org': <OrgSelect onSelect={setPendingModel} {...props} filter={filter} />,
-                'equip': <EquipSelect onSelect={setPendingModel} {...props} filter={filter} />,
-                'plate': <PlateSelect onSelect={setPendingModel} {...props} filter={filter} />,
-                'cover': <CoverSelect onSelect={setPendingModel} {...props} filter={filter} />,
-                'image': <ImageSelect onSelect={setPendingModel} {...props} filter={filter} />,
-                'analysis': <AnalysisSelect onSelect={setPendingModel} {...props} filter={filter} />,
+                'user': <UserSelect onSelect={setPendingModel} filter={filter} />,
+                'org': <OrgSelect onSelect={setPendingModel} filter={filter} />,
+                'equip': <EquipSelect onSelect={setPendingModel} filter={filter} />,
+                'plate': <PlateSelect onSelect={setPendingModel} filter={filter} />,
+                'cover': <CoverSelect onSelect={setPendingModel} filter={filter} />,
+                'image': <ImageSelect onSelect={setPendingModel} filter={filter} />,
+                'analysis': <AnalysisSelect onSelect={setPendingModel} filter={filter} />,
                 'default': <></>,
-            } [objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
+            } [props.objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
             </ErrorHandler>
         </DialogContent>
         <DialogActions>
@@ -352,15 +350,15 @@ function IDInput({
         <DialogContent>
             <ErrorHandler>
             {{
-                'user': <UserCreate create={true} onSave={setPendingModel} {...props} filter={filter} />,
-                'org': <OrgCreate create={true} onSave={setPendingModel} {...props} filter={filter} />,
-                'equip': <EquipCreate create={true} onSave={setPendingModel} {...props} filter={filter} />,
-                'plate': <PlateCreate create={true} onSave={setPendingModel} {...props} filter={filter} />,
-                'cover': <CoverCreate create={true} onSave={setPendingModel} {...props} filter={filter} />,
-                'image': <ImageCreate create={true} onSave={setPendingModel} {...props} filter={filter} />,
-                //'analysis': <AnalysisCreate create={true} onSave={setPendingModel} {...props} filter={filter} />,
+                'user': <UserCreate create={true} onSave={setPendingModel} filter={filter} />,
+                'org': <OrgCreate create={true} onSave={setPendingModel} filter={filter} />,
+                'equip': <EquipCreate create={true} onSave={setPendingModel} filter={filter} />,
+                'plate': <PlateCreate create={true} onSave={setPendingModel} filter={filter} />,
+                'cover': <CoverCreate create={true} onSave={setPendingModel} filter={filter} />,
+                'image': <ImageCreate create={true} onSave={setPendingModel} filter={filter} />,
+                'analysis': <AnalysisCreate create={true} onSave={setPendingModel} filter={filter} />,
                 'default': <></>,
-            } [objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
+            } [props.objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
             </ErrorHandler>
         </DialogContent>
         <DialogActions>
