@@ -15,6 +15,7 @@
 //     favorites. Or does this feature belong in the analysis_edit component?
 // * Limitation: DataGrid only supports 1 column of filtering
 // * TODO: provide a way to only show the datagrid, and suppress title, controls, etc...
+// * Separate incoming filters (props.filter) into server-side and client-side
 //
 // Usage:
 //   Composed into object-specific search components.
@@ -45,7 +46,13 @@ import Checkbox from '@material-ui/core/Checkbox';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import FavoriteIcon from '@material-ui/icons/Star';
 
-const ObjectSearch = (props) => {
+const ObjectSearch = ({
+    objectType:object_type,
+    columns,
+    filter:incoming_filter,
+    onSelect,
+    title,
+    ...props }) => {
 
     const history = useHistory();
     const config = useConfigState();
@@ -53,12 +60,9 @@ const ObjectSearch = (props) => {
     const setErrorResponse = useErrorResponse();
     const { prefs } = useAuthState();  
 
-    const object_type = props.objectType;
-    const columns = props.columns;
-
     // Keep array of filters.  Most will be dict tuples, but special
     // ones are just strings, e.g. 'favorites'
-    const [filter, setFilter] = React.useState(props.filter ? props.filter : []);
+    const [filter, setFilter] = React.useState(incoming_filter ? incoming_filter : []);
 
     const filterAdd = (f) => {
         // TODO: check for unique filters?
@@ -129,10 +133,10 @@ const ObjectSearch = (props) => {
     }
 
     const onRowClick = (param, event) => {
-        // If props.onSelect callback is set, call it with the model value
+        // If onSelect callback is set, call it with the model value
         // ... set 'id' and 'name' properties
-        if (props.onSelect) {
-            props.onSelect({...param.row,
+        if (onSelect) {
+            onSelect({...param.row,
                 id: param['id'],
 //                name: param.row['name'],
             });
@@ -153,7 +157,7 @@ const ObjectSearch = (props) => {
                             <ObjectIcon objectType={object_type} fontSize='large' />
                         </Avatar>
                     }
-                    title={props.title ? props.title : `SEARCH ${objectTitle(object_type).toUpperCase()}`}
+                    title={title ? title : `SEARCH ${objectTitle(object_type).toUpperCase()}`}
                     action={
                         <FormControlLabel
                             control={<Checkbox defaultChecked={filter.includes('favorites')} onChange={onFavoritesChange} />}
@@ -175,7 +179,7 @@ const ObjectSearch = (props) => {
                         sortingMode="client" // later server (if pagination server)
                         //checkboxSelection
                         onRowClick={onRowClick}
-                        filterModel={createFilterModel(props.filter)}
+                        filterModel={createFilterModel(incoming_filter)}
                         
                     />
                 </CardContent>
