@@ -7,7 +7,7 @@
 import React from "react";
 import { withRouter } from "react-router";
 import Button from "@material-ui/core/Button";
-import { AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField,} from 'uniforms-material';
+import { AutoForm, AutoField, ErrorField, SubmitField,} from 'uniforms-material';
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import { callAPI } from '../helpers/api';
