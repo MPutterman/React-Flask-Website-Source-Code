@@ -789,7 +789,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                             valueLabelDisplay="auto"
                             step={config.analysis.brightness_step}
                             marks={true}
-                            defaultValue={initialImageState.radio_brightness}
                             value={imageState.radio_brightness}
                             min={config.analysis.brightness_min}
                             max={config.analysis.brightness_max}
@@ -808,7 +807,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                             valueLabelDisplay="auto"
                             step={config.analysis.contrast_step}
                             marks={true}
-                            defaultValue={initialImageState.radio_contrast}
                             value={imageState.radio_contrast}
                             min={config.analysis.contrast_min}
                             max={config.analysis.contrast_max}
@@ -827,7 +825,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                             valueLabelDisplay="auto"
                             step={config.analysis.opacity_step}
                             marks={true}
-                            defaultValue={initialImageState.radio_opacity}
                             value={imageState.radio_opacity}
                             min={config.analysis.opacity_min}
                             max={config.analysis.opacity_max}
@@ -852,7 +849,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                             valueLabelDisplay="auto"
                             step={config.analysis.brightness_step}
                             marks={true}
-                            defaultValue={initialImageState.bright_brightness}
                             value={imageState.bright_brightness}
                             min={config.analysis.brightness_min}
                             max={config.analysis.brightness_max}
@@ -871,7 +867,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                             valueLabelDisplay="auto"
                             step={config.analysis.contrast_step}
                             marks={true}
-                            defaultValue={initialImageState.bright_contrast}
                             value={imageState.bright_contrast}
                             min={config.analysis.contrast_min}
                             max={config.analysis.contrast_max}
@@ -890,7 +885,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                             valueLabelDisplay="auto"
                             step={config.analysis.opacity_step}
                             marks={true}
-                            defaultValue={initialImageState.bright_opacity}
                             value={imageState.bright_opacity}
                             min={config.analysis.opacity_min}
                             max={config.analysis.opacity_max}
