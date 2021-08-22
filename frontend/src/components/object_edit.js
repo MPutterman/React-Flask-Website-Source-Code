@@ -55,15 +55,14 @@ import AccordionSummary from '@material-ui/core/AccordionSummary';
 import AccordionDetails from '@material-ui/core/AccordionDetails';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import { id_exists } from '../helpers/validation_utils';
-import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField, LongTextField, userForm } from 'uniforms-material';
-import SimpleSchema from 'simpl-schema';
+import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField, LongTextField } from 'uniforms-material';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import FileInputField from './filefield';
 import IDInputField from './idfield';
 //import Busy from '../components/busy';
 import { useAlerts } from '../contexts/alerts';
 import { useThrobber } from '../contexts/throbber';
-import { userSchema, userRegistrationSchema, orgSchema, equipSchema, plateSchema, coverSchema, imageSchema, analysisSchema } from '../helpers/schema';
+import { userSchema, userRegistrationSchema, orgSchema, equipSchema, plateSchema, coverSchema, imageSchema /*, analysisSchema */ } from '../helpers/schema';
 import { defaultValidator, userValidator, imageValidator } from '../helpers/schema';
 import { ObjectViewButton, ObjectEditButton, ObjectFavoriteButton, ObjectCloneButton, ObjectDeleteButton, ObjectRestoreButton, ObjectPurgeButton } from '../helpers/object_utils';
 import { ObjectIcon, objectTitle, ActionIcon } from '../helpers/object_utils';
@@ -76,7 +75,6 @@ import CardMedia from '@material-ui/core/CardMedia';
 import Avatar from '@material-ui/core/Avatar';
 import { hasPermission, listPermissions } from '../helpers/object_utils';
 import InputAdornment from '@material-ui/core/InputAdornment';
-import Typography from '@material-ui/core/Typography';
 import PasswordInputField from '../components/passwordfield';
 
 // Image edit form
@@ -215,7 +213,7 @@ return (props) => {
             //console.log('overriding values from props.filter', override);
             //setModel(prev => ({...prev, ...override}));
             props.filter.forEach ( element => {
-                if (!element.operator || element.operator == 'eq') {
+                if (!element.operator || element.operator === 'eq') {
                     model[element.field] = element.value;
                 }
             })
@@ -300,8 +298,6 @@ return (props) => {
                 onValidate={validatorFunction ? validatorFunction : defaultValidator}
             >
 
-            <ErrorsField />
-            
                 {/*<fieldset disabled={true} readOnly={true} style={{border: '0 none',}}>*/}
                 <Card>
                 <CardHeader
@@ -637,8 +633,6 @@ const WrappedUserEdit = ({model, ...props}) => {
 // TODO: tweak layout
 const WrappedImageEdit = ({model, ...props}) => {
   
-    const setAlert = useAlerts();
-
     return (
         <>
         <Grid s={1} container direction='row'>
