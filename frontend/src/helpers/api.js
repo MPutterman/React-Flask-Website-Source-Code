@@ -105,13 +105,13 @@ export function callAPI(method, route, data={}, config={}) {
             .then((response) => {
 
                 // DEBUG: set a reminder message about this hacky implementation
-                if (response.config.responseType=='arraybuffer') console.log('NOTE arraybuffer detected in callAPI/GET')
+                if (response.config.responseType==='arraybuffer') console.log('NOTE arraybuffer detected in callAPI/GET')
 
                 return {
                     error: false,
                     //status: response.status,
                     //statusText: response.statusText,
-                    data: response.config.responseType=='arraybuffer' ? response.request.response : response.data
+                    data: response.config.responseType==='arraybuffer' ? response.request.response : response.data
                 }
             })
             .catch((error) => {
