@@ -235,7 +235,7 @@ def session_load():
         user = db_object_load('user', flask_login.current_user.get_id())
         return prepare_session_response(user)
     else:
-        return prepare_user_response(None, True, 'Not logged in')
+        return prepare_session_response(None, True, 'Not logged in')
 
 # Save the submitted user preferences
 # TODO: Need to trigger update prefs in the session!!!
