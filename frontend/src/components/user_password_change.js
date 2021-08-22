@@ -50,11 +50,17 @@ const UserPasswordChange = (props) => {
             uniforms: { type: 'password', },
             custom() {
                 if (this.value !== this.field("new_password").value) {
-                    return "New passwords must match";
+                    return "passwordMismatch";
                 }
             },
         },
     });
+    schema.messageBox.messages({
+        en: {
+            passwordMismatch: "New passwords must match",
+        },
+    });
+    
     var bridge = new SimpleSchema2Bridge(schema);
 
     // Submit handler

@@ -476,7 +476,7 @@ const schema = new SimpleSchema ({
         regEx: SimpleSchema.RegEx.EmailWithTLD,
         custom() {
             if (this.value !== this.field("email").value) {
-                return "Emails must match";
+                return "emailMismatch";
             }
         },
     },
@@ -497,12 +497,18 @@ const schema = new SimpleSchema ({
         },
         custom() {
             if (this.value !== this.field("password").value) {
-                return "Passwords must match";
+                return "passwordMismatch";
             }
         },
     },
 });
 schema.extend(userSchema(config,prefs));
+schema.messageBox.messages({
+  en: {
+    emailMismatch: "Emails must match",
+    passwordMismatch: "Passwords must match",
+  },
+});
 return schema;
 }
 
