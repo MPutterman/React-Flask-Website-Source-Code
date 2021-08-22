@@ -11,10 +11,10 @@ import { callAPI } from '../helpers/api.js';
 import { useHistory } from 'react-router-dom';
 import { useConfirm } from 'material-ui-confirm';
 import { useAlerts } from '../contexts/alerts';
+import { useThrobber } from '../contexts/throbber';
 import { useErrorResponse } from '../contexts/error';
 import { StatusCodes } from 'http-status-codes';
 import { useAuthState, useAuthDispatch, authRefreshSession, isFavorite } from '../contexts/auth';
-import Busy from '../components/busy';
 import Button from '@material-ui/core/Button';
 import Tooltip from '@material-ui/core/Button';
 import ViewIcon from '@material-ui/icons/Visibility';
@@ -27,12 +27,8 @@ import CloneIcon from '@material-ui/icons/FileCopy';
 import IsFavoriteIcon from '@material-ui/icons/Star';
 import NotFavoriteIcon from '@material-ui/icons/StarOutline';
 
-import IDInputField from '../components/idfield';
-
 import Grid from '@material-ui/core/Grid';
 import Box from '@material-ui/core/Box';
-import Paper from '@material-ui/core/Paper';
-import TextField from '@material-ui/core/TextField';
 
 // Object type icons
 import UserIcon from '@material-ui/icons/Person';
@@ -54,6 +50,9 @@ const actionIcon = (action) => {
         case 'purge': return PurgeIcon;
         case 'search': return SearchIcon;
         case 'clone': return CloneIcon;
+        default:
+            console.error('Invalid object type');
+            return <></>;
     }
 }
 
@@ -157,7 +156,7 @@ const ObjectCloneButton = (props) => {
     const history = useHistory();
     const confirm = useConfirm();
     const setAlert = useAlerts();
-    const [busy, setBusy] = React.useState(false);
+    const setBusy = useThrobber();
 
     const handleClick = (event) => {
 
@@ -212,7 +211,7 @@ const ObjectDeleteButton = (props) => {
     // Hooks and contexts
     const confirm = useConfirm();
     const setAlert = useAlerts();
-    const [busy, setBusy] = React.useState(false);
+    const setBusy = useThrobber();
 
     const handleClick = (event) => {
 
@@ -263,7 +262,7 @@ const ObjectRestoreButton = (props) => {
     // Hooks and contexts
     const confirm = useConfirm();
     const setAlert = useAlerts();
-    const [busy, setBusy] = React.useState(false);
+    const setBusy = useThrobber();
 
     const handleClick = (event) => {
 
@@ -349,7 +348,7 @@ const ObjectPurgeButton = (props) => {
     // Hooks and contexts
     const confirm = useConfirm();
     const setAlert = useAlerts();
-    const [busy, setBusy] = React.useState(false);
+    const setBusy = useThrobber();
 
     const handleClick = (event) => {
 
