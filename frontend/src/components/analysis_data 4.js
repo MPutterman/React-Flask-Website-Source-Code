@@ -16,19 +16,15 @@ import Grid from '@material-ui/core/Grid';
 import Box from '@material-ui/core/Box';
 
 // Imports for automatic form generation
-import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField, LongTextField } from 'uniforms-material';
+import {AutoField, ErrorField, SubmitField, LongTextField } from 'uniforms-material';
 import IDInputField from './idfield';
-
-import { analysisSchema, analysisValidator } from '../helpers/schema';
-import { connectEdit } from '../components/object_edit';
-
 
 //const WrappedAnalysisData = ({model, ...props}) => {
 const AnalysisData = ({model, ...props}) => {
 
     return (
 
-        <div fullWidth> 
+        <div> 
 
             <p>Analysis Information</p>
 
@@ -119,27 +115,8 @@ const AnalysisData = ({model, ...props}) => {
                 </Box>
             </Box>
 
-{/*
-            <Box display="flex" flexDirection="row">
-                <Box width='50%' pr={1}>
-                    <AutoField name="correct_dark" />
-                    <ErrorField name="correct_dark" />
-                    <AutoField name="correct_flat" />
-                    <ErrorField name="correct_flat" />
-                    <AutoField name="correct_bkgrd" />
-                    <ErrorField name="correct_bkgrd" />
-                    <AutoField name="correct_filter" />
-                    <ErrorField name="correct_filter" />
-                </Box>
-                <Box width='50%' pl={1}>
-                </Box>
-            </Box>
-*/}
         </div>
     );
 }
 
-//const AnalysisData = withRouter(connectEdit(WrappedAnalysisData, 'analysis', analysisSchema, analysisValidator));
-
-//export { AnalysisData };
 export default AnalysisData;
