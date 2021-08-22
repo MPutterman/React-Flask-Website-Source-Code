@@ -19,7 +19,7 @@
 
 import SimpleSchema from 'simpl-schema';
 import { callAPI } from '../helpers/api';
-import { id_exists, name_lookup } from '../helpers/validation_utils';
+import { id_exists } from '../helpers/validation_utils';
 
 
 // TODO: update with more complex rules, e.g. modified and create and owner_id (and id) should
