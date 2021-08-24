@@ -50,6 +50,9 @@ export const initialState = {
         maintenance_mode: false,
         redirect_after_logout: '/user/login',
         theme_options: ['dark', 'light'],
+        user_thumbnail_blank_url: 'public/user_thumbnail_blank.png',
+        user_avatar_blank_url: 'public/user_avatar_blank.png',
+        org_thumbnail_blank_url: 'public/org_thumbnail_blank.png',
     },
     search: {
         pagesize_options: [5, 10, 25, 50, 100],
