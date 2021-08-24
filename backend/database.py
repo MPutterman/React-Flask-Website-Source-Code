@@ -171,6 +171,7 @@ class User(UserMixin, Base):
     photo_url = Column(String(2048))
     thumbnail_url = Column(String(2048))
     avatar_url = Column(String(2048))
+    org_id = Column(Integer, ForeignKey('organization.org_id'))
     org_list = relationship("Organization", secondary=user_org_map) 
     analysis_list=relationship("Analysis",secondary=user_analysis_map)
 
@@ -798,6 +799,7 @@ def db_user_save(data):
         user.last_name = data['last_name']
         user.email = data['email'] # not changeable via
         user.modified = datetime.now(timezone.utc)
+        user.org_id = data.get('org_id')
         #user.password_hash = User.hash(data['password'])
         # Following is not yet supported in this version of python
         #if data.has_key('preferences'):
@@ -810,6 +812,7 @@ def db_user_save(data):
                 first_name = data['first_name'],
                 last_name = data['last_name'],
                 email = data['email'],
+                org_id = data.get('org_id'),
                 password_hash = User.hash(data['password']) if data.get('password') else None,
                 modified = datetime.now(timezone.utc),
                 created = datetime.now(timezone.utc),)
