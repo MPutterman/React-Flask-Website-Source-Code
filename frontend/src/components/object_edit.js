@@ -59,7 +59,6 @@ import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField, L
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import FileInputField from './filefield';
 import IDInputField from './idfield';
-//import Busy from '../components/busy';
 import { useAlerts } from '../contexts/alerts';
 import { useThrobber } from '../contexts/throbber';
 import { userSchema, userRegistrationSchema, orgSchema, equipSchema, plateSchema, coverSchema, imageSchema /*, analysisSchema */ } from '../helpers/schema';
@@ -126,8 +125,6 @@ return (props) => {
     },[props.create, props.objectID, props.match.params.id]);
 
     const [loaded, setLoaded] = React.useState(create ? true : false);
-    //const [busy, setBusy] = React.useState(false);
-
     const [permissions, setPermissions] = React.useState([]);
 
     // When id changes (and upon first initialization), check permissions and load object

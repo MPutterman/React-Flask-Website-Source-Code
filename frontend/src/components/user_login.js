@@ -17,7 +17,7 @@ import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import Visibility from '@material-ui/icons/Visibility';
 import VisibilityOff from '@material-ui/icons/VisibilityOff';
 import { useAlerts } from '../contexts/alerts';
-import Busy from '../components/busy';
+import { useThrobber } from '../contexts/throbber';
 
 // User Login form
 
@@ -28,12 +28,9 @@ const UserLogin = (props) => {
     const history = useHistory();
     const { state } = useLocation(); // state.from contains referrer if applicable
     const setAlert = useAlerts();
+    const setBusy = useThrobber();
 
     const [defaults, setDefaults] = React.useState( {email: '', password: '', remember: false} );
-
-    // Support for 'loading' spinner while login/logout in progress
-    const [loginPending, setLoginPending] = React.useState(false);
-    const [logoutPending, setLogoutPending] = React.useState(false);
 
     // Connect to Auth context
     const authDispatch = useAuthDispatch();
@@ -70,7 +67,7 @@ const UserLogin = (props) => {
     // Handlers
     async function onGoogleLogin(e) {
       console.log(e)
-      setLoginPending(true);
+      setBusy(true);
       let data={}
       data.tokenId = e.tokenId
       
@@ -80,13 +77,13 @@ const UserLogin = (props) => {
                 const url = prefs.general.redirect_after_login;    
                 history.push(state?.from || url);
             }
-            setLoginPending(false);
+            setBusy(false);
         });
     }
     
     async function onLogin(data, e) {
 
-        setLoginPending(true);
+        setBusy(true);
         return await authLogin(authDispatch, data)
         .then( (response) => {
             if (response) {
@@ -95,18 +92,18 @@ const UserLogin = (props) => {
             } else {
                 setAlert({severity:'error', message:'Incorrect username and/or password'});
             }
-            setLoginPending(false);
+            setBusy(false);
         });
     }
 
     async function onLogout(data, e) {
-        setLogoutPending(true);
+        setBusy(true);
         return await authLogout(authDispatch)
         // TODO: if received an error, where to redirect?
         .then( (response) => {
             // TODO: doesn't log output, but the redirect appears to be okay...
             //console.log ('here, config state is =>', config);
-            setLogoutPending(false);
+            setBusy(false);
             history.push(config.general.redirect_after_logout);
         });
     }
@@ -130,13 +127,11 @@ const UserLogin = (props) => {
           <form onSubmit={onLogout}>
             <p>Welcome, {profile.first_name}. </p>
             <Button type="submit" variant="outlined" onClick={onLogout}>Logout</Button>
-            <Busy busy={logoutPending} />
           </form>
 
         ) : (  // If not logged in:
 
           <div className="UserLoginForm" style = {{ maxWidth: '250px', margin: 'auto', }}>
-            <Busy busy={loginPending} />
             <AutoForm schema={bridge} onSubmit={onLogin} ref={ref => (formRef = ref)}>
               <AutoField name="email" />
               <ErrorField name="email" />

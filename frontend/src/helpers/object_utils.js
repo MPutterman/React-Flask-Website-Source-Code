@@ -193,10 +193,7 @@ const ObjectCloneButton = (props) => {
     }
 
     return (
-        <>
-            {/*<Busy busy={busy}/>*/}
-            <Button size='small' onClick={handleClick}><CloneIcon />Clone</Button>
-        </>
+        <Button size='small' onClick={handleClick}><CloneIcon />Clone</Button>
     );
 }; 
 
@@ -246,10 +243,7 @@ const ObjectDeleteButton = (props) => {
     }
 
     return (
-        <>
-            {/*<Busy busy={busy}/>*/}
-            <Button size='small' onClick={handleClick}><DeleteIcon />Delete</Button>
-        </>
+        <Button size='small' onClick={handleClick}><DeleteIcon />Delete</Button>
     );
 }; 
 
@@ -298,10 +292,7 @@ const ObjectRestoreButton = (props) => {
     }
 
     return (
-        <>
-            {/*<Busy busy={busy}/>*/}
-            <Button size='small' onClick={handleClick}><RestoreIcon />Restore</Button>
-        </>
+        <Button size='small' onClick={handleClick}><RestoreIcon />Restore</Button>
     );
 };   
 
@@ -384,10 +375,7 @@ const ObjectPurgeButton = (props) => {
     }
 
     return (
-        <>
-            {/*<Busy busy={busy}/>*/}
-            <Button size='small' onClick={handleClick}><PurgeIcon />Purge</Button>
-        </>
+        <Button size='small' onClick={handleClick}><PurgeIcon />Purge</Button>
     );
 };   
 
