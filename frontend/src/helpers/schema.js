@@ -7,11 +7,14 @@
 // * Unify use of schemas in 'view', 'edit', 'search', etc...?  Each view has a unique purpose and parameters,
 //     but maybe can share some aspects, e.g. schema.addViewField('name'), schema.addSearchField('name')
 // * Add username to 'User'?  This will give a unique identifier without disclosing users email addresses
+// * Allow multiple organizations?
+// * User should 'apply' to join an organization
 // * Instead of allowing editing of id, owner_id, modified, created... have special functions to overwrite these?
 // * Add a profile picture for the image...?
 // * This about Image type a bit and preferences. Default exposure time and temp doesn't make sense for all image
 //     types (e.g. flat or bright)....  Maybe rename them to "radiation_image defaults"?
 // * Tried to define a type alias (type IDType = SimpleSchema.Integer) but doesn't to work
+//
 // RESOURCES:
 // https://github.com/longshotlabs/simpl-schema (simple schema docs, and good descriptions of
 //   special validation (e.g. password match) and customized error message)
@@ -536,7 +539,7 @@ const schema = new SimpleSchema ({
         type: String,
         required: true,
     },
-    org_id: {
+    org_id: { 
         label: 'Organization',
         type: SimpleSchema.Integer,
         required: false,
@@ -566,26 +569,6 @@ const schema = new SimpleSchema ({
         type: String,
         required: false,
     },
-    org_list: { // TODO: this won't be a simple selector -- users will have to 'apply' to join an
-                // organization and become an organization admin.
-                // To create a new organization, must contact admin...
-        label: 'Organization List',
-        type: Array,
-        // TODO: Need to figure out how to have 'allowedValues' here, but 
-        // since it is async retrieved the validator is created with outdated version
-        //allowedValues: availableOrganizations ? availableOrganizations.map(x => (x.org_id)) : [], // make an array of org_ids
-        required: false,
-        // TODO: how to add a label like "Select your organization(s)"?
-        // Tried adding an extra entry with label and null value(key) but didn't work...
-        uniforms: {
-            checkboxes: false,
-            options: [1,2,3], //availableOrganizations ? availableOrganizations.map((x) => ({label:x.name, value:x.org_id})) : [],
-        }
-    },
-    // NOTE: org_id is an array of integers, but with the request/responses, easiest to keep as strings
-    'org_list.$': {
-        type: SimpleSchema.Integer,
-    }
 });
 schema.extend(metaSchema);
 return schema;
