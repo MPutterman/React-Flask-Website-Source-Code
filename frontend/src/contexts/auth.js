@@ -23,7 +23,6 @@
 
 import React, { useReducer, useEffect } from "react";
 import { callAPI } from '../helpers/api';
-import _ from 'lodash';
 
 // Create contexts and hooks
 
@@ -181,12 +180,8 @@ export const AuthReducer = ({session: prevSession, profile: prevProfile, roles: 
 
     case "SESSION_LOADED":
       user = action.payload.user;
-      //console.log('user =>', user);
       userPrefs = action.payload.prefs;
       prefs = defaultUserPrefs;
-      // TODO: change to
-      // prefs = {};
-      // _.merge(prefs, [defaultUserPrefs, userPrefs]);
       for (const category in userPrefs) {
         for (const key in userPrefs[category]) {
           // Copy if not null/undefined
@@ -215,9 +210,6 @@ export const AuthReducer = ({session: prevSession, profile: prevProfile, roles: 
       user = action.payload.user;
       userPrefs = action.payload.prefs;
       prefs = defaultUserPrefs;
-      // TODO: change to
-      // prefs = {}
-      // _.merge(prefs, [defaultUserPrefs, userPrefs]);
       for (const category in userPrefs) {
         for (const key in userPrefs[category]) {
           if (userPrefs[category][key] !== null && userPrefs[category][key] !== undefined) prefs[category][key] = userPrefs[category][key];
@@ -349,7 +341,6 @@ export async function authLogout(dispatch) {
 
     return callAPI('POST', 'user/logout', [])
     .then((response) => {
-        //console.log ('POST /user/logout, response =>', response.data);
         let user = response.data.current_user;
         if (!user) {
             dispatch({ type: 'LOGOUT' });
