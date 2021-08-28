@@ -42,4 +42,5 @@ export function PasswordField ({onChange, name, error, ...props}: PasswordFieldP
     );
 };
 
+// Apply connector for uniforms form
 export default connectField(PasswordField); 
