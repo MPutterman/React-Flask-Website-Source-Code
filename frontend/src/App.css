@@ -33,7 +33,7 @@
 #tc{
   border:1px solid white;
 }
-#img{
+#img{ /* TODO: this should only apply to analysis images */
   position:absolute;
   height:682;
   width:682;
@@ -60,3 +60,8 @@ circle{
   position:absolute;
   
 }
+
+/* 'View' pages */
+.view-field{
+  background-color: #333333;  /* Need a different way to do this for light theme vs dark theme */
+}  
