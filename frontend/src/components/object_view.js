@@ -16,8 +16,6 @@
 //     still show things like '*' for required fields.  Also a few cases where the public should not
 //     see all the fields, e.g. a user profile.  Hmm... Maybe MOST objects can be the same but UserProfile
 //     is a different view?
-// * Additional fields not working well -- date format issues, checkbox missing label, need to find a way to 
-//     get name lookup for owner_id
 // * For org, add logo field?
 
 import React from "react";
@@ -49,7 +47,7 @@ import { useThrobber } from '../contexts/throbber';
 import { useConfigState } from '../contexts/config';
 import { useHistory } from "react-router-dom";
 import { ObjectFavoriteButton, ObjectEditButton, ObjectDeleteButton, ObjectRestoreButton, ObjectPurgeButton } from '../helpers/object_utils';
-import { hasPermission, listPermissions } from '../helpers/object_utils';
+import { hasPermission, listPermissions } from '../helpers/permissions';
 import { objectIcon, objectTitle } from '../helpers/object_utils';
 import { ServerImage } from '../components/server_file';
 import { name_lookup } from '../helpers/validation_utils';
@@ -67,11 +65,16 @@ import EquipmentIcon from '@material-ui/icons/Business';
 // Field-specific icons
 import EmailIcon from '@material-ui/icons/Email';
 import LocationIcon from '@material-ui/icons/LocationOn';
-import ImageSizeIcon from '@material-ui/icons/SquareFoot';
+import DimensionsIcon from '@material-ui/icons/SquareFoot';
 import ExposureTimeIcon from '@material-ui/icons/Timer';
 //import ExposureTempIcon from '@material-ui/icons/Thermostat';
 import DateTimeIcon from '@material-ui/icons/Today';
-
+import FingerprintIcon from '@material-ui/icons/Fingerprint';
+import ColdIcon from '@material-ui/icons/AcUnit';
+import FileFormatIcon from '@material-ui/icons/Save';
+import ColorDepthIcon from '@material-ui/icons/Palette';
+import NameIcon from '@material-ui/icons/ShortText';
+import DescriptionIcon from '@material-ui/icons/ViewHeadline';
 
 // Wraps a derivative of ObjectView with backend support
 //  
@@ -180,13 +183,13 @@ return (props) => {
                     {model.is_deleted ? (<Box>THIS RECORD HAS BEEN DELETED</Box>) : (<></>)}
                     <Box display="flex" flexDirection="row">
                         <Box width='9%' pr={1}>
-                            <TextViewField label='ID' value={model[`${object_type}_id`] || ''} />
+                            <TextViewField icon={FingerprintIcon} label='ID' value={model[`${object_type}_id`] || ''} />
                         </Box>
                         <Box width='28%' px={1}>
-                            <DatetimeViewField label="Last modified" value={model.modified} format='datetime' />
+                            <DatetimeViewField icon={DateTimeIcon} label="Modified" value={model.modified} format='datetime' />
                         </Box>
                         <Box width='28%' px={1}>
-                            <DatetimeViewField label="Created" value={model.created} format='datetime' />
+                            <DatetimeViewField icon={DateTimeIcon} label="Created" value={model.created} format='datetime' />
                         </Box>
                         <Box width='35%' pl={1}>
                             <IDViewField label="Owner" objectType='user' objectID={model.owner_id} />
@@ -259,10 +262,10 @@ const TextViewField = ({icon:Icon=null, label, value, onClick=null}) => {
     return (
 	<Paper p={1} m={0} square={true} className='view-field' >
 	<Box display='flex' flex_direction='row' onClick={onClick} p={0} m={0}>
-	    <Box p={0} m={0} mr={1}>
+	    <Box p={0} m={0} >
 	        {Icon ? ( <Icon /> ) : ( <></> )}
 	    </Box>
-	    <Box p={0} m={0} ml={1}>
+	    <Box p={0} m={0} >
 	        <Typography color='textSecondary'> {label} </Typography>
 	        <Typography color='textPrimary'> {value || '\u00A0' /* &nbsp; */} </Typography>
 	    </Box>
@@ -307,13 +310,13 @@ const WrappedImageView = ({model}) => {
 	<>
 	<Box display='flex' flexDirection='row'>
 	    <Box width='40%' pr={1}>
-	        <TextViewField label='Name' value={model.name} />
+	        <TextViewField icon={NameIcon} label='Name' value={model.name} />
 	    </Box>
 	    <Box width='60%' pl={1}>
 	    	<IDViewField objectType='equip' objectID={model.equip_id}  />
 	    </Box>
 	</Box>
-	<TextViewField label='Description' value={model.description} />
+	<TextViewField icon={DescriptionIcon} label='Description' value={model.description} />
 	<Box display='flex' flexDirection='row'>
 	    <Box width='40%' pr={1}>
 	    	<TextViewField icon={DateTimeIcon} label='Captured' value={model.capture} />
@@ -355,7 +358,7 @@ const WrappedEquipView = ({model}) => {
 	<>
 	<Box display='flex' flexDirection='row' p={0} m={0} mb={2}>
 	    <Box width='40%' mr={1}>
-	        <TextViewField label='Name' value={model.name} />
+	        <TextViewField icon={NameIcon} label='Name' value={model.name} />
 	    </Box>
 	    <Box width='30%' mx={1}>
 	    	<TextViewField label='Manufacturer' value={model.manufacturer} />
@@ -365,28 +368,28 @@ const WrappedEquipView = ({model}) => {
 	    </Box>
 	</Box>
 	<Box p={0} m={0} mb={2}>
-	    <TextViewField label='Description' value={model.description} />
+	    <TextViewField icon={DescriptionIcon} label='Description' value={model.description} />
 	</Box>
 	<Box display='flex' flexDirection='row' p={0} m={0} mb={2}>
 	    <Box width='20%' mr={1}>
-	    	<TextViewField label='Image size (pixels)'
+	    	<TextViewField icon={DimensionsIcon} label='Image size (pixels)'
                 value={model.pixels_x ? `${model.pixels_x} x ${model.pixels_y}`: 'Not defined'}
 	        />
 	    </Box>
 	    <Box width='20%' mx={1}>
 	    	<TextViewField
-	            label='FOV size (mm)'
+	            icon={DimensionsIcon} label='FOV size (mm)'
                 value={model.fov_x ? `${model.fov_x} x ${model.fov_y}`: 'Not defined'}
 	        />
             </Box>
 	    <Box width='20%' mx={1}>
-	        <TextViewField label='Temp control?' value={model.has_temp_control ? 'Yes' : 'No'} />
+	        <TextViewField icon={ColdIcon} label='Temp control?' value={model.has_temp_control ? 'Yes' : 'No'} />
 	    </Box>
 	    <Box width='20%' mx={1}>
-		    <TextViewField label='Bits per px' value={model.bpp} />
+		    <TextViewField icon={ColorDepthIcon} label='Bits per px' value={model.bpp} />
 	    </Box>
 	    <Box width='20%' ml={1}>
-		    <TextViewField label='File format' value={model.file_format} />
+		    <TextViewField icon={FileFormatIcon} label='File format' value={model.file_format} />
 	    </Box>
 	</Box>
 	</>
@@ -400,10 +403,10 @@ const WrappedOrgView = ({model}) => {
         <>
         <Box display='flex' flexDirection='row'>
             <Box width='50%' pr={1}>
-                <TextViewField label='Name' value={model.name} />
+                <TextViewField icon={NameIcon} label='Name' value={model.name} />
             </Box>
         </Box>
-        <TextViewField label='Description' value={model.description} />
+        <TextViewField icon={DescriptionIcon} label='Description' value={model.description} />
         <TextViewField label='Location' value={model.location} />
         </>
     );
@@ -414,7 +417,7 @@ const WrappedPlateView = ({model}) => {
         <>
         <Box display='flex' flexDirection='row'>
             <Box width='40%' pr={1}>
-                <TextViewField label='Name' value={model.name} />
+                <TextViewField icon={NameIcon} label='Name' value={model.name} />
             </Box>
             <Box width='30%' px={1}>
                 <TextViewField label='Manufacturer' value={model.manufacturer} />
@@ -423,7 +426,7 @@ const WrappedPlateView = ({model}) => {
                 <TextViewField label='Part number' value={model.catalog} />
             </Box>
         </Box>
-        <TextViewField label='Description' value={model.description} />
+        <TextViewField icon={DescriptionIcon} label='Description' value={model.description} />
         </>
     );
 }
@@ -433,7 +436,7 @@ const WrappedCoverView = ({model}) => {
         <>
         <Box display='flex' flexDirection='row'>
             <Box width='40%' pr={1}>
-                <TextViewField label='Name' value={model.name} />
+                <TextViewField icon={NameIcon} label='Name' value={model.name} />
             </Box>
             <Box width='30%' px={1}>
                 <TextViewField label='Manufacturer' value={model.manufacturer} />
@@ -442,7 +445,7 @@ const WrappedCoverView = ({model}) => {
                 <TextViewField label='Part number' value={model.catalog} />
             </Box>
         </Box>
-        <TextViewField label='Description' value={model.description} />
+        <TextViewField icon={DescriptionIcon} label='Description' value={model.description} />
         </>
     );
 }
