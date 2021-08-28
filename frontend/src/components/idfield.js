@@ -35,7 +35,7 @@
 
 // Main imports
 import React from 'react';
-import { HTMLFieldProps, connectField } from 'uniforms';
+import { connectField } from 'uniforms';
 import { useForm } from 'uniforms';
 import { name_lookup } from '../helpers/validation_utils';
 import { ErrorHandler } from '../contexts/error';
@@ -51,6 +51,7 @@ import ClearIcon from '@material-ui/icons/Clear';
 import SelectIcon from '@material-ui/icons/Search';
 import CreateIcon from '@material-ui/icons/AddCircle';
 import EditIcon from '@material-ui/icons/Edit';
+import ViewIcon from '@material-ui/icons/Visibility';
 import InputAdornment from '@material-ui/core/InputAdornment';
 
 // Object-specific imports
@@ -64,8 +65,8 @@ import { PlateEdit as PlateCreate, PlateEdit } from '../components/object_edit';
 import { CoverEdit as CoverCreate, CoverEdit } from '../components/object_edit';
 import { ImageEdit as ImageCreate, ImageEdit } from '../components/object_edit';
 import { AnalysisEdit as AnalysisCreate, AnalysisEdit } from '../components/analysis'; //object_edit';
+import { UserView, OrgView, EquipView, PlateView, CoverView, ImageView, AnalysisView } from '../components/object_view';
 
-export type IDInputFieldProps = HTMLFieldProps<string, HTMLDivElement>;
 // - objectType<String> = user, image, equip, org, plate, cover
 // - selectTitle<String> = text to display as title on 'Select' popup
 // - createTitle<String> = text to display as title on 'Create' popup
@@ -73,18 +74,21 @@ export type IDInputFieldProps = HTMLFieldProps<string, HTMLDivElement>;
 // - filter<Array> = array of dict with 'field', 'value', and 'operator' to constrain
 
 // Destructure to collect many props NOT to pass to child components
-function IDInput({
-  /*objectType,*/ titleSelect, titleCreate, titleEdit, filter:incoming_filter,
-  name, error, onChange, value, label, ref, required, readOnly, disabled,
-  showInlineError, errorMessage, fieldType, autoValue, decimal, valueLabelDisplay, changed,
-  ...props
-}: IDInputFieldProps) {
+function IDInput(props) {
+
+    const {
+        objectType, titleSelect, titleCreate, titleEdit, titleView, filter:incoming_filter,
+        name, error, onChange, value, label, ref, required, readOnly, disabled,
+        showInlineError, errorMessage, fieldType, autoValue, decimal, valueLabelDisplay, changed,
+//        ...otherprops
+    } = props;
 
   const [pendingModel, setPendingModel] = React.useState({});
   const [nameField, setNameField] = React.useState('');
   const [openSelect, setOpenSelect] = React.useState(false);
   const [openCreate, setOpenCreate] = React.useState(false);
   const [openEdit, setOpenEdit] = React.useState(false);
+  const [openView, setOpenView] = React.useState(false);
   const [refresh, setRefresh] = React.useState(false);
   const [filter, setFilter] = React.useState([]); // filter rewriter (will use useEffect to capture initial value)
 
@@ -123,9 +127,9 @@ function IDInput({
   // Also do this when 'refresh' flag is set. (E.g. if open the edit dialog, the user
   // might change this field.)
   React.useEffect(() => {
-      if ((value || refresh) && (props.objectType !== undefined)) {
+      if ((value || refresh) && (objectType !== undefined)) {
           setRefresh(false);
-          name_lookup(props.objectType, value)
+          name_lookup(objectType, value)
           .then((name) => {
               setNameField(name);
           })
@@ -135,21 +139,24 @@ function IDInput({
       } else {
           setNameField('');
       }
-  }, [value, refresh, props.objectType]);
+  }, [value, refresh, objectType]);
 
 
   const allowEdit = () => {
-    return !!value; // Allow if ID value is not empty
+    return !!value; // Allow if ID value is not empty.  TODO: check edit permissions
   }
 
   const allowSelect = () => {
-    return true;
+    return true; // TODO: only allow if ID is empty?  TODO: check search permissions
   }
 
   const allowCreate = () => {
-    return true;
+    return true; // TODO: only allow if ID is empty?  TODO: check create permissions
   }
 
+  const allowView = () => {
+    return !!value; // Allow if ID value is not empty  TODO:check view permissions
+  }
 
   const onCloseSelect = (value) => {
   }
@@ -160,8 +167,11 @@ function IDInput({
   const onCloseEdit = (value) => {
   }
  
+  const onCloseView = (value) => {
+  }
+
   const handleOpenSelect = () => {
-    console.log('Opening search window, value of objectType:', props.objectType);
+    console.log('Opening search window, value of objectType:', objectType);
     setOpenSelect(true);
   };
 
@@ -218,6 +228,14 @@ function IDInput({
     setRefresh(true);
   };
 
+  const handleOpenView = () => {
+    setOpenView(true);
+  }
+
+  const handleCloseView = () => {
+    setOpenView(false);
+  }
+
   const handleClear = () => {
       setNameField('');
       onChange(null);
@@ -227,7 +245,7 @@ function IDInput({
     <div className="IDInputField">
 
       <TextField
-          {...props} 
+//          {...otherprops} 
           margin="dense"
           fullWidth
           size="small"
@@ -244,6 +262,9 @@ function IDInput({
           endAdornment:(
           <InputAdornment position="end">
               {/*{value ? ( <>{`(ID=${value})`}</> ) : ( <></> )}*/}
+              <IconButton size='small' onClick={handleOpenView} disabled={!allowView()}>
+		  <ViewIcon color={!!error ? 'error' : 'inherit'} />
+              </IconButton>
               <IconButton size='small' onClick={handleOpenEdit} disabled={!allowEdit()}>
                   <EditIcon color={!!error ? 'error' : 'inherit'} />
               </IconButton>
@@ -294,7 +315,7 @@ function IDInput({
                 'image': <ImageEdit objectID={value} onSave={setPendingModel} filter={filter} />,
                 'analysis': <AnalysisEdit objectID={value} onSave={setPendingModel} filter={filter} />,
                 'default': <></>,
-            } [props.objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
+            } [objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
             </ErrorHandler>
         </DialogContent>
         <DialogActions>
@@ -325,7 +346,7 @@ function IDInput({
                 'image': <ImageSelect onSelect={setPendingModel} filter={filter} />,
                 'analysis': <AnalysisSelect onSelect={setPendingModel} filter={filter} />,
                 'default': <></>,
-            } [props.objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
+            } [objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
             </ErrorHandler>
         </DialogContent>
         <DialogActions>
@@ -344,7 +365,7 @@ function IDInput({
 
       <Dialog fullWidth open={openCreate} onClose={handleCloseCreate} >
         <Throbber>
-        <DialogTitle id="dialog-select">
+        <DialogTitle id="dialog-create">
             {titleCreate ? ( <span>{titleCreate}</span> ) : ( <span>Create new record</span> )}
         </DialogTitle>
         <DialogContent>
@@ -358,7 +379,7 @@ function IDInput({
                 'image': <ImageCreate create={true} onSave={setPendingModel} filter={filter} />,
                 'analysis': <AnalysisCreate create={true} onSave={setPendingModel} filter={filter} />,
                 'default': <></>,
-            } [props.objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
+            } [objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
             </ErrorHandler>
         </DialogContent>
         <DialogActions>
@@ -375,10 +396,35 @@ function IDInput({
         </Throbber>
       </Dialog>
 
+      <Dialog fullWidth open={openView} onClose={handleCloseView} >
+        <Throbber>
+        <DialogTitle id="dialog-view">
+            {titleView ? ( <span>{titleView}</span> ) : ( <span>View record</span> )}
+        </DialogTitle>
+        <DialogContent>
+            <ErrorHandler>
+            {{
+                'user': <UserView objectID={value} />,
+                'org': <OrgView objectID={value} />,
+                'equip': <EquipView objectID={value} />,
+                'plate': <PlateView objectID={value} />,
+                'cover': <CoverView objectID={value} />,
+                'image': <ImageView objectID={value} />,
+                'analysis': <AnalysisView objectID={value} />,
+                'default': <></>,
+            } [objectType || 'default'] }     {/* Use || <Component /> if need 'default' */}
+            </ErrorHandler>
+        </DialogContent>
+        <DialogActions>
+          <Button variant="contained" color="primary" onClick={handleCloseView}>Close</Button>
+        </DialogActions>
+        </Throbber>
+      </Dialog>
 
     </div>
 
   );
 }
 
+// Apply connector for uniforms form
 export default connectField(IDInput); 
