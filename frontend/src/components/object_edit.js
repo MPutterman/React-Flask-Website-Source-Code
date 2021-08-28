@@ -18,10 +18,6 @@
 //     Need to be careful how to implement... any function will need to be INSIDE a component to have context
 //     e.g. for auth session
 // * Look carefully at error handling and error responses, especially for full page versus modal dialog
-// * Can make a 'view' mode by wrapping in 'fieldset'. However, it keeps all the '*' etc form hints...
-//     Think about whether we want separate view/edit templates or share in this way...
-//     Otherwise maybe can get decent autofield layout by using box and a % width for each element...
-//     [Note for empty values we would want to display as '' to make sure all labels are the same size/position']
 // * For Image type, is there any value in saving the front-end filename to backend database? Currently copies
 //     to the 'name' field, but user can change it after
 // * For images -- maybe click to view in popup window?  And then click to download?
@@ -72,7 +68,7 @@ import CardHeader from '@material-ui/core/CardHeader';
 import CardContent from '@material-ui/core/CardContent';
 import CardMedia from '@material-ui/core/CardMedia';
 import Avatar from '@material-ui/core/Avatar';
-import { hasPermission, listPermissions } from '../helpers/object_utils';
+import { hasPermission, listPermissions } from '../helpers/permissions';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import PasswordInputField from '../components/passwordfield';
 

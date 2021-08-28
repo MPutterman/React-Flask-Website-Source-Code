@@ -379,39 +379,6 @@ const ObjectPurgeButton = (props) => {
     );
 };   
 
-async function hasPermission(permission, object_type, id) {
-    return callAPI('GET', `api/check_permission/${object_type}/${permission}/${id}`)
-    .then((response) => {
-        if (response.error) {
-            console.warn(`Error ${response.status} from /api/check_permission call: ${response.data.error}`);
-            return false; // Return false if any error
-        } else {
-            return response.data.authorized === true;
-        }
-    })
-    .catch((error) => {
-        console.warn('Exception in /api/check_permission call: ', error);
-        return false; // Return false if any exception
-    });
-}
-
-async function listPermissions(object_type, id) {
-    return callAPI('GET', `api/list_permissions/${object_type}/${id}`)
-    .then((response) => {
-        if (response.error) {
-            console.warn(`Error ${response.status} from /api/list_permissions call: ${response.data.error}`);
-            return []; // Return empty list if any errors
-        } else {
-            return response.data.authorized;
-        }
-    })
-    .catch((error) => {
-        console.warn('Exception in /api/list_permissions call: ', error);
-        return []; // Return empty list if any exception
-    });
-}
-
-
 const ObjectIcon = ({objectType, children, ...props}) => {
     return React.createElement(objectIcon(objectType), props, children);
 }
@@ -429,8 +396,6 @@ export {
     ObjectDeleteButton,
     ObjectRestoreButton,
     ObjectPurgeButton,
-    hasPermission,
-    listPermissions,
     actionIcon,
     objectIcon,
     objectTitle,
