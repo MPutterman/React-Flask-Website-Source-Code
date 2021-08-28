@@ -18,14 +18,13 @@
 //     is a different view?
 // * Additional fields not working well -- date format issues, checkbox missing label, need to find a way to 
 //     get name lookup for owner_id
+// * For org, add logo field?
 
 import React from "react";
 import { callAPI } from '../helpers/api';
 import { withRouter } from "react-router";
 import Button from "@material-ui/core/Button";
 import Box from '@material-ui/core/Box';
-import Paper from '@material-ui/core/Paper';
-import Divider from '@material-ui/core/Divider';
 import Card from '@material-ui/core/Card';
 import CardHeader from '@material-ui/core/CardHeader';
 import CardContent from '@material-ui/core/CardContent';
@@ -35,22 +34,28 @@ import Accordion from '@material-ui/core/Accordion';
 import AccordionSummary from '@material-ui/core/AccordionSummary';
 import AccordionDetails from '@material-ui/core/AccordionDetails';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import IconButton from '@material-ui/core/IconButton';
 import Grid from '@material-ui/core/Grid';
 import TextField from '@material-ui/core/TextField';
 import IDInputField from '../components/idfield';
 import Checkbox from '@material-ui/core/Checkbox';
-import IDIcon from '@material-ui/icons/Fingerprint';
+import Typography from '@material-ui/core/Typography';
+import Paper from '@material-ui/core/Paper';
 import { useErrorResponse } from '../contexts/error';
 import { StatusCodes } from 'http-status-codes';
 import { useAlerts } from '../contexts/alerts';
 import { useConfirm } from 'material-ui-confirm';
 import { useThrobber } from '../contexts/throbber';
-import { ObjectEditButton, ObjectDeleteButton, ObjectRestoreButton, ObjectPurgeButton } from '../helpers/object_utils';
+import { useConfigState } from '../contexts/config';
+import { useHistory } from "react-router-dom";
+import { ObjectFavoriteButton, ObjectEditButton, ObjectDeleteButton, ObjectRestoreButton, ObjectPurgeButton } from '../helpers/object_utils';
 import { hasPermission, listPermissions } from '../helpers/object_utils';
 import { objectIcon, objectTitle } from '../helpers/object_utils';
-
+import { ServerImage } from '../components/server_file';
+import { name_lookup } from '../helpers/validation_utils';
 
 // Object type icons
+// TODO: create these from objectIcon(type)?
 import UserIcon from '@material-ui/icons/Person';
 import ImageIcon from '@material-ui/icons/Image';
 import AnalysisIcon from '@material-ui/icons/Assessment';
@@ -135,6 +140,7 @@ return (props) => {
               } else {
 
                 setModel(response.data);
+		      console.log('model loaded: ', response.data);
                 setLoaded(true);
                 setBusy(false);
                 return true;
@@ -157,60 +163,40 @@ return (props) => {
                 }
                 title={`VIEW ${objectTitle(object_type).toUpperCase()}`}
                 subheader={`${model.name || ''}`}
-                action={<>
-                </>}
+                // If has permission to edit, show edit button. (Make delete etc. only available in edit mode.)
+                action={
+                    <>
+                    <ObjectFavoriteButton objectType={object_type} objectID={id} />
+                    {permissions.includes('edit') ? (<ObjectEditButton objectType={object_type} objectID={id} />) : ( <></> )}
+                    </>
+                }
             />
             <CardContent>
 
-                <h3>Please note: Many 'view' are not yet implemented -- you can use the 'edit' route instead</h3>
-
                 <WrappedView id={id} model={model} />
 
-                <Accordion /*defaultExpanded*/ elevation={10}>
-                    <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                        <span>Additional read-only fields</span>
-                    </AccordionSummary>
-                    <AccordionDetails>
-
-{/*              <Box border={1} p={2} style={{background:"#222225"}}> */}
-                    <Box>
-                        <Box display="flex" flexDirection="row">
-                            <Box width='9%' pr={1}>
-                                <TextField readOnly disabled
-                                    label={`${object_type}_id`}
-                                    value={model[`${object_type}_id`] || ''}
-                                />
-                            </Box>
-                            <Box width='28%' px={1}>
-                                <TextField label="Last modified" value={model.modified || ''} type="date" readOnly disabled />
-                            </Box>
-                            <Box width='28%' px={1}>
-                                <TextField label="Created" value={model.created || ''} type="date" readOnly disabled />
-                            </Box>
-                            <Box width='35%' pl={1}>
-                                {/* TODO: want IDInputField, to lookup name... but it needs to be in a form */}
-                                <TextField label="Owner ID" value={model.owner_id || ''} readOnly disabled />
-                            </Box>
+                {/* Metadata */}
+                <Box pt={1}>
+                    {model.is_deleted ? (<Box>THIS RECORD HAS BEEN DELETED</Box>) : (<></>)}
+                    <Box display="flex" flexDirection="row">
+                        <Box width='9%' pr={1}>
+                            <TextViewField label='ID' value={model[`${object_type}_id`] || ''} />
                         </Box>
-                        <Box display="flex" flexDirection="row">
-                            <Box width='25%'>
-                                <Checkbox label="Is deleted?" value={model.is_deleted ? 'checked' : 'unchecked'} readOnly disabled />
-                            </Box>
+                        <Box width='28%' px={1}>
+                            <DatetimeViewField label="Last modified" value={model.modified} format='datetime' />
+                        </Box>
+                        <Box width='28%' px={1}>
+                            <DatetimeViewField label="Created" value={model.created} format='datetime' />
+                        </Box>
+                        <Box width='35%' pl={1}>
+                            <IDViewField label="Owner" objectType='user' objectID={model.owner_id} />
                         </Box>
                     </Box>
-
-                </AccordionDetails>
-            </Accordion>
+                </Box>
 
             </CardContent>
 
             <CardActions disableSpacing>
-
-                {permissions.includes('edit') ? (<ObjectEditButton objectType={object_type} objectID={id} />) : ( <></> )}
-                {(permissions.includes('delete') && !model.is_deleted) ? (<ObjectDeleteButton objectType={object_type} objectID={id} />) : ( <></> )}
-                {(permissions.includes('restore') && model.is_deleted) ? (<ObjectRestoreButton objectType={object_type} objectID={id} />) : ( <></> )}
-                {permissions.includes('purge') ? (<ObjectPurgeButton objectType={object_type} objectID={id} />) : ( <></> )}
-
             </CardActions>
 
         </Card>
@@ -219,6 +205,72 @@ return (props) => {
     
 }
 }
+
+// Utilities
+
+// Render an ID field (show the name, and provide link to view the ojbect)
+// TODO: add options for clickable link (e.g. enable, popup versus redirect, etc...)
+const IDViewField = ({objectType, objectID, label=null, icon:Icon=null }) => { 
+
+    const [name, setName] = React.useState('');
+    //const fieldName = `${objectType}_id`;
+    const fieldLabel = (label === null) ? objectTitle(objectType) : label;
+    const FieldIcon = (Icon === null) ? objectIcon(objectType) : Icon;
+    const history = useHistory();
+
+    React.useEffect(() => {
+        if (objectType && objectID) {
+            name_lookup(objectType, objectID)
+            .then((name) => {
+                setName(name);
+            });
+        }
+    },[objectType,objectID]);
+
+    const onClick = (event) => {
+        history.push(`/${objectType}/view/${objectID}`);
+    }
+
+    return (
+	<TextViewField icon={FieldIcon} label={fieldLabel} value={name} onClick={onClick} />
+    )
+}
+
+const DatetimeViewField = ({icon:Icon=null, label, value, onClick=null, format='datetime'}) => {
+    var datetimeString = '';
+    if (value !== null && value instanceof Date) {
+	// TODO: fix: this may not work if value is only a date or time
+	// Uncorrect the conversion to local time used for edit fields
+	const localDatetime = new Date (value.getTime() + value.getTimezoneOffset() * 60 * 1000);
+	switch (format) {
+	    case 'date': datetimeString = localDatetime.toLocaleDateString(); break;
+	    case 'time': datetimeString = localDatetime.toLocaleTimeString(); break;
+	    case 'datetime': datetimeString = localDatetime.toLocaleString(); break;
+            default: break;
+        }
+    }
+    return (
+        <TextViewField icon={Icon} label={label} value={datetimeString} onClick={onClick} />
+    );
+}
+
+	
+const TextViewField = ({icon:Icon=null, label, value, onClick=null}) => {
+    return (
+	<Paper p={1} m={0} square={true} className='view-field' >
+	<Box display='flex' flex_direction='row' onClick={onClick} p={0} m={0}>
+	    <Box p={0} m={0} mr={1}>
+	        {Icon ? ( <Icon /> ) : ( <></> )}
+	    </Box>
+	    <Box p={0} m={0} ml={1}>
+	        <Typography color='textSecondary'> {label} </Typography>
+	        <Typography color='textPrimary'> {value || '\u00A0' /* &nbsp; */} </Typography>
+	    </Box>
+	</Box>
+	</Paper>
+    );
+}
+
 
 // Show a generic view of an object
 // Usage: <ObjectView id model fields actions />
@@ -235,16 +287,8 @@ const GenericObjectView = (props) => {
         <Grid container direction='row'>
         <Grid item>
         <Box flexDirection='row' py={1}>
-            {props.fields.map(({icon, label, type, value}) => (
-                <Box py={1}>
-
-                    <TextField
-                        readOnly
-                        disabled
-                        label={label}
-                        value={value || ''} // Otherwise undefined values mess up rendering
-                    />
-                </Box>
+            {props.fields.map(({icon: Icon, label, type, value}) => (
+        		<TextViewField icon={Icon} label={label} value={value} />
             ))}
         </Box>
         </Grid>
@@ -257,117 +301,162 @@ const GenericObjectView = (props) => {
     )
 }
 
-const WrappedImageView = (props) => {
-    const fields = [
-        {icon: null, label: 'Name', value: props.model.name},
-        {icon: null, label: 'Equipment', value: props.model.equip_id},
-        {icon: DateTimeIcon, label: 'Captured', value: props.model.captured},
-        {icon: ExposureTimeIcon, label: 'Exposure time (s)', value: props.model.exp_time},
-        {icon: null, label: 'Exposure temp (C)', value: props.model.exp_temp},
-        // TODO: somehow show the image...
-    ];
-    const actions = [];
+// TODO: show a thumbnail (generate when upload -- maximuimze contrast/range)
+const WrappedImageView = ({model}) => {
     return (
-        <GenericObjectView id={props.objectID} fields={fields} actions={actions} model={props.model} />
+	<>
+	<Box display='flex' flexDirection='row'>
+	    <Box width='40%' pr={1}>
+	        <TextViewField label='Name' value={model.name} />
+	    </Box>
+	    <Box width='60%' pl={1}>
+	    	<IDViewField objectType='equip' objectID={model.equip_id}  />
+	    </Box>
+	</Box>
+	<TextViewField label='Description' value={model.description} />
+	<Box display='flex' flexDirection='row'>
+	    <Box width='40%' pr={1}>
+	    	<TextViewField icon={DateTimeIcon} label='Captured' value={model.capture} />
+	    </Box>
+	    <Box width='30%' px={1}>
+	    	<TextViewField icon={ExposureTimeIcon} label='Exposure time' value={model.exp_time} />
+	    </Box>
+	    <Box width='30%' pl={1}>
+	    	<TextViewField label='Exposure temp' value={model.exp_temp} />
+	    </Box>
+	</Box>
+	</>
+    );
+}
+
+// TODO: add some actions... search images or analyses by user.   Maybe 'contact'?
+const WrappedUserView = ({model, ...props}) => {
+    const config = useConfigState();
+
+    return (
+        <Box display='flex' flexDirection='row'>
+	    <Box width='20%'>
+            {model.thumbnail_url ? (
+		        <ServerImage url={model.thumbnail_url} height='100%'/>
+	        ) : (
+                <img src={config.general.user_thumbnail_blank_url} height='100%'/>
+            )}
+	    </Box>
+	    <Box width='80%'>
+	    	<TextViewField icon={UserIcon} label="Name" value={`${model.first_name} ${model.last_name}`} />
+            <IDViewField objectType='org' objectID={model.org_id}  />
+	    </Box>
+	</Box>
     )
 }
 
-const WrappedUserView = (props) => {
-
-    const fields = [
-        {icon: UserIcon, label: 'Name', value: `${props.model.first_name} ${props.model.last_name}`},
-        {icon: EmailIcon, label: 'Email', value: props.model.email },
-        {icon: OrganizationIcon, label: 'Organization', value: props.model.org_id },
-        {icon: null, label: 'Is active?', value: props.model.is_active },
-    ];
-    const actions = [
-        {icon: null, label: 'Follow', callback: () => handleFollow()}, // just putting 'handleFollow' does not work
-        {icon: ImageIcon, label: 'Images', callback: () => handleImageSearch()},
-        {icon: AnalysisIcon, label: 'Analyses', callback: () => handleAnalysisSearch()},
-    ];
-    const handleFollow = () => {
-        // Issue subscription action  (What to folow? new/edited analyses? images?)
-    }
-    const handleImageSearch = () => {
-        // Popup image search?
-    }
-    const handleAnalysisSearch = () => {
-        // Popup analysis search?
-    }
+const WrappedEquipView = ({model}) => {
     return (
-        <GenericObjectView id={props.objectID} fields={fields} actions={actions} model={props.model} />
-    )
-
+	<>
+	<Box display='flex' flexDirection='row' p={0} m={0} mb={2}>
+	    <Box width='40%' mr={1}>
+	        <TextViewField label='Name' value={model.name} />
+	    </Box>
+	    <Box width='30%' mx={1}>
+	    	<TextViewField label='Manufacturer' value={model.manufacturer} />
+	    </Box>
+	    <Box width='30%' ml={1}>
+	    	<TextViewField label='Model' value={model.catalog} />
+	    </Box>
+	</Box>
+	<Box p={0} m={0} mb={2}>
+	    <TextViewField label='Description' value={model.description} />
+	</Box>
+	<Box display='flex' flexDirection='row' p={0} m={0} mb={2}>
+	    <Box width='20%' mr={1}>
+	    	<TextViewField label='Image size (pixels)'
+                value={model.pixels_x ? `${model.pixels_x} x ${model.pixels_y}`: 'Not defined'}
+	        />
+	    </Box>
+	    <Box width='20%' mx={1}>
+	    	<TextViewField
+	            label='FOV size (mm)'
+                value={model.fov_x ? `${model.fov_x} x ${model.fov_y}`: 'Not defined'}
+	        />
+            </Box>
+	    <Box width='20%' mx={1}>
+	        <TextViewField label='Temp control?' value={model.has_temp_control ? 'Yes' : 'No'} />
+	    </Box>
+	    <Box width='20%' mx={1}>
+		    <TextViewField label='Bits per px' value={model.bpp} />
+	    </Box>
+	    <Box width='20%' ml={1}>
+		    <TextViewField label='File format' value={model.file_format} />
+	    </Box>
+	</Box>
+	</>
+    );
 }
 
-const WrappedEquipView = (props) => {
-    const fields = [
-        { label: 'Name', value: props.model.name},
-        { label: 'Description', value: props.model.description},
-        { label: 'Camera', value: props.model.camera},
-        { label: 'Has temp control?', value: props.model.has_temp_control},
-        { label: 'Image size (pixels): ', value: props.model.pixels_x ? `${props.model.pixels_x} x ${props.model.pixels_y}`: 'Not defined'},
-        { label: 'FOV size (mm): ', value: props.model.fov_x ? `${props.model.fov_x} x ${props.model.fov_y}` : 'Not defined'},
-        { label: 'Bits per px', value: props.model.bpp},
-        { label: 'File format', value: props.model.file_format},
-    ];  
-    const actions = [];      
+// TODO: add a map? (or link to map) 
+// TODO: add a logo
+const WrappedOrgView = ({model}) => {
     return (
-        <GenericObjectView id={props.objectID} fields={fields} actions={actions} model={props.model} />
-    )
+        <>
+        <Box display='flex' flexDirection='row'>
+            <Box width='50%' pr={1}>
+                <TextViewField label='Name' value={model.name} />
+            </Box>
+        </Box>
+        <TextViewField label='Description' value={model.description} />
+        <TextViewField label='Location' value={model.location} />
+        </>
+    );
 }
 
-const WrappedOrgView = (props) => {
-    const fields = [
-        { label: 'Name', value: props.model.name },
-        { label: 'Description', value: props.model.description },
-        { label: 'Location', value: props.model.address },
-        // TODO: support photo(s) upload?
-    ];
-    const actions = [];
+const WrappedPlateView = ({model}) => {
     return (
-        <GenericObjectView id={props.objectID} fields={fields} actions={actions} model={props.model} />
-    )
+        <>
+        <Box display='flex' flexDirection='row'>
+            <Box width='40%' pr={1}>
+                <TextViewField label='Name' value={model.name} />
+            </Box>
+            <Box width='30%' px={1}>
+                <TextViewField label='Manufacturer' value={model.manufacturer} />
+            </Box>
+            <Box width='30%' pl={1}>
+                <TextViewField label='Part number' value={model.catalog} />
+            </Box>
+        </Box>
+        <TextViewField label='Description' value={model.description} />
+        </>
+    );
 }
 
-const WrappedPlateView = (props) => {
-    const fields = [
-        { label: 'Name', value: props.model.name },
-        { label: 'Description', value: props.model.description },
-        { label: 'Manufacturer', value: props.model.manufacturer },
-        { label: 'Part number', value: props.model.catalog },
-        // TODO: support photo(s) upload?
-    ];
-    const actions = [];
+const WrappedCoverView = ({model}) => {
     return (
-        <GenericObjectView id={props.objectID} fields={fields} actions={actions} model={props.model} />
-    )
+        <>
+        <Box display='flex' flexDirection='row'>
+            <Box width='40%' pr={1}>
+                <TextViewField label='Name' value={model.name} />
+            </Box>
+            <Box width='30%' px={1}>
+                <TextViewField label='Manufacturer' value={model.manufacturer} />
+            </Box>
+            <Box width='30%' pl={1}>
+                <TextViewField label='Part number' value={model.catalog} />
+            </Box>
+        </Box>
+        <TextViewField label='Description' value={model.description} />
+        </>
+    );
 }
 
-const WrappedCoverView = (props) => {
+const WrappedAnalysisView = ({model, objectID}) => {
     const fields = [
-        { label: 'Name', value: props.model.name },
-        { label: 'Description', value: props.model.description },
-        { label: 'Manufacturer', value: props.model.manufacturer },
-        { label: 'Part number', value: props.model.catalog },
-        // TODO: support photo(s) upload?
-    ];
-    const actions = [];
-    return (
-        <GenericObjectView id={props.objectID} fields={fields} actions={actions} model={props.model} />
-    )
-}
-
-const WrappedAnalysisView = (props) => {
-    const fields = [
-        { label: 'Name', value: props.model.name },
-        { label: 'Description', value: props.model.description },
+        { label: 'Name', value: model.name },
+        { label: 'Description', value: model.description },
         // TODO: support all analysis properties, and images...
         // TODO: show the image with ROIs and results table
     ];
     const actions = [];
     return (
-        <GenericObjectView id={props.objectID} fields={fields} actions={actions} model={props.model} />
+        <GenericObjectView id={objectID} fields={fields} actions={actions} model={model} />
     )
 }
 
