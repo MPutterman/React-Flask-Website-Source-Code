@@ -36,7 +36,9 @@
 #   https://stackoverflow.com/questions/9575409/calling-parent-class-init-with-multiple-inheritance-whats-the-right-way
 
 
-from flask import current_app as app 
+from flask import current_app as app
+import sqlalchemy
+import sqlalchemy_utils # pip3 install sqlalchemy-utils
 from sqlalchemy import create_engine, MetaData
 from sqlalchemy import Table, Column, ForeignKey
 from sqlalchemy import Integer, String, Float, Text, DateTime, LargeBinary, Enum, Boolean, PickleType, BigInteger
@@ -172,8 +174,8 @@ class User(UserMixin, Base):
     thumbnail_url = Column(String(2048))
     avatar_url = Column(String(2048))
     org_id = Column(Integer, ForeignKey('organization.org_id'))
-    org_list = relationship("Organization", secondary=user_org_map) 
-    analysis_list=relationship("Analysis",secondary=user_analysis_map)
+    #org_list = relationship("Organization", secondary=user_org_map)
+    #analysis_list=relationship("Analysis",secondary=user_analysis_map)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -327,7 +329,7 @@ class ImageType(enum.Enum):
 
 class Image(Base):
     __tablename__ = 'image'
-    analysis_list = relationship('Analysis',secondary=analysis_image_map)
+    #analysis_list = relationship('Analysis',secondary=analysis_image_map)
     image_id = Column(Integer, primary_key=True)
     equip_id = Column(Integer, ForeignKey('equipment.equip_id'))
     image_type = Column(Enum(ImageType), nullable=False)
@@ -399,10 +401,24 @@ class Cover(Base):
 def db_create_tables():
     # Careful, this deletes ALL data in database
     print ('Initializing database...')
-    print ('Dropping all tables')
-    Base.metadata.drop_all(db_engine)
+    print ('Dropping existing database')
+    #try:
+    #    text = sqlalchemy.text("ALTER TABLE user_org_map DROP CONSTRAINT user_org_map_ibfk_2")
+    #    db_session.execute(text)
+    #except:
+    #    pass
+    #try:
+    #    text = sqlalchemy.text("ALTER TABLE user DROP CONSTRAINT user_ibfk_1")
+    #    db_session.execute(text)
+    #except:
+    #    pass
+    #Base.metadata.drop_all(db_engine)
+    sqlalchemy_utils.functions.drop_database(db_uri)
+    print ('Creating database')
+    sqlalchemy_utils.functions.create_database(db_uri)
     print ('Creating all tables')
     Base.metadata.create_all(db_engine)
+    db_session.commit()
 
 
 def db_add_test_data():
@@ -424,23 +440,24 @@ def db_add_test_data():
     org2 = Organization(name = 'UCLA Ahmanson Translational Theranosticis Division', org_id = 21857,plate_list=[plate1],cover_list = [cover])
     org3 = Organization(name = 'Imaginary University Deparment of Radiochemistry',org_id = 25987)
     db_session.add_all([org1, org2, org3])
+    db_session.commit()
     prefs1 = { 'general': {'redirect_after_login': '/',}, }
     prefs2 = { 'general': {'redirect_after_login': '/user/search',}, 'analysis': {'default_plate': 2, 'default_cover': 1, 'default_equip': 4000} }
     favs1 = { 'equip': [4000, 2938],}
-    db_session.add(User(first_name = 'Alice', last_name = 'Armstrong', email = 'alice@armstrong.com', password_hash='$2b$12$jojM5EuDHREVES2S0OpLbuV.oDjqXWJ/wq9x07HwSQRfdpEUHLqNG', org_list=[org1], prefs=prefs2, favorites=favs1)) # PASSWORD 123
-    db_session.add(User(first_name = 'Bob', last_name = 'Brown', email = 'bob@brown.com',password_hash='$2b$12$kA7FRa6qA./40Pmtmi6mRelW2cnkhcOHtsKelIMVezDlF33YF62C2', org_list=[org1,org2], prefs=prefs1)) # PASSWORD 123
-    db_session.add(User(first_name = 'Cathy', last_name = 'Chen', email = 'cathy@chen.com',org_list=[org1,org2]))
-    db_session.add(User(first_name = 'David', last_name = 'Delgado', email = 'david@delgado.com',org_list=[org1,org2]))
-    db_session.add(User(first_name = 'Elaine', last_name = 'Eastman', email = 'elaine@eastman.com',org_list=[org1,org2]))
-    db_session.add(User(first_name = 'Fred', last_name = 'Fan', email = 'fred@fan.com',org_list=[org1,org2]))
-    db_session.add(User(first_name = 'Grace', last_name = 'Gibson', email = 'grace@gibson.com',org_list=[org1,org2]))
-    db_session.add(User(first_name = 'Hector', last_name = 'Hoops', email = 'hector@hoops.com',org_list=[org1,org2]))
-    db_session.add(User(first_name = 'Irene', last_name = 'Im', email = 'irene@im.com',org_list=[org1,org2]))
-    db_session.add(User(first_name = 'Jing', last_name = 'Jackson', email = 'jing@jackson.com',org_list=[org1,org2]))
-    db_session.add(User(first_name = 'Kevin', last_name = 'Kim', email = 'kevin@kim.com',org_list=[org1,org2]))
-    db_session.add(User(first_name = 'Ling', last_name = 'Lin', email = 'ling@lin.com',org_list=[org1,org2]))
+    db_session.add(User(first_name = 'Alice', last_name = 'Armstrong', email = 'alice@armstrong.com', password_hash='$2b$12$jojM5EuDHREVES2S0OpLbuV.oDjqXWJ/wq9x07HwSQRfdpEUHLqNG', org_id=1153078, prefs=prefs2, favorites=favs1)) # PASSWORD 123
+    db_session.add(User(first_name = 'Bob', last_name = 'Brown', email = 'bob@brown.com',password_hash='$2b$12$kA7FRa6qA./40Pmtmi6mRelW2cnkhcOHtsKelIMVezDlF33YF62C2',org_id=21857, prefs=prefs1)) # PASSWORD 123
+    db_session.add(User(first_name = 'Cathy', last_name = 'Chen', email = 'cathy@chen.com'))
+    db_session.add(User(first_name = 'David', last_name = 'Delgado', email = 'david@delgado.com'))
+    db_session.add(User(first_name = 'Elaine', last_name = 'Eastman', email = 'elaine@eastman.com'))
+    db_session.add(User(first_name = 'Fred', last_name = 'Fan', email = 'fred@fan.com'))
+    db_session.add(User(first_name = 'Grace', last_name = 'Gibson', email = 'grace@gibson.com'))
+    db_session.add(User(first_name = 'Hector', last_name = 'Hoops', email = 'hector@hoops.com'))
+    db_session.add(User(first_name = 'Irene', last_name = 'Im', email = 'irene@im.com'))
+    db_session.add(User(first_name = 'Jing', last_name = 'Jackson', email = 'jing@jackson.com'))
+    db_session.add(User(first_name = 'Kevin', last_name = 'Kim', email = 'kevin@kim.com'))
+    db_session.add(User(first_name = 'Ling', last_name = 'Lin', email = 'ling@lin.com'))
     
-    db_session.add(User(first_name = 'NA', last_name = 'NA', email = 'NA',org_list=[org1,org2],user_id='1433625970'))
+    db_session.add(User(first_name = 'NA', last_name = 'NA', email = 'NA',user_id='1433625970'))
     db_session.commit()
     #print('Finished')
 
@@ -804,9 +821,9 @@ def db_user_save(data):
         # Following is not yet supported in this version of python
         #if data.has_key('preferences'):
         #    user.preferences = user.preferences | data['preferences']
-        if data.get('org_list'):
-            orgs = Organization.query.filter(Organization.org_id.in_(data['org_list'])).all() 
-            user.org_list = orgs
+        #if data.get('org_list'):
+        #    orgs = Organization.query.filter(Organization.org_id.in_(data['org_list'])).all() 
+        #    user.org_list = orgs
     else:
         user = User(
                 first_name = data['first_name'],
