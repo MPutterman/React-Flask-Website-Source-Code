@@ -17,13 +17,13 @@ export const darkMode = createTheme({
     type: "dark",
     primary: {
         light: blueGrey[500],
-        main: blueGrey[800],
+        main: blueGrey[700],
         dark: blueGrey[900],
         contrastText: "#fff",
     },
     secondary: {
         light: "#ff7961",
-        main: blueGrey[700],
+        main: "#555599", 
         dark: "#002884",
         contrastText: "#000",
     },

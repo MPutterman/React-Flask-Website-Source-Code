@@ -15,6 +15,7 @@
 //     * Note a special 'field' operator means to take the value from the current (surrounding) form for the field named ${value}
 
 // TODO:
+// * Hide buttons that are not available?
 // * When 'edit', maybe should disable the OK button if the form is dirty (i.e. force user to save/cancel first)
 // * Incorporate some permissions. E.g. if not permission to edit the item, show in view mode.
 //     E.g. if not allowed to create iteams, don't show Create button.

@@ -646,7 +646,6 @@ async function validateIDFields(model, error, fieldinfo) {
 
 }
 
-
 // TODO: maybe an generalize this by adding 'id_exists' and other async calls
 // into an array along with fieldnames and error messages...?
 // Asynchronous validator for image. Check for existence of all ID fields.
@@ -655,7 +654,6 @@ async function imageValidator(model, error) {
     if ((model.equip_id) !== null) fieldinfo.push({name: 'equip_id', type: 'equip'});
     return validateIDFields(model, error, fieldinfo);
 }
-
 
 // Asynchronous validator for analysis.  Check for existence of all ID fields.
 async function analysisValidator(model, error) {

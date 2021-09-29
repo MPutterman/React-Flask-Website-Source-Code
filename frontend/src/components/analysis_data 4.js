@@ -1,11 +1,9 @@
 // TODO:
 /*
-* Figure out how to auto-show/hide or disable e.g. dark_image_ID if correct_dark is false...
 * How do we cleanup images that were uploaded if an analysis wasn't created?  Or if someone
   accidentlally re-uploads the same image a couple of times?
 * Can we automatically get the equip_id from uploaded images, and/or check if it matches what
   is selected for images?
-* Add plate type and cover type when selectors are ready...
 */
 
 import React from "react"; 

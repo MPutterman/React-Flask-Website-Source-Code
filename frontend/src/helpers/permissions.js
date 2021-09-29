@@ -5,6 +5,7 @@
 // by the backend).
 
 import { callAPI } from '../helpers/api';
+import { useQuery } from 'react-query'; // Query cache
 
 // Cache results using React.memo.
 // TODO: figure out how to implement.. useMemo should not be used with async calls
@@ -57,6 +58,32 @@ async function listPermissions(object_type, id) {
     });
 }
 
+/*
+ * // List the allowed actions on the object (or object type)
+async function listPermissions(object_type, id) {
+    const { isLoading, error, data }
+        = useQuery (
+            ['listPermissions', {type:object_type, id:id}],
+            async () => {
+                // TODO: throw error (for useQuery to detect) if any error occurs...
+                return callAPI('GET', `api/list_permissions/${object_type}/${id}`)
+                .then((response) => {
+                    if (response.error) {
+                        console.warn(`Error ${response.status} from /api/list_permissions call: ${response.data.error}`);
+                        return []; // Return empty list if any errors
+                    } else {
+                        return response.data.authorized;
+                    }
+                })
+                .catch((error) => {
+                    console.warn('Exception in /api/list_permissions call: ', error);
+                    return []; // Return empty list if any exception
+                });
+            });
+    console.log(`isLoading: ${isLoading}, error: ${error}, data: ${data}`);
+    return data;
+}
+*/
 
 export {
     //cachedHasPermission,

@@ -22,6 +22,9 @@ import "./App.css";
 import { ConfigProvider } from './contexts/config';
 import { AuthContext, useAuthState } from './contexts/auth';
 
+// Import query cache
+import { QueryClient, QueryClientProvider } from 'react-query';
+
 // Import error handler
 import { ErrorHandler } from './contexts/error';
 import { StatusCodes } from 'http-status-codes';
@@ -64,12 +67,15 @@ import { UserEdit, UserRegister, OrgEdit, EquipEdit, PlateEdit, CoverEdit, Image
 
 // Wrap a portion of the app so we can access the needed contexts (i.e. Auth)
 const App = (props) => {
+    const queryClient = new QueryClient();
     return (
       <Throbber>
         <ConfigProvider>
           <MuiPickersUtilsProvider utils={DateFnsUtils}>
             <AuthContext>
-              <AppWrapped />
+              <QueryClientProvider client={queryClient}>
+                <AppWrapped />
+              </QueryClientProvider>
             </AuthContext>
           </MuiPickersUtilsProvider>
         </ConfigProvider>        
@@ -82,7 +88,7 @@ const AppWrapped = (props) => {
     const { prefs } = useAuthState();
 
     return (
-        <ThemeProvider theme={(prefs?.general?.theme === "light") ? lightMode : darkMode}>
+        <ThemeProvider theme={prefs?.general?.theme === "light" ? lightMode : darkMode}>
         <ConfirmProvider defaultOptions={{confirmationButtonProps: { autoFocus: true }}}>
         <CssBaseline />
         <Router>

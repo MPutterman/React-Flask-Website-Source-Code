@@ -15,7 +15,7 @@
 //   filename will be inserted
 
 import React from 'react';
-import { HTMLFieldProps, connectField } from 'uniforms';
+import { connectField } from 'uniforms';
 import Input from '@material-ui/core/Input';
 import InputAdornment from '@material-ui/core/InputAdornment';
 import TextField from '@material-ui/core/TextField';
@@ -26,12 +26,16 @@ import { useForm } from 'uniforms';
 //import LinearProgress from "@material-ui/core/LinearProgress";
 
 
-export type FileInputFieldProps = HTMLFieldProps<string, HTMLDivElement>;
+function FileInput(props) {
 
-function FileInput({
-    buttonLabel, filenameField,
-    onChange, name, value, label, error, ref, required, ...props }: FileInputFieldProps) {
+    // Destructure here; not working in argument list (sometimes showing undefined)
+    const {
+      buttonLabel, filenameField,
+      onChange, name, value, label, error, ref, required,
+//      ...otherprops
+    } = props;
 
+      
     const form = useForm();
     const [filename, setFilename] = React.useState('');
 
@@ -49,6 +53,7 @@ function FileInput({
     }
 
     const onChangeFile = ({ target: { files } }) => {
+        console.log('changing file... filenameField =>', filenameField);
         if (files && files[0]) {
             setFilename(files[0].name);
             if (filenameField) form.onChange(filenameField, files[0].name);
@@ -61,7 +66,7 @@ function FileInput({
         <>
         <label htmlFor={name}>
             <TextField
-              {...props}
+//              {...otherprops}
               margin="dense"
               disabled
               fullWidth
@@ -108,4 +113,5 @@ function FileInput({
     );
 }
 
+// Apply connector for uniforms form
 export default connectField(FileInput); 
