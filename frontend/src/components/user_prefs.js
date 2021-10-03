@@ -4,8 +4,6 @@
 // TODO:
 // * After saving preferences we trigger a session reload. Would be more efficient just to mark prefs as dirty.
 // * After reset defaults, doesn't refresh form
-// * Add preference?: list of favorite plate_types
-// * Add preference?: list of favorite cover_types
 // * Add option to reset preferences to site defaults?  (I -think- form reset will return to state of model (from database))
 // * Should tie into the backend session and be retrieved when load sesion.
 // * How do we handle the case when an equipment or image, etc.. refered in someone's preference is deleted?
