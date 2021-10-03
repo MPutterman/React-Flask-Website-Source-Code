@@ -9,10 +9,7 @@ import { HTMLFieldProps, connectField } from 'uniforms';
 import { IconButton, InputAdornment, TextField } from "@material-ui/core";
 import { VisibilityOff, Visibility } from "@material-ui/icons";
 
-
-export type PasswordFieldProps = HTMLFieldProps<string, HTMLDivElement>;
-
-export function PasswordField ({onChange, name, error, ...props}: PasswordFieldProps) {
+export function PasswordField ({onChange, name, error, ...props}) {
 
     const [show, setShow] = React.useState(false);
 
