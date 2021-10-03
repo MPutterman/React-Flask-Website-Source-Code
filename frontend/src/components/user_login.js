@@ -1,5 +1,4 @@
 // TODO:
-// * Add show/hide password
 // * <GoogleLogin> is triggering onLoginerror at first render. Why?
 // * Add exception handling on login/logout errors
 
@@ -9,13 +8,12 @@ import { useConfigState } from '../contexts/config';
 import { withRouter } from "react-router";
 import { useHistory, useLocation } from 'react-router-dom';
 import Button from "@material-ui/core/Button";
-import GoogleLogin from 'react-google-login'
+import GoogleLogin from 'react-google-login';
+import PasswordInputField from '../components/passwordfield';
 
 import { AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField,} from 'uniforms-material';
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
-import Visibility from '@material-ui/icons/Visibility';
-import VisibilityOff from '@material-ui/icons/VisibilityOff';
 import { useAlerts } from '../contexts/alerts';
 import { useThrobber } from '../contexts/throbber';
 
@@ -101,8 +99,6 @@ const UserLogin = (props) => {
         return await authLogout(authDispatch)
         // TODO: if received an error, where to redirect?
         .then( (response) => {
-            // TODO: doesn't log output, but the redirect appears to be okay...
-            //console.log ('here, config state is =>', config);
             setBusy(false);
             history.push(config.general.redirect_after_logout);
         });
@@ -113,7 +109,7 @@ const UserLogin = (props) => {
     }
 
     const onRegister = () => {
-        // TODO: any way to pass the email address automatically?
+        // TODO: any way to pass the email address (if entered for attempted login) automatically?
         history.push('/user/register');      
     }
 
@@ -135,7 +131,7 @@ const UserLogin = (props) => {
             <AutoForm schema={bridge} onSubmit={onLogin} ref={ref => (formRef = ref)}>
               <AutoField name="email" />
               <ErrorField name="email" />
-              <AutoField name="password" />
+              <AutoField name="password" component={PasswordInputField} />
               <ErrorField name="password" />
               <AutoField name="remember" />
               <ErrorField name="remember" />
