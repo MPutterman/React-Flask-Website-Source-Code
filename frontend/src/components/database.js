@@ -50,11 +50,11 @@ class Database extends React.Component {
     this.rads = [];
     this.origins = [];
     this.ROIs = [];
-    this.filenum = "";
+    this.filenum = 0;
     this.ret = [];
     this.state = {
       arr_files: [],
-      string_files: [],
+      string_files: [[]],
       n_l: 0,
       selected: 1000,
       enterC: "",
@@ -104,13 +104,13 @@ class Database extends React.Component {
   // Get backend IP
   // TODO: add error checking
   get backend_ip() {
-    return process.env.REACT_APP_BACKEND_IP
+    return 'compute.cerenkov.org'
   }
 
   // Get backend port
   // TODO: add error checking and/or default value
   get backend_port() {
-    return process.env.REACT_APP_BACKEND_PORT
+    return '5000'
   }
 
   // Get url for backend server requests
@@ -118,23 +118,10 @@ class Database extends React.Component {
     return 'http://' + this.backend_ip + ':' + this.backend_port
   }
   load_data = (i) => {
-    let data = new FormData();
-    data.append("CerenkovName",this.state.string_files[i][0])
-    data.append("DarkName",this.state.string_files[i][1])
-    data.append("FlatName",this.state.string_files[i][2])
-    data.append("UVName",this.state.string_files[i][3])
-    data.append("UVFlatName",this.state.string_files[i][4])
-    data.append("Lanes",this.state.string_files[i][5])
-    return axios
-      .post(this.url + '/data', data, {
-        headers: { "Content-Type": "multipart/form-data" },
-      })
-      .then((res) => {
-          this.filenum=res.data.Key
-          this.setState({makeUpdate:1})
-          this.fileLink.current.click();
+    this.filenum = i
+    console.log(this.filenum)
+    this.fileLink.current.click()
 
-      })
   };
   makeData = (arr) => {
     arr = Object.assign({}, arr);
@@ -152,12 +139,13 @@ class Database extends React.Component {
   retrieve = () => {
     console.log(this.state.enterL);
     var data = new FormData();
-    data.append("Cerenkov", this.state.enterC);
-    data.append("Darkfield", this.state.enterD);
-    data.append("Flatfield", this.state.enterF);
-    data.append("UV", this.state.enterUV);
-    data.append("UVFlat", this.state.enterUVF);
-    data.append("Lanes", this.state.enterL);
+    data.append("cerenkov_name", this.state.enterC);
+    data.append("dark_name", this.state.enterD);
+    data.append("flat_name", this.state.enterF);
+    data.append("UV_name", this.state.enterUV);
+    data.append("UVFlat_name", this.state.enterUVF);
+
+    console.log(this.url,"url")
     return axios
       .post(this.url + '/database_retrieve', data, {
         headers: {
@@ -167,12 +155,14 @@ class Database extends React.Component {
       .then((res) => {
         var arr = [];
         for (let i = 0; i < res.data.files.length; i++) {
-          arr.push((res.data.files[i]));
+          var to_push=[]
+          for (let j = 1; j <res.data.files[i].length;j++){
+	     to_push.push(res.data.files[i][j])
+	  }
+          arr.push(to_push);
         }
         this.setState({ string_files: res.data.files });
-        if (arr.length > 20) {
-          arr = arr.slice(0, 20);
-        }
+        
         this.setState({ arr_files: arr });
       });
   };
@@ -188,7 +178,7 @@ class Database extends React.Component {
           {true && (
 
             <div>
-                <Link type = 'hidden' ref={this.fileLink} style={{
+		  {this.state.string_files.length>0 && <Link type = 'hidden' ref={this.fileLink} style={{
                       display:'none',
                       fontSize: "2.5vh",
                       position: "absolute",
@@ -196,8 +186,8 @@ class Database extends React.Component {
                       marginLeft: "41vw",
                       width: "0vw",
                       height: "0vh",
-                    }} to={{ pathname: '/analysis/'+this.filenum}} >click here</Link> 
-              <div
+                    }} to={{ pathname: '/analysis/'+this.state.string_files[this.filenum][0]}} >click here</Link> }
+		  {false && <div
                 style={{
                   fontSize: "160%",
                   height: "12vh",
@@ -223,13 +213,13 @@ class Database extends React.Component {
                   }}
                   placeholder="Enter # Lanes"
                 />
-              </div>
+              </div>}
 		  
               <div
                 style={{
                   position: "absolute",
                   marginTop: "8vh",
-                  marginLeft: "16vw",
+                  marginLeft: "10vw",
                 }}
               >
                 <SearchField
@@ -253,7 +243,7 @@ class Database extends React.Component {
                 style={{
                   position: "absolute",
                   marginTop: "8vh",
-                  marginLeft: "32vw",
+                  marginLeft: "26vw",
                 }}
               >
                 <SearchField
@@ -277,7 +267,7 @@ class Database extends React.Component {
                 style={{
                   position: "absolute",
                   marginTop: "8vh",
-                  marginLeft: "48vw",
+                  marginLeft: "42vw",
                 }}
               >
                 <SearchField
@@ -301,7 +291,7 @@ class Database extends React.Component {
                 style={{
                   position: "absolute",
                   marginTop: "8vh",
-                  marginLeft: "64vw",
+                  marginLeft: "58vw",
                 }}
               >
                 <SearchField
@@ -325,7 +315,7 @@ class Database extends React.Component {
                 style={{
                   position: "absolute",
                   marginTop: "8vh",
-                  marginLeft: "80vw",
+                  marginLeft: "74vw",
                 }}
               >
                 <SearchField
@@ -367,7 +357,7 @@ class Database extends React.Component {
                         "Flatfield",
                         "UV",
                         "UV Flat",
-                        "Lanes",
+                        
                       ].map((name, i) => {
                         return (
                           <TableCell

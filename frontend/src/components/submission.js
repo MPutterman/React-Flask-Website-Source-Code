@@ -34,6 +34,7 @@ class Submission extends React.Component {
   constructor(props) {
     axios.defaults.withCredentials = true
     super(props);
+    
     this.fileLink = React.createRef();
     this.dataLink = React.createRef();
     this.darkReference = React.createRef();
@@ -110,7 +111,7 @@ class Submission extends React.Component {
       name:''
       
     };
-    console.log(this.url)
+   
     axios.defaults.withCredentials = true
   }
 
@@ -128,7 +129,7 @@ class Submission extends React.Component {
 
   // Get url for backend server requests
   get url() {
-    return 'http://' + this.backend_ip + ':' + this.backend_port
+    return 'http://compute.cerenkov.org:5000/'
   }
 
   makeData = (arr) => {
@@ -183,6 +184,7 @@ class Submission extends React.Component {
     data.append('UVName',this.state.UVname)
     data.append('UVFlatName',this.state.UVFlatname)
     data.append('BrightFlatName',this.state.BrightFlatname)
+    console.log(this.url)
     return axios
       .post(this.url + '/time', data, {
         headers: {

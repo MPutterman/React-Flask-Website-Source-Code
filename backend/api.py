@@ -3,7 +3,9 @@
 # Main Flask api documentation: https://flask.palletsprojects.com/en/1.1.x/api/
 
 import time
-
+from sklearn.cluster import MeanShift,estimate_bandwidth,AffinityPropagation,KMeans
+from scipy.cluster.vq import vq, kmeans,whiten
+from kneed import KneeLocator
 from flask import Flask, request,Response,send_file,send_from_directory,make_response,Response,session
 from skimage import io, morphology, filters,transform, segmentation,exposure
 from skimage.util import invert
@@ -30,11 +32,11 @@ from datetime import timedelta
 
 
 # Include database layer
-from database import retrieve_image_path,db_create_tables, db_add_test_data,retrieve_initial_analysis,db_analysis_save,db_analysis_save_initial,db_analysis_edit
+from database import retrieve_image_path,db_create_tables, db_add_test_data,retrieve_initial_analysis,db_analysis_save,db_analysis_find,db_analysis_save_initial,db_analysis_edit
 
 
 
-class analysis():
+class Analysis():
     """Input: ROIs, n_l, origins, filename, doUV, doRF, autoLane, names"""
     def __init__(self,ROIs,n_l,origins,filename,doUV,doRF,autoLane,names=['Sample','Sample','Sample','','','','']):
         self.doRF=doRF
@@ -52,7 +54,7 @@ class analysis():
         return (f'ROIS: {self.ROIs} \n origins: {self.origins} \n n_l: {self.n_l} \n filename: {self.filename} \n doUV: {self.doUV} \n doRF,{self.doRF} \n autoLane: {self.autoLane} \n {self.names}')
     @staticmethod
     def build_analysis(attributes):
-        return analysis(attributes[0],attributes[1],attributes[2],attributes[3],attributes[4],attributes[5],attributes[6],attributes[7])
+        return Analysis(attributes[0],attributes[1],attributes[2],attributes[3],attributes[4],attributes[5],attributes[6],attributes[7])
     @staticmethod
     def flatten(ROIs):
         newROIs = []
@@ -60,7 +62,35 @@ class analysis():
             for j in range(len(ROIs[i])):
                 newROIs.append(ROIs[i][j])
         return newROIs
+    @staticmethod
+    def numLanes_finder(ROI_list):
+        ROIs = Analysis.flatten(ROI_list)
+        if len(ROIs)<=1:
+            return 1
+        if len(ROIs)==2:
+            return 2 if abs(ROIs[0][1]-ROIs[1][1])>=25 else 1
+        losses = []
+        
+        lanes=[]
+        ROIs = np.asarray(ROIs)
+        ROIs = ROIs[:,1]*100
+        ROIs = np.expand_dims(ROIs,axis=1)
+        ROIs = whiten(ROIs)
+        start = max(int(len(ROIs)/3-1),1)
+        for j in range(start,len(ROIs)+2):
+            if j>len(ROIs):
+                lanes.append(j)
+                losses.append(2)
+            else:
+                try:
+                    centers,loss=kmeans(ROIs,j)
+                    losses.append(100*loss+2)
+                    lanes.append(j)
+                except:
+                    break
 
+        kn = KneeLocator(lanes,losses,curve ='convex',direction='decreasing')
+        return int(kn.knee)
     def dump(self):
         return [self.ROIs,self.n_l,self.origins,self.filename,self.doUV,self.doRF,self.autoLane,self.names]
     def setOrigins(self,origins):
@@ -246,7 +276,8 @@ class analysis():
             i+=1
                 
         return centers
-    def sort2(self,points2,index=0):
+    @staticmethod
+    def sort2(points2,index=0):
         """Sorts points2 by simple bubblesort
         Args:
             points2(list)
@@ -272,7 +303,7 @@ class analysis():
             for spot in range(len(ROIs[lane])):
                 spot_to_fill=[]
                 rowRad,colRad = ROIs[lane][spot][2],ROIs[lane][spot][3]
-                yAv,xAv = self.computeXY_circle(img,ROIs[lane][spot][0]-rowRad,ROIs[lane][spot][0]+rowRad,ROIs[lane][spot][1]-colRad,ROIs[lane][spot][1]+rowRad)
+                yAv,xAv = self.computeXY_circle(img,ROIs[lane][spot][0]-rowRad,ROIs[lane][spot][0]+rowRad,ROIs[lane][spot][1]-colRad,ROIs[lane][spot][1]+rowRad,multiply_place=True)
                 spot_to_fill=[yAv,xAv,ROIs[lane][spot][2],ROIs[lane][spot][3]]
                 lane_to_fill.append(spot_to_fill)
             ROIs_to_fill.append(lane_to_fill)
@@ -342,7 +373,7 @@ class analysis():
         ####print(time.time()-u)
         ##print(time.time()-u)
         for i in range(4):
-            centers = analysis.find_RL_UD(img,centers)
+            centers = Analysis.find_RL_UD(img,centers)
         centers = self.clear_near(centers)
         return centers
     def findMaxLength(self,arr):
@@ -492,8 +523,9 @@ class analysis():
         rowRadius,colRadius = min(max(rowRadius+3,14),55),min(max(colRadius+3,14),55)
         return{"col":col,"row":row,"colRadius":colRadius,"rowRadius":rowRadius}
     def calculateRF(self,ROIs_untrue,origins,img):
+        print('ROIS',ROIs_untrue)
         ROIs = self.makeTruePoints(ROIs_untrue,img)
-        
+        print(ROIs,origins)
         p1,p2 = origins[-2],origins[-1]
         print('1,2',p1,p2)
         if p2[0]-p1[0]!=0:
@@ -502,8 +534,7 @@ class analysis():
             SlopeInvTop=5000
         rowT = int(p1[0]-(p1[1]//SlopeInvTop))
         #print('rowT',rowT)
-        print('ROIs',ROIs)
-        print('orig',origins)
+        
         #print('p3',ROIs)
         for lane in range(len(ROIs)):
             for spot in range(len(ROIs[lane])):
@@ -639,10 +670,7 @@ def isStorage(item):
 
 def is_unique_key(num):
     directory = os.listdir('./UPLOADS/')
-    for i in directory:
-        if str(num) in i:
-            return False
-    return True
+    return not any(str(num) in i for i in directory)
 def generate_key():
     num=1
     while True:
@@ -813,7 +841,9 @@ def findData():
 @app.route("/database_retrieve",methods=["POST"])
 @cross_origin(supports_credentials=True)
 def ret_data():
-    return({"files":findFiles(request.form["Lanes"],request.form["Cerenkov"],request.form["Darkfield"],request.form["Flatfield"],request.form["UV"],request.form["UVFlat"])})
+    data = request.form.to_dict()
+    print(data)
+    return {"files":db_analysis_find({f'{name}_name':data[f'{name}_name'] for name in ["cerenkov","dark","flat","UV","UVFlat"]})}
 @app.route('/fix_background/<num>')
 @cross_origin(supports_credentials=True)
 def fix_background(num):
@@ -881,7 +911,10 @@ def analysis_edit(filename):
     doUV = request.form['doUV']=='true'
     autoLane=request.form['autoLane']=='true' and not (doRF or doUV)
     if autoLane:
-        num_lanes=int(request.form['n_l'])
+        try:
+            num_lanes=int(request.form['n_l'])
+        except:
+            num_lanes=1
     else:
         num_lanes=1
     
@@ -905,20 +938,20 @@ def analysis_edit(filename):
     #print(newROIs[0][0])
     newROIs = ast.literal_eval(newROIs[0])
     #print(newROIs)
-    newROIs = analysis.flatten(newROIs)
+    newROIs = Analysis.flatten(newROIs)
     #print('n',newROIs)
-    Analysis = analysis(newROIs, num_lanes,newOrigins,filename,doUV,doRF,autoLane)
-    Analysis.sort2(Analysis.origins,index = 0)
-    Analysis.origins=Analysis.origins[0]
-    Analysis.origins = Analysis.origins[::-1]
-    Analysis.organize_into_lanes()
+    analysis = Analysis(newROIs, num_lanes,newOrigins,filename,doUV,doRF,autoLane)
+    Analysis.sort2(analysis.origins,index = 0)
+    analysis.origins=analysis.origins[0]
+    analysis.origins = analysis.origins[::-1]
+    analysis.organize_into_lanes()
     data = {}
-    data['ROIs'] = Analysis.ROIs
-    data['origins'] =Analysis.origins
+    data['ROIs'] = analysis.ROIs
+    data['origins'] =analysis.origins
     data['doRF'] =  doRF
 
     db_analysis_edit(data,filename)
-    return{"ROIs":Analysis.ROIs}
+    return{"ROIs":analysis.ROIs}
     
     
     
@@ -969,7 +1002,7 @@ def createFile():
         np.save("./UPLOADS/"+tim+'/cerenkovradii.npy',Cerenkov)
         img = img_cerenk[0]
         doUV = img_cerenk[2]
-        current_analysis = analysis([],0,[],tim,doUV,doUV,doUV,names)
+        current_analysis = Analysis([],0,[],tim,doUV,doUV,doUV,names)
         if doUV:
             calc = img_cerenk[-3]
         else:
@@ -1011,7 +1044,7 @@ def createFile():
         #print(analysis.build_analysis(np.load(f'./UPLOADS/analysis{tim}.npy')))
         
         ###print(points)
-        
+         
         res = tim
         return {"res":res}
 
@@ -1021,10 +1054,14 @@ def give(filename):
     filen = retrieve_image_path('cerenkovdisplay',filename)
     print(filen)
     return send_file(filen)
-@app.route('/radius/<filename>/<x>/<y>/<shift>',methods = ['GET'])
+@app.route('/radius/<filename>/<x>/<y>/<shift>',methods = ['GET','POST'])
 @cross_origin(supports_credentials=True)
 def findRadius(filename,x,y,shift):
+    ROIs = request.form.getlist('ROIs')
+    ROIs = ast.literal_eval(ROIs[0])
     
+    n_l =Analysis.numLanes_finder(ROIs)
+    print('nl',n_l)
     tim = time.time()
     img = session['cerenkovradii']
     rowRadius = 0
@@ -1036,7 +1073,7 @@ def findRadius(filename,x,y,shift):
     #print(shift)
     if (shift=='0'):
         for i in range(3):
-            center  = analysis.find_RL_UD(img,[(row,col)])
+            center  = Analysis.find_RL_UD(img,[(row,col)])
             row = center[0][0]
             col=center[0][1]
     val =1.35*(np.mean(img[:,150:len(img[0])-150]))
@@ -1060,7 +1097,7 @@ def findRadius(filename,x,y,shift):
     if shift ==('1'):
         rowRadius,colRadius = 0,0
     rowRadius,colRadius = min(max(rowRadius+3,14),55),min(max(colRadius+3,14),55)
-    return{"col":col,"row":row,"colRadius":colRadius,"rowRadius":rowRadius}
+    return{"col":col,"row":row,"colRadius":colRadius,"rowRadius":rowRadius,'n_l':n_l}
 @app.route('/UV/<filename>',methods = ['GET'])
 @cross_origin(supports_credentials=True)
 def giveUV(filename):
@@ -1093,7 +1130,7 @@ def data():
 @cross_origin(supports_credentials=True)
 def results(filename):
         analysis_data = retrieve_initial_analysis(filename)
-        analysis_retrieve = analysis(analysis_data['ROIs'],None,analysis_data['origins'],filename,'UVName' in analysis_data, analysis_data['doRF'],False)
+        analysis_retrieve = Analysis(analysis_data['ROIs'],None,analysis_data['origins'],filename,'UVName' in analysis_data, analysis_data['doRF'],False)
         analysis_results =analysis_retrieve.results()
 
         #print(analysis_results)
@@ -1101,17 +1138,20 @@ def results(filename):
 @app.route('/upload_data/<filename>',methods=['POST'])
 @cross_origin(supports_credentials=True)
 def upload_data(filename):
-    analysis = retrieve_initial_analysis(filename)
-    data = {}
-    db_analysis_save(request.form.to_dict(),filename)
-    return 'yes'
-
+    try:
+        analysis = retrieve_initial_analysis(filename)
+        print(request.form.to_dict()) 
+        db_analysis_save(filename)
+        return {"status":"Data Uploaded Successfully"}
+    except:
+        return {"status":"Error Uploading Data"}
+    
     
      
     
 if __name__ == '__main__':
     ##print("Running!")
-    app.run(host='0.0.0.0',debug=False,port=5000)
+    app.run(host='compute.cerenkov.org',debug=False,port=5000)
 
     
 

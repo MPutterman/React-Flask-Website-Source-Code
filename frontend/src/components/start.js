@@ -48,6 +48,7 @@ class Start extends React.Component {
         },
       },
     });
+    console.log(process.env.REACT_APP_BACKEND_IP,'what')
     this.state = {
       arr_files: [],
       string_files: [],
@@ -134,7 +135,7 @@ class Start extends React.Component {
           
               
 		   <div style = {{position:'absolute',marginTop:'0vh',marginLeft:'0vw',zIndex:12}}>
-		   {true &&<GoogleLogin
+		   {false &&<GoogleLogin
     			clientId={process.env.REACT_APP_GOOGLE_OAUTH_CLIENT}
     			buttonText="Login"
 			
@@ -155,11 +156,11 @@ class Start extends React.Component {
                     }}
                     onClick={() => {
                       this.state.show_us === ""
-                        ? this.setState({ show_us: "About Us" })
-                        : this.setState({ show_us: "" });
+                        ? this.setState({ show_us: "Welcome. Press get started to begin analyzing" })
+                        : this.setState({ show_us: "Welcome. Press get started to begin analyzing" });
                     }}
                   >
-                    {this.state.show_us}
+                    Welcome! Press "Get Started" to begin analyzing
                   </Button>
                   <img
                     style={{

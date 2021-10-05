@@ -3,7 +3,7 @@
 # NOTE: need to run: pip3 install flask-login
 
 from sqlalchemy import create_engine, MetaData
-from sqlalchemy import Table, Column, ForeignKey
+from sqlalchemy import Table, Column, ForeignKey,and_
 from sqlalchemy import Integer, String, Float, Text, DateTime, LargeBinary, Enum, Boolean,BigInteger
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.orm import Session, sessionmaker, scoped_session
@@ -184,6 +184,7 @@ class ROI(Base):
 class Analysis(Base):
     __tablename__ = 'analysis'
     analysis_id = Column(String(12), primary_key=True)
+    uploaded = Column(Boolean,default = False)
     #user=relationship("User",secondary=user_analysis_map)
     doRF = Column(Boolean)
     cachedimages=relationship('CachedImage',back_populates='analysis')
@@ -456,10 +457,14 @@ def retrieve_initial_analysis(analysis_id):
         analysis_dict['UVName']=Image.query.filter(Image.image_type==ImageType.uv , Image.analysis_list.any(analysis_id=analysis_id)).one().name
     if Image.query.filter(Image.image_type==ImageType.bright , Image.analysis_list.any(analysis_id=analysis_id)).all():
         analysis_dict['BrightName']=Image.query.filter(Image.image_type==ImageType.bright , Image.analysis_list.any(analysis_id=analysis_id)).one().name
+    db_session.commit()
+    db_session.close()
     return analysis_dict
 def analysis_info(analysis_id):
     db_session.begin()
     analysis = Analysis.query.filter(Analysis.analysis_id == analysis_id).one()
+    db_session.commit()
+    db_session.close()
     return analysis.as_dict()
 def retrieve_image_path(image_type,analysis_id):
     
@@ -468,26 +473,22 @@ def retrieve_image_path(image_type,analysis_id):
         image = CachedImage.query.filter(CachedImage.image_type ==find_image_type(image_type), CachedImage.analysis_id==analysis_id).one()
     else:
         image = Image.query.filter(Image.image_type==find_image_type(image_type), Image.analysis_id==analysis_id).one()
+    db_session.commit()
     return image.image_path
-def db_analysis_save(data,analysis_id):
-    if data['user_id']:
-        user_id = data['user_id']
-    else:
-        user_id = '1433625970'
-    data['analysis_id']=analysis_id
-    images= find_images(data)
-    analysis = Analysis.query.filter(Analysis.analysis_id==analysis_id).one()
+def db_analysis_save(analysis_id):
     
-    analysis.images = images
-    user = User.query.filter(User.user_id==user_id).one()
-    user.analysis_list.append(analysis)
-    db_session.add(user)
+    analysis = Analysis.query.filter(Analysis.analysis_id==analysis_id).one()
+    assert analysis.uploaded ==False
+    analysis.uploaded = True
+    db_session.add(analysis)
     db_session.commit()
     db_session.close()
 
 def db_analysis_edit(data,analysis_id):
     
     analysis = Analysis.query.filter(Analysis.analysis_id==analysis_id).one()
+    if analysis.uploaded:
+        return
     analysis.doRF = data['doRF']
     analysis.lane_list = Lane.build_lanes(data['ROIs'])
     analysis.origin_list = Origin.build_origins(data['origins'])
@@ -508,10 +509,13 @@ def find_path(image_type,analysis_id):
 def db_analysis_save_initial(data,analysis_id):
     db_session.begin()
     images = []
-    for image_type in ['dark','flat','radio','uv','bright']:
+    for image_type in ['radio','dark','flat','uv','bright']:
         if data[f'{image_type}_name']:
             img = Image(name = data[f'{image_type}_name'], image_type = find_image_type(image_type),image_path = find_path(image_type,analysis_id))
-            images.append(img) 
+            images.append(img)
+        else:
+            img = Image(name = 'None',image_type= find_image_type(image_type),image_path='./placeholder')
+    print('imgs',images)
     lane_list = Lane.build_lanes(data['ROIs'])
     origin_list = Origin.build_origins(data['origins'])
     doRF = data['doRF']
@@ -520,6 +524,7 @@ def db_analysis_save_initial(data,analysis_id):
         img = CachedImage(image_type = image_type,image_path=find_path(image_type,analysis_id))
         cachedimages.append(img)
     analysis = Analysis(images=images,lane_list=lane_list,cachedimages = cachedimages,analysis_id = analysis_id, origin_list = origin_list,doRF=doRF)
+    print(analysis.images)
     db_session.add(analysis)
     db_session.flush()
     if data['user_id'] is not None:
@@ -528,9 +533,57 @@ def db_analysis_save_initial(data,analysis_id):
         user_id='1433625970'
     user = User.query.filter(User.user_id==user_id).one()
     user.analysis_list.append(analysis)
+    print(user.analysis_list[0].images)
     db_session.add(user)
     db_session.flush()
     db_session.commit()
+def images_for_name(name,image_type):
+    
+    lst = Image.query.filter(and_(Image.name.contains(name),Image.image_type == image_type)).all()
+    print(image_type,lst) 
+    return lst
+def sum(arr,start=0):
+    
+    for i in arr:
+        start+=i
+    return start
+def db_analysis_find(data):
+    db_session.begin()
+    analysis = Analysis.query.all()
+
+    
+    cerenkovs = images_for_name(data['cerenkov_name'],ImageType.radio)
+    darks = images_for_name(data['dark_name'],ImageType.dark)
+    flats = images_for_name(data['flat_name'],ImageType.flat)
+    uvs = images_for_name(data['UV_name'],ImageType.uv)
+    cerenkov_analysis = sum([cerenk.analysis_list for cerenk in cerenkovs], start = [])
+    dark_analysis = sum([dark.analysis_list for dark in darks], start = [])
+    flat_analysis = sum([flat.analysis_list for flat in flats], start = [])
+    uv_analysis = sum([uv.analysis_list for uv in uvs], start = [])
+    print(cerenkov_analysis,dark_analysis,flat_analysis,uv_analysis)
+    cerenkov_analysis,dark_analysis,flat_analysis,uv_analysis = set(cerenkov_analysis),set(dark_analysis),set(flat_analysis),set(uv_analysis)
+    cerenkov_analysis = [analysis for analysis in cerenkov_analysis if analysis.uploaded]
+    if data['dark_name']!='':
+        cerenkov_analysis = [analysis for analysis in cerenkov_analysis if analysis in dark_analysis]
+    if data['flat_name']!='':
+                cerenkov_analysis = [analysis for analysis in cerenkov_analysis if analysis in flat_analysis]
+    if data['UV_name']!='':
+                cerenkov_analysis = [analysis for analysis in cerenkov_analysis if analysis in uv_analysis]
+
+
+    print(cerenkov_analysis)
+
+        
+    
+    db_session.commit()
+    analyses = set(cerenkov_analysis)
+    if len(analyses) ==0:
+        return []
+    return list([[analysis.analysis_id]+[img.name for img in analysis.images] for analysis in analyses])
+
+    
+
+
 
     
 

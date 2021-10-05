@@ -35,7 +35,7 @@ import About from './components/about';
 import Contact from './components/contact';
 import Error404 from './components/error404';
 
-import Analysis from './components/analysis';
+import Analysis from './components/analysisNew';
 import Database from './components/database'
 import Submission from './components/submission'
 import Start from './components/start'
@@ -175,7 +175,7 @@ export function MenuAppBar() {
             alt='logo'
           />
           <h1>
-            van Dam Lab - Radio-TLC Analyzer
+            
           </h1>
           <br />
       </div>
@@ -193,7 +193,7 @@ export function MenuAppBar() {
             <MenuIcon />
           </IconButton>
           <Typography variant="h6" className={classes.title}>
-            Name of current route
+            van Dam TLC Analyzer
           </Typography>
           <NavLink to={'/about'} className="nav-link">About</NavLink>
           {auth && (
@@ -253,7 +253,7 @@ export function MenuAppBar() {
             </NavLink>
           </ListItem>
           <ListItem button key={'new analysis'}>
-            <NavLink to={'/new-analysis'} className="nav-link">
+            <NavLink to={'/submission'} className="nav-link">
                         <ListItemIcon><AddIcon /></ListItemIcon>
                       <ListItemText primary={'New Analysis'} />
             </NavLink>
@@ -264,12 +264,7 @@ export function MenuAppBar() {
                       <ListItemText primary={'Search Database'} />
             </NavLink>
           </ListItem>
-          <ListItem button key={'load analysis'}>
-          <NavLink to={'/load-analysis'} className="nav-link">
-            <ListItemIcon><EditIcon /></ListItemIcon>
-            <ListItemText primary={'Load Analysis'} />
-            </NavLink>
-          </ListItem>
+          
         </List>
       </Drawer>
  
@@ -292,7 +287,7 @@ class App extends React.Component {
                     <Route path='/start' component={Start}/>
                     <Route path='/submission' component={Submission}/>
                     <Route path='/analysis/:filenumber' component={Analysis}/>
-                    <Route exact path='/' component={Home} />
+                    <Route exact path='/' component={Start} />
                     <Route path='/contact' component={Contact} />
                     <Route path='/about' component={About} />
                     <Route exact path='/user/edit/:id' component={UserEdit} />

@@ -1,4 +1,4 @@
-// TODO:
+// TODO
 // I've probably broken things related to "doUV". (In general, someone wouldn't select origins etc without 
 //   a brightfield or UV image... but if they want to, might as well allow it.)
 // When change origins and ROIs, need to reset something so 'autolane' will work correctly.
@@ -69,6 +69,7 @@ class Analysis extends React.Component {
         },
       },
     });
+    console.log(backend_url())
     this.origins = [];
     this.ROIs = [[]];
     this.filenum = this.props.match.params.filenumber;
