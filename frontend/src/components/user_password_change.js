@@ -2,7 +2,10 @@
 //
 // CREDITS:
 // * Password field component: https://www.npmjs.com/package/material-ui-password
-
+//
+// TODO:
+// * Need some mechanism to deal with blank passwords, e.g. if user created with
+//   a third party login (e.g. google)
 
 import React from "react";
 import { withRouter } from "react-router";
@@ -30,14 +33,12 @@ const UserPasswordChange = (props) => {
         password: {
             label: 'Password',
             type: String,
-            defaultValue: '',
             required: true,
             uniforms: { type: 'password', },
         },
         new_password: {
             label: 'New password',
             type: String,
-            defaultValue: '',
             required: true,
             uniforms: { type: 'password', },
             // TODO: add some validation for password strength
@@ -45,7 +46,6 @@ const UserPasswordChange = (props) => {
         new_password_confirm: {
             label: 'Confirm new password',
             type: String,
-            defaultValue: '',
             required: true,
             uniforms: { type: 'password', },
             custom() {

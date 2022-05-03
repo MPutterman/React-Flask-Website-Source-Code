@@ -91,7 +91,7 @@ const backend_port = () => {
 
 // TODO: remove export once remove backend_url from all code
 export function backend_url(route) {
-    return 'http://' + backend_ip() + ':' + backend_port() + '/' + route;
+    return 'https://' + backend_ip() + ':' + backend_port() + '/' + route;
 }
 
 

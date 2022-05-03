@@ -1,5 +1,5 @@
 # Utility functions for handling permissions 
-
+#
 import flask_login
 import functools
 

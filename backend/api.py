@@ -1,4 +1,3 @@
-
 # RESOURCES and CREDITS:
 #
 # * https://flask.palletsprojects.com/en/2.0.x/api/ (main Flask api documentation)
@@ -669,8 +668,11 @@ def user_login(login_method):
         remember = form_fields['remember']
 
         client_id = os.getenv('REACT_APP_GOOGLE_OAUTH_CLIENT')
+        print(client_id)
+
         try:
             id_info = id_token.verify_oauth2_token(token, requests.Request(),client_id)
+            print (id_info)
         except:
             return prepare_session_response(None, True, 'Invalid token')
 

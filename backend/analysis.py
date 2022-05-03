@@ -1,4 +1,3 @@
-
 # TODO:
 # * Consider whether the object with constructor is needed, or whether this should be a set of
 #   static methods...

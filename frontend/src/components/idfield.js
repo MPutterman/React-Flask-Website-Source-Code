@@ -300,7 +300,7 @@ function IDInput(props) {
       </Box>
       </Box>
 */}      
-      <Dialog fullWidth open={openEdit} onClose={handleCloseEdit} >
+      <Dialog fullWidth maxWidth="md" open={openEdit} onClose={handleCloseEdit} >
         <Throbber>
         <DialogTitle id="dialog-edit">
             {titleEdit ? ( <span>{titleEdit}</span> ) : ( <span>Edit record</span> )}
@@ -331,7 +331,7 @@ function IDInput(props) {
       </Dialog>
 
 
-      <Dialog fullWidth open={openSelect} onClose={handleCloseSelect} >
+      <Dialog fullWidth maxWidth="md" open={openSelect} onClose={handleCloseSelect} >
         <Throbber>
         <DialogTitle id="dialog-select">
             {titleSelect ? ( <span>{titleSelect}</span> ) : ( <span>Select record</span> )}
@@ -364,7 +364,7 @@ function IDInput(props) {
         </Throbber>
       </Dialog>
 
-      <Dialog fullWidth open={openCreate} onClose={handleCloseCreate} >
+      <Dialog fullWidth maxWidth="md" open={openCreate} onClose={handleCloseCreate} >
         <Throbber>
         <DialogTitle id="dialog-create">
             {titleCreate ? ( <span>{titleCreate}</span> ) : ( <span>Create new record</span> )}
@@ -397,7 +397,7 @@ function IDInput(props) {
         </Throbber>
       </Dialog>
 
-      <Dialog fullWidth open={openView} onClose={handleCloseView} >
+      <Dialog fullWidth maxWidth="md" open={openView} onClose={handleCloseView} >
         <Throbber>
         <DialogTitle id="dialog-view">
             {titleView ? ( <span>{titleView}</span> ) : ( <span>View record</span> )}

@@ -5,7 +5,7 @@
 //     (Didn't work using npm package so directly borrowed the code here)
 
 import React from 'react';
-import { HTMLFieldProps, connectField } from 'uniforms';
+import { connectField } from 'uniforms';
 import { IconButton, InputAdornment, TextField } from "@material-ui/core";
 import { VisibilityOff, Visibility } from "@material-ui/icons";
 

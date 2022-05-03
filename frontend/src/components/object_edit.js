@@ -4,6 +4,9 @@
 // * Password input field: https://www.npmjs.com/package/material-ui-password
 //
 // TODO:
+// * After user register, need some smarter redirect. Currently tries to go to User/Edit
+//    which is a protected page, but the user is not yet logged in. (And we'll have the same
+//    issue for users registered via Google...)
 // * Make some custom fields for date once work out picker (with 'X' icon to clear the date)
 // * Bug ImageEdit: if submit BEFORE selecting file... sets a validation error that cannot be removed,
 //     even after selecting a file. Sometimes works if there is a second error gets resolved.
