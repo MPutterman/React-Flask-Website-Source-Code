@@ -8,22 +8,18 @@
 # * Removed import time // time.time() calls for performance evaluation
 
 
-from scipy.cluster.vq import vq, kmeans,whiten
-from skimage import io, morphology, filters,transform, segmentation,exposure
-from skimage.util import invert
+from scipy.cluster.vq import kmeans,whiten
+from skimage import morphology
 import scipy
 from kneed import KneeLocator
-from matplotlib import pyplot as plt
 from matplotlib import use,gridspec
 from skimage.measure import label
 from matplotlib.patches import Rectangle
 from matplotlib.widgets import RectangleSelector, Button, EllipseSelector
 import matplotlib.patches as pat
-from matplotlib import interactive
 import matplotlib
 import numpy as np
-from sklearn.cluster import MeanShift,estimate_bandwidth,AffinityPropagation,KMeans
-from skimage.color import rgba2rgb
+from sklearn.cluster import KMeans
 from skimage import measure
 
 class AnalysisHelper():
