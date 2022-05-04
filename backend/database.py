@@ -16,7 +16,6 @@
 # * An alternative design strategy would be to put owner_id, modified, created, deleted into a separate table
 #     to basically track ownership/permissions, deletion status, and edit history
 # * Be careful of string versus number IDs!!!
-# * I am getting rid of 'org_list' from User (instead using org_id).  But haven't yet finished removing the old code.
 # * Store image_type as string instead of enum?
 # * SQLAlchemy PickleType does NOT detect changes to a portion of the object (e.g. dict) and will not properly
 #     commit to database when a partial change is made. For now we rewrite the
@@ -175,7 +174,6 @@ class User(UserMixin, Base):
     thumbnail_url = Column(String(2048))
     avatar_url = Column(String(2048))
     org_id = Column(Integer, ForeignKey('organization.org_id'))
-    #org_list = relationship("Organization", secondary=user_org_map)
     #analysis_list=relationship("Analysis",secondary=user_analysis_map)
 
     def __init__(self, *args, **kwargs):
@@ -403,17 +401,6 @@ def db_create_tables():
     # Careful, this deletes ALL data in database
     print ('Initializing database...')
     print ('Dropping existing database')
-    #try:
-    #    text = sqlalchemy.text("ALTER TABLE user_org_map DROP CONSTRAINT user_org_map_ibfk_2")
-    #    db_session.execute(text)
-    #except:
-    #    pass
-    #try:
-    #    text = sqlalchemy.text("ALTER TABLE user DROP CONSTRAINT user_ibfk_1")
-    #    db_session.execute(text)
-    #except:
-    #    pass
-    #Base.metadata.drop_all(db_engine)
     sqlalchemy_utils.functions.drop_database(db_uri)
     print ('Creating database')
     sqlalchemy_utils.functions.create_database(db_uri)
@@ -801,7 +788,7 @@ def db_favorite_remove(user_id, object_type, object_id):
     return True
     
 
-# Save a user to the database.  Expects a dict, ant the org_list to be a list of org_ids.
+# Save a user to the database.  Expects a data to be a dict
 # Blank user_id means it hasn't yet been inserted to database
 # TODO: when save preferences, should we merge with existing ones, or overwrite?
 def db_user_save(data):
@@ -822,9 +809,6 @@ def db_user_save(data):
         # Following is not yet supported in this version of python
         #if data.has_key('preferences'):
         #    user.preferences = user.preferences | data['preferences']
-        #if data.get('org_list'):
-        #    orgs = Organization.query.filter(Organization.org_id.in_(data['org_list'])).all() 
-        #    user.org_list = orgs
     else:
         user = User(
                 first_name = data['first_name'],
@@ -833,9 +817,8 @@ def db_user_save(data):
                 org_id = data.get('org_id'),
                 password_hash = User.hash(data['password']) if data.get('password') else None,
                 modified = datetime.now(timezone.utc),
-                created = datetime.now(timezone.utc),)
-        ####orgs = Organization.query.filter(Organization.org_id.in_(data['org_list'])).all() 
-        ####user.org_list = orgs
+                created = datetime.now(timezone.utc),
+                )
         db_session.add(user)
     db_session.commit()
     return user
