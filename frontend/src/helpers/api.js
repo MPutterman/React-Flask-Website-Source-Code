@@ -52,7 +52,8 @@ axios.interceptors.response.use(
 
         // ISO 8601 datetime regex
         // Source: https://stackoverflow.com/questions/28020805/regex-validate-correct-iso8601-date-string-with-time
-        const regex = /^(?:[1-9]\d{3}-(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|1\d|2[0-8])|(?:0[13-9]|1[0-2])-(?:29|30)|(?:0[13578]|1[02])-31)|(?:[1-9]\d(?:0[48]|[2468][048]|[13579][26])|(?:[2468][048]|[13579][26])00)-02-29)T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:Z|[+-][01]\d:[0-5]\d)$/;
+        // NOTE: added optional decimals after seconds for millisecond or microsecond support
+        const regex = /^(?:[1-9]\d{3}-(?:(?:0[1-9]|1[0-2])-(?:0[1-9]|1\d|2[0-8])|(?:0[13-9]|1[0-2])-(?:29|30)|(?:0[13578]|1[02])-31)|(?:[1-9]\d(?:0[48]|[2468][048]|[13579][26])|(?:[2468][048]|[13579][26])00)-02-29)T(?:[01]\d|2[0-3]):[0-5]\d:[0-5]\d(?:\.\d+)(?:Z|[+-][01]\d:[0-5]\d)$/;
 
         var new_data = {};
         for (var key in response.data) {
@@ -90,8 +91,9 @@ const backend_port = () => {
 }
 
 // TODO: remove export once remove backend_url from all code
+// TODO: any way to detect whether http or https?
 export function backend_url(route) {
-    return 'https://' + backend_ip() + ':' + backend_port() + '/' + route;
+    return 'http://' + backend_ip() + ':' + backend_port() + '/' + route;
 }
 
 
