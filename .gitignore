@@ -5,5 +5,7 @@ backend/UPLOADS/*
 backend/CACHE/*
 backend/flask_session
 backend/__pycache__
+!backend/sqlite
+backend/sqlite/*
 .vscode
 .vscode/*
