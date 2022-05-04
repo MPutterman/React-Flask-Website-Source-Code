@@ -8,9 +8,6 @@
 # * https://yasoob.me/posts/how-to-setup-and-deploy-jwt-auth-using-react-and-flask/ (handling login with react/flask combination)
 # * https://www.digitalocean.com/community/tutorials/how-to-add-authentication-to-your-app-with-flask-login (another approach)
 #
-# NOTES:
-# * Need to import session from Flask, and Session from flask_session
-
 # TODO:
 # * Simplify error handling wth @errorhandler (can capture certain types of exceptions for global response)
 # * Be careful when doing multiple DB calls in response to a single request...
@@ -26,6 +23,7 @@
 # * Need to look at difference between DB session versus connection... maybe not using correctly
 # * Need to test whether session timeout is working properly, and remember-me feature
 # * Make API more consistent. Some failed calls return status 500. Some return { error: message }
+# * Add caching of images to the session, to avoid re-loading files when doing multiple back-to-back requests
 
 import time
 import json
@@ -560,23 +558,6 @@ def image_save():
         return { 'id': record.image_id }
 
 
-
-
-
-@app.route('/get_data',methods = ['POST'])
-@cross_origin(supports_credentials=True)
-def findData():
-    np.load.__defaults__=(None, True, True, 'ASCII')
-    np_load_old = np.load
-    #print(request.form["files"])
-
-'''
-@app.route("/database_retrieve",methods=["POST"])
-@cross_origin(supports_credentials=True)
-def ret_data():
-    return({"files":findFiles(request.form["Lanes"],request.form["Cerenkov"],request.form["Darkfield"],request.form["Flatfield"],request.form["UV"],request.form["UVFlat"])})
-'''
-
 # TODO: I don't think I understand this function. How does it differ from other
 #   background subtraction in analysis_generate_working_images?
 #   Also, why doesn't the 'radii' image get corrected?
@@ -707,24 +688,6 @@ def user_logout():
     else:
         return prepare_session_response(None, True, 'Not logged in')
 
-'''    
-# Google-signin
-# TODO: needs to be linked to our user table (and create a new user upon first login, if email not already exist)
-
-@app.route('/sign_in',methods=['POST'])
-@cross_origin(supports_credentials=True)
-def sign_in():
-    email = request.form["email"]
-    session['email']=email
-    arr= np.zeros((1000,1000))
-    for i in range(len(arr)):
-        for j in range(len(arr[i])):
-            arr[i][j]=i+j
-        
-    session['based_arr'] = arr
-    print(session.get('email'))
-    return 'kk'
-'''
 
 @app.route('/api/analysis/rois_autoselect/<analysis_id>', methods=['POST','GET']) # TODO: pick one method
 @cross_origin(supports_credentials=True)
@@ -1125,39 +1088,6 @@ def analysis_roi_build(analysis_id,x,y,shift):
     num_lanes = AnalysisHelper.numLanes_finder(ROIs)
     return{"col":col,"row":row,"colRadius":colRadius,"rowRadius":rowRadius,"num_lanes":num_lanes}
     
-
-'''
-@app.route('/UV/<filename>',methods = ['GET'])
-@cross_origin(supports_credentials=True)
-def giveUV(filename):
-    filen = os.path.join(app.config['IMAGE_UPLOAD_PATH'], filename, 'UV.png') 
-    return send_file(filen)
-
-@app.route('/Cerenkov/<filename>',methods = ['GET'])
-@cross_origin(supports_credentials=True)
-def giveCerenkov(filename):
-    filen = retrieve_image_path('cerenkovdisplay',filename) 
-    return send_file(filen)
-'''
-'''
-@app.route('/data/',methods=['POST'])
-@cross_origin(supports_credentials=True)
-def data():
-    np.load.__defaults__=(None, True, True, 'ASCII')
-    np_load_old = np.load
-    CerenkovName=request.form['CerenkovName']
-    UVName=request.form['UVFlatName']
-    DarkName=request.form['DarkName']
-    UVName=request.form['UVName']
-    UVFlatName=request.form['UVFlatName']
-    FlatName=request.form['FlatName']
-    Lanes = request.form['Lanes']
-    name = f'c@~{CerenkovName}cd@~{DarkName}cf@~{FlatName}u@~{UVName}uf@~{UVFlatName}l@~{Lanes}'
-    filename = str(np.load(f'./database/{name}.npy'))
-    #print('fname:',filename)
-    return {'Key':filename}
-'''
-
 '''
 @app.route('/api/analysis/results/<analysis_id>',methods = ['GET'])
 @cross_origin(supports_credentials=True)
