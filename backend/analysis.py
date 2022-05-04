@@ -5,9 +5,9 @@
 #     baked in assumptions that are not clear. What is the structure of origins?  Why does num_lanes
 #     change to 10 when I have 8 lanes and add two extra origins for solvent front...?
 # * Move the remaining image computations from api.py to here
+# * Removed import time // time.time() calls for performance evaluation
 
 
-import time
 from scipy.cluster.vq import vq, kmeans,whiten
 from skimage import io, morphology, filters,transform, segmentation,exposure
 from skimage.util import invert
@@ -52,7 +52,6 @@ class AnalysisHelper():
         return [self.ROIs,self.n_l,self.origins,self.doUV,self.doRF,self.autoLane]
 
     def results(self, img):
-        tim = time.time() 
         newOrigins = (np.asarray(self.origins).copy()).tolist()
         newROIs = (np.asarray(self.ROIs).copy()).tolist()
         #print(newROIs)
@@ -81,7 +80,6 @@ class AnalysisHelper():
             ##print(list(zip(cerenks_RFs)))
             cerenks_RFs = self.transpose(cerenks_RFs,doUV,doRF,newROIs)
             ####print(cerenks_RFs)
-            ####print(time.time()-tim)
             return cerenks_RFs
         elif doRF and not doUV:
             RFs = self.calculateRF(newROIs,newOrigins,img)
@@ -95,7 +93,6 @@ class AnalysisHelper():
             ####print(cerenks_RFs)
             ##print(list(zip(cerenks_RFs)))
             cerenks_RFs = self.transpose(cerenks_RFs,doUV,doRF,newROIs)
-            ####print(time.time()-tim)
             return cerenks_RFs
             
         else:
@@ -133,7 +130,6 @@ class AnalysisHelper():
         for center in centers:
 
             x,y=center[1],center[0]
-            tim = time.time()
             
             LR = 0
             RR=0
@@ -192,7 +188,6 @@ class AnalysisHelper():
         ROIs = ROIs[:,1]*100
         ROIs = np.expand_dims(ROIs,axis=1)
         ROIs = whiten(ROIs)
-        tim = time.time()
         start = max(int(len(ROIs)/3-1),1)
         print('start',start)
         print(len(ROIs))
@@ -286,7 +281,6 @@ class AnalysisHelper():
             ROIs_to_fill.append(lane_to_fill)
         return ROIs_to_fill
     def predictLanes(self,ROIs,lanes):
-        tim = time.time()
         xs = []
         for i in range(len(ROIs)):
             xs.append(ROIs[i][1])
@@ -294,7 +288,6 @@ class AnalysisHelper():
         xs = xs.T
         thresh = KMeans(n_clusters=lanes).fit(xs).cluster_centers_
         np.sort(thresh)
-        ###print(time.time()-tim)
         thresh =thresh.tolist()
         for i in thresh:
             i.insert(0,1)
@@ -312,15 +305,10 @@ class AnalysisHelper():
             ar2 = abs(ar2)
             theArr.append(np.argsort(ar2)[0])
         return theArr
-    def findCenters(self,img):
-        u = time.time()
-        
+    def findCenters(self,img):        
         img-= morphology.area_opening(img,area_threshold=3500)
-        ##print(time.time()-u)
         img = morphology.opening(img,morphology.rectangle(19,1))
         img=morphology.opening(img,morphology.rectangle(1,17))
-        u=time.time()
-        tim =time.time()
         img2 = morphology.h_maxima(img, 5)
         img2 = morphology.dilation(img2,morphology.disk(4))
         
@@ -347,8 +335,6 @@ class AnalysisHelper():
             totalcol/=count
             totalrow/=count
             centers.append((int(totalrow),int(totalcol)))
-        ####print(time.time()-u)
-        ##print(time.time()-u)
         for i in range(4):
             centers = AnalysisHelper.find_RL_UD(img,centers)
         centers = self.clear_near(centers)
@@ -467,8 +453,6 @@ class AnalysisHelper():
         arr2.reverse()
         return arr2
     def findRadius(self,img,x,y,shift):
-    
-        tim = time.time()
         rowRadius = 0
         colRadius = 0
         num_zeros = 0

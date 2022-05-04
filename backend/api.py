@@ -618,7 +618,6 @@ def fix_background(analysis_id):
     #np.save(path,img)
     img-=np.min(img)
     img/=np.max(img)   
-    #print(time.time()-tim)
     ## TODO: these images should be 16-bit... this might be truncating
     ## them...
     img = PIL.Image.fromarray((np.uint8(plt.get_cmap('viridis')(img)*255)))
