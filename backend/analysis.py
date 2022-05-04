@@ -28,24 +28,18 @@ from skimage import measure
 
 class AnalysisHelper():
     """Input: ROIs, n_l, origins, analysi_id, doUV, doRF, autoLane"""
-    def __init__(self,ROIs,n_l,origins,analysis_id,doUV,doRF,autoLane,name='',description=''):
+    def __init__(self,ROIs,n_l,origins,doUV,doRF,autoLane,name='',description=''):
         self.doRF=doRF
         self.ROIs = ROIs
         self.n_l=n_l
         self.origins=origins
-        self.analysis_id=analysis_id
         self.doRF=doRF
         self.autoLane=autoLane
         self.doUV=doUV
         self.name = name
         self.description = description
-    def upload_data(self):
-        name = ''
     def __str__(self):
-        return (f'ROIS: {self.ROIs} \n origins: {self.origins} \n n_l: {self.n_l} \n analysis_id: {self.analysis_id} \n doUV: {self.doUV} \n doRF,{self.doRF} \n autoLane: {self.autoLane}')
-    @staticmethod
-    def build_analysis(attributes):
-        return AnalysisHelper(attributes[0],attributes[1],attributes[2],attributes[3],attributes[4],attributes[5],attributes[6],attributes[7])
+        return (f'ROIS: {self.ROIs} \n origins: {self.origins} \n n_l: {self.n_l} \n \n doUV: {self.doUV} \n doRF,{self.doRF} \n autoLane: {self.autoLane}')
     @staticmethod
     def flatten(ROIs):
         newROIs = []
@@ -55,24 +49,9 @@ class AnalysisHelper():
         return newROIs
 
     def dump(self):
-        return [self.ROIs,self.n_l,self.origins,self.analysis_id,self.doUV,self.doRF,self.autoLane]
-    def setOrigins(self,origins):
-        self.origins=origins
-    def setROIs(self,ROIs):
-        self.ROIs=ROIs
-    def setAutoLane(self,autoLane):
-        self.autoLane=autoLane
-    def setDoRF(self,doRF):
-        self.doRF = doRF
-    def setN_l(self,n_l):
-        self.n_l=n_l
-    def setName(self,name):
-        self.name=name
-    def setDescription(self,description):
-        self.description=description
+        return [self.ROIs,self.n_l,self.origins,self.doUV,self.doRF,self.autoLane]
 
     def results(self, img):
-        analysis_id=self.analysis_id
         tim = time.time() 
         newOrigins = (np.asarray(self.origins).copy()).tolist()
         newROIs = (np.asarray(self.ROIs).copy()).tolist()

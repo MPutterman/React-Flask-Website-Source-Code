@@ -741,7 +741,7 @@ def analysis_rois_autoselect(analysis_id):
     doRF = analysis.doRF # is this needed?
     num_lanes = None # is this needed?
     autolane = False # is this needed?
-    analysis_retrieve = AnalysisHelper([], num_lanes, [], analysis_id, doUV, doRF, autolane)
+    analysis_retrieve = AnalysisHelper([], num_lanes, [], doUV, doRF, autolane)
 
     # Retrieve files needed for analysis
     # TODO: check if they exist? and generate if not?
@@ -793,7 +793,7 @@ def analysis_rois_save(analysis_id):
     # TODO: should reorganize class Analysis into either all static methods, or 
     #   or take more advantage of it's object nature and methods...
     newROIs = AnalysisHelper.flatten(newROIs)
-    analysis = AnalysisHelper(newROIs, num_lanes, newOrigins, analysis_id, doUV, doRF, autoLane)
+    analysis = AnalysisHelper(newROIs, num_lanes, newOrigins, doUV, doRF, autoLane)
 
     # TODO: what does this stuff below do?  and does it work if origins is empty?
     analysis.sort2(analysis.origins,index = 0)
@@ -815,7 +815,7 @@ def analysis_rois_save(analysis_id):
     # Also compute results
     # Force autolane and num_lanes to False and None
     doUV = False # TODO: fix to reflect actual desired value
-    new_analysis = AnalysisHelper(analysis.ROIs,None,analysis.origins,analysis_id,doUV, doRF, False)
+    new_analysis = AnalysisHelper(analysis.ROIs,None,analysis.origins,doUV, doRF, False)
     # Load relevant image and send for computations
     from filestorage import analysis_compute_path
     img = np.load(analysis_compute_path(analysis_id))
