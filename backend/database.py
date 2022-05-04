@@ -68,13 +68,14 @@ import werkzeug
 load_dotenv()
 
 # Initialize database connection
-db_uri = "mysql+mysqlconnector://{}:{}@{}:{}/{}".format(
-       os.getenv('DB_USER'),
-        quote(os.getenv('DB_PASS')),
-        os.getenv('DB_HOST'),
-        os.getenv('DB_PORT'),
-        os.getenv('DB_NAME')     
-)
+#db_uri = "mysql+mysqlconnector://{}:{}@{}:{}/{}".format(
+#       os.getenv('DB_USER'),
+#        quote(os.getenv('DB_PASS')),
+#        os.getenv('DB_HOST'),
+#        os.getenv('DB_PORT'),
+#        os.getenv('DB_NAME')     
+#)
+db_uri = "sqlite:///sqlite/{}".format(os.getenv('DB_NAME'))
 db_engine = create_engine(db_uri, future=True)
 
 # Create Session class
