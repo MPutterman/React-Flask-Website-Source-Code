@@ -1,12 +1,4 @@
 # TODO:
-# * Change format of ROIs and origins (see discussions)
-#      - Store ROIs as flat list of { id, x, y, rx, ry, signal } -- signal must be recomputed whenever image cache is regenerated
-#      - Store lanes as flat list (id, name?, roi_list(ids), origin_id (or origin_x, origin_y), solvent_front (x,y, or a function y(x))
-#      - Store origins as flat list (id, x, y), or just absorb into lane?
-#      - RF and 'results' can be computed from this info by frontend... (or cached in a file, or stored in ROI...
-#      ------- BUT, there are lots of things that can 'dirty' the 'result' value... any change in 
-#              analysis parameters that changes 'compute' image. Any change in other ROIs in the lane including self...)
-#      - NOTE: probably don't need 'Lane' etc classes since none of these would be shared across other analyses etc...
 # * Currently images (radio, dark, bright) are in different formats... this should be reconsidered in the future
 # * Enforce adding of extension to upload files
 # * Auto-create a thumbnail of uploaded Image files...
@@ -300,6 +292,9 @@ class Analysis(Base):
     ROIs = Column(PickleType, default=[], nullable=False)
     origins = Column(PickleType, default=[], nullable=False)
     results = Column(PickleType, default=[], nullable=False)
+    # New method for storing ROIs and lanes
+    roi_list = Column(PickleType, default=[], nullable=False)
+    lane_list = Column(PickleType, default=[], nullable=False)
     # Standard fields
     owner_id = Column(Integer, ForeignKey('user.user_id'))
     created = Column(TZDateTime) 
