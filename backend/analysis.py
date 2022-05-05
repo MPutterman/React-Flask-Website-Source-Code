@@ -8,19 +8,14 @@
 # * Removed import time // time.time() calls for performance evaluation
 
 
+import scipy
 from scipy.cluster.vq import kmeans,whiten
 from skimage import morphology
-import scipy
 from kneed import KneeLocator
-from matplotlib import use,gridspec
+from skimage import measure
 from skimage.measure import label
-from matplotlib.patches import Rectangle
-from matplotlib.widgets import RectangleSelector, Button, EllipseSelector
-import matplotlib.patches as pat
-import matplotlib
 import numpy as np
 from sklearn.cluster import KMeans
-from skimage import measure
 
 class AnalysisHelper():
     """Input: ROIs, n_l, origins, analysi_id, doUV, doRF, autoLane"""
