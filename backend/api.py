@@ -397,10 +397,6 @@ def object_load(object_type, object_id):
     if (record is None):
         return api_error_response(HTTPStatus['NOT_FOUND'], f"No {object_type} with this id")
     else:
-        # TODO: fix this exception
-        if (object_type == 'image'):
-            from database import convert_image_type_to_string
-            record.image_type = convert_image_type_to_string(record.image_type)
         return record.as_dict()
 
 # Generic handler to save object not caught by earlier routes
@@ -511,11 +507,6 @@ def object_search(object_type, object_filter={}):
     record_list = db_object_search(object_type, object_filter)
     if (record_list is None):
         return api_error_response(HTTPStatus['INTERNAL_SERVER_ERROR'], 'Database error')
-    # TODO: TEMP: remove the need for this hack for 'image' type
-    if (object_type == 'image'):
-        from database import convert_image_type_to_string
-        for index, value in enumerate(record_list):
-            record_list[index].image_type = convert_image_type_to_string(value.image_type)
     return { 'results': [record.as_dict() for record in record_list] }
 
 @app.route('/<object_type>/search/favorites', methods = ['GET'])

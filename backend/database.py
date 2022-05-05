@@ -8,7 +8,6 @@
 # * An alternative design strategy would be to put owner_id, modified, created, deleted into a separate table
 #     to basically track ownership/permissions, deletion status, and edit history
 # * Be careful of string versus number IDs!!!
-# * Store image_type as string instead of enum?
 # * SQLAlchemy PickleType does NOT detect changes to a portion of the object (e.g. dict) and will not properly
 #     commit to database when a partial change is made. For now we rewrite the
 #     whole thing whenever we make a change. Need to look into how to use 'MutableDict' or other approaches
@@ -310,24 +309,12 @@ class Analysis(Base):
         }
 
 
-class ImageType(enum.Enum):
-    flat = 1
-    dark = 2
-    radio = 10
-    bright = 11
-    uv = 12
-    cerenkovdisplay=101
-    cerenkovcalc=102
-    cerenkovradii=103
-    
-
 class Image(Base):
     __tablename__ = 'image'
     #analysis_list = relationship('Analysis',secondary=analysis_image_map)
     image_id = Column(Integer, primary_key=True)
     equip_id = Column(Integer, ForeignKey('equipment.equip_id'))
-    image_type = Column(Enum(ImageType), nullable=False)
-    # TODO: switch to Column(Enum('radio', 'dark', 'flat', 'bright', 'uv'))
+    image_type = Column(Enum('radio', 'dark', 'flat', 'bright', 'uv'))
     captured = Column(TZDateTime) # Image creation date
     exp_time = Column(Float) # Exposure time (seconds)
     exp_temp = Column(Float) # Exposure temp (deg C)
@@ -504,12 +491,6 @@ def db_object_save(object_type, data):
     except NameError:
         pass
     else:
-        # TODO: hack to deal with ImageType (doesn't work well with eval)
-        # TODO: remove when we change db field to string instead ImageType
-        image_type = data.get('image_type')
-        if (image_type and not type(image_type) is str):
-            data['image_type'] = convert_image_type_to_string(image_type)
-
         return eval(function_name + f"({data})")
 
     # Otherwise, find the id value and determine if this is a 'insert' or 'update' operation    
@@ -532,11 +513,6 @@ def db_object_create(object_type, data):
     except NameError:
         pass
     else:
-        # TODO: hack to deal with ImageType (doesn't work well with eval)
-        # TODO: remove when we change db field to string instead ImageType
-        image_type = data.get('image_type')
-        if (image_type and not type(image_type) is str):
-            data['image_type'] = convert_image_type_to_string(image_type)
         return eval(function_name + f"({data})")
 
     # Otherwise create the object
@@ -866,7 +842,7 @@ def db_image_save(data):
         image.captured = data['captured'] 
         image.exp_time = data['exp_time'] 
         image.exp_temp = data['exp_temp'] 
-        image.image_type = find_image_type(data['image_type'])
+        image.image_type = data['image_type']
     else:
         image = Image(
             name = data['name'],
@@ -875,7 +851,7 @@ def db_image_save(data):
             equip_id = data['equip_id'],
             created = datetime.now(timezone.utc),
             modified = datetime.now(timezone.utc),
-            image_type = find_image_type(data['image_type']),
+            image_type = data['image_type'],
             captured = data['captured'], 
             exp_time = data['exp_time'],
             exp_temp = data['exp_temp'],
@@ -910,42 +886,12 @@ def db_image_save(data):
 
 # Analysis-related utility functions
 
-def find_image_type(image_type):
-    if image_type == 'dark':
-        return ImageType.dark
-    elif image_type == 'uv':
-        return ImageType.uv
-    elif image_type == 'radio':
-        return ImageType.radio
-    elif image_type == 'bright':
-        return ImageType.bright
-    elif image_type =='flat':
-        return ImageType.flat
-    else:
-        return image_type
-
-def convert_image_type_to_string(native_type):
-    if native_type == ImageType.dark:
-        return 'dark'
-    elif native_type == ImageType.uv:
-        return 'uv'
-    elif native_type == ImageType.radio:
-        return 'radio'
-    elif native_type == ImageType.bright:
-        return 'bright'
-    elif native_type == ImageType.flat:
-        return 'flat'
-    else:
-        return 'unknown'
-
-
 def db_analysis_image_cache(analysis_id, url_radio, url_bright=None):
     analysis = db_object_load('analysis', analysis_id)
     analysis.display_radio_url = url_radio
     analysis.display_bright_url = url_bright
     analysis.image_cache_modified = datetime.now(timezone.utc)
     db_session.commit()
-
 
 # Save ROI and origin info
 # Returns an analysis object
