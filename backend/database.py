@@ -284,14 +284,8 @@ class Analysis(Base):
     bright_contrast = Column(Integer)
     bright_brightness = Column(Integer)
     bright_opacity = Column(Integer)
-    # Fields related to lane state
-    # TODO: do we need number of lanes stored?  Do we need some kind of
-    #   flag to indicate whether we should re-generate ROIs if any image is updated?
     doRF = Column(Boolean)
-    ROIs = Column(PickleType, default=[], nullable=False)
     origins = Column(PickleType, default=[], nullable=False)
-    results = Column(PickleType, default=[], nullable=False)
-    # New method for storing ROIs and lanes
     roi_list = Column(PickleType, default=[], nullable=False)
     lane_list = Column(PickleType, default=[], nullable=False)
     # Standard fields
@@ -900,26 +894,16 @@ def db_analysis_image_cache(analysis_id, url_radio, url_bright=None):
 def db_analysis_rois_save(analysis_id, data):
     analysis = db_object_load('analysis', analysis_id)
     # Only update fields provided
-    if data.get('ROIs') is not None:
-        analysis.ROIs = data['ROIs']
-    if data.get('origins') is not None:
-        analysis.origins = data['origins']
-    if data.get('doRF') is not None:
-        analysis.doRF = data['doRF']
-    if data.get('radio_brightness') is not None:
-        analysis.radio_brightness = data['radio_brightness']
-    if data.get('radio_contrast') is not None:
-        analysis.radio_contrast = data['radio_contrast']
-    if data.get('radio_opacity') is not None:
-        analysis.radio_opacity = data['radio_opacity']
-    if data.get('bright_brightness') is not None:
-        analysis.bright_brightness = data['bright_brightness']
-    if data.get('bright_contrast') is not None:
-        analysis.bright_contrast = data['bright_contrast']
-    if data.get('bright_opacity') is not None:
-        analysis.bright_opacity = data['bright_opacity']
-    if data.get('results') is not None:
-        analysis.results = data['results']
+    analysis.origins = data['origins']
+    analysis.doRF = data['doRF']
+    analysis.radio_brightness = data['radio_brightness']
+    analysis.radio_contrast = data['radio_contrast']
+    analysis.radio_opacity = data['radio_opacity']
+    analysis.bright_brightness = data['bright_brightness']
+    analysis.bright_contrast = data['bright_contrast']
+    analysis.bright_opacity = data['bright_opacity']
+    analysis.roi_list = data['roi_list']
+    analysis.lane_list = data['lane_list']
     db_session.commit()
     return True
 

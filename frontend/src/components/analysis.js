@@ -1,4 +1,9 @@
 // MAJOR TODO:
+// * DON'T AUTOLANE EVERY TIME WE CHANGE ROIs -- only have option to 'auto-assign lanes' - warning this will
+//   obliterate any existing lanes
+// * Maybe on the back end we can have everything sorted automatically, or grouped into lanes if not already assigned
+//     E.g. for TLC lanes -- it finds the closest vertical center for each ROI...
+// * CHANGE the analysisData 'save' function so it doesn't wipe out ROIs -- just mark them dirty...
 // * Integrate 'fix background' into the backend 'analysis_generate_working_images'
 //     function.  It should _not_ be a separate API route.
 // * More cleanup of backend Analysis class to clarify whether it is an object instance
@@ -6,23 +11,30 @@
 // * Move remaining computational stuff out of api.py into analysis.py
 // * Clarify whether 'doUV' mean superimpose bright+Cerenkov, or whether there is
 //     a second set of UV ROIs...
+// * Change doRF to show_Rf (i.e. just indicating a visual preference)
+// * Think how the user can define/adjust lanes. Right now it is just the 'origins' point.  Also when the user adds
+//   a new ROI AFTER lanes are defined, should they assign to a lane, or do we automatically do it?  Or is there
+//   an 'active lane' (click all the ROIs in this lane)?
+// * Maybe auto-lane can return the origin_x coordinate for all the lanes?
+
 //
 // TODO:
 // * How to show only date selector?
 // * Allow selection of color palette for image? (Maybe less processing in backend... just convert to monochromatic PNG?)
 //     Are there client-side ways to do this?
 //     Some good palettes: https://cran.r-project.org/web/packages/viridis/vignettes/intro-to-viridis.html
+//     Backend supports quite a few natively, we could allow a choice from front end (and a preference)
+//     https://matplotlib.org/3.5.0/tutorials/colors/colormaps.html
 // * Add feature to export as .csv text file, excel file, etc.
 // * Add feature to export a full PDF report?  E.g. with image, etc..
 // * When change origins and ROIs, need to reset something so 'autolane' will work correctly.
 // * I'm not sure how "n_l" and autolane work together.
-// * Regarding RF values, I think we should always compute these if origins are defined for at least one lane.  
-//   Maybe we can have a client-side option to show or hide those results if needed. But there is a use
-//   case where we don't need it (e.g. Cerenkov image of chip). So maybe we should store the value in DB.
 // * There are some interesting graphical libraries, e.g. https://docs.bokeh.org/en/latest/docs/gallery.html#gallery (python)
 //     that may allow use to do interesting things like live line plots, lasso-based ROI selection, etc...
 //     Also more react-specific stuff here: https://stackshare.io/bokeh/alternatives
 // * Disable more image control functions before the image_url are populated
+// * When autoselect ROIs, consider whether it makes sense to keep current ROIs. I don't think so
+// * Allow variable step-size for ROI jogging?
 
 import React from "react";
 import { withRouter } from "react-router";
@@ -62,18 +74,6 @@ import { useConfirm } from 'material-ui-confirm';
 import Popup from '../components/popup';
 import HelpIcon from '@material-ui/icons/Help';
 import { useForm } from 'uniforms';
-
-// FUTURE: embed results in ROI info...
-// ROI_list: list of {id, x, y, rx, ry, intensity}
-// .... this way it is independent of lanes and could be used to just calculate ROI intensities for an image
-//
-// lane_list: list of {id, name, roi_list (id values)}
-// QUESTION: how to organize origins and RF values? Look into literature?
-// QUESTION: when we add new ROIs, currently they are not assigned to the right lane...
-//// That's ok in new model... just add the new ROI to the ROI list, and don't allocate in lane list
-////    if needed, can compute unallocated ROIs...
-////    Maybe a different results table if there are unallocated ROIs
-// TODO: need a new function to separate overlapping ROIs?
 
 const WrappedAnalysisEdit = ({model, ...props}) => {
 
@@ -122,44 +122,49 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
     */
 //
     const initialLaneState = {
-        autoLane: false,  // LEGACY? not sure this is needed...
-        num_lanes: 0, // number of lanes  # TODO: should add to database?
+        //autoLane: false,  // LEGACY? not sure this is needed...  We should just have a button to autodetect lanes and clear lanes
+        num_lanes: 0, // number of lanes  # TODO: should add to database?  Unneded?
         origins: [],
-        ROIs: [],
-        selectedROI: { lane: UNDEFINED, band: UNDEFINED},
+        //ROIs: [],
+        selectedROI: UNDEFINED,
+        roi_list: [], // TODO: new format
+        lane_list: [], // TODO: new format
         is_dirty: false,
     };
 
     // TODO: note: autolane and num_lane aren't in the database. Should they be?
+    // DON'T NEED num_lanes -- it will be determinable from lane_list
+    // DON'T nEED AUTOLANE in DB either -- it will be a one-time thing?
     React.useEffect(() => {
-        if (model.auto_lane !== null && model.auto_lane !== undefined) {
-           setLaneState((prev) => ({ ...prev, autoLane: model.auto_lane, }));
-        }
+        //if (model.auto_lane !== null && model.auto_lane !== undefined) {
+        //   setLaneState((prev) => ({ ...prev, autoLane: model.auto_lane, }));
+        //}
 //        if (model.num_lanes !== null && model.num_lanes !== undefined) {
 //           setLaneState((prev) => ({ ...prev, num_lanes: model.num_lanes, }));
 //        }
         if (model.origins !== null && model.origins !== undefined) {
            setLaneState((prev) => ({ ...prev, origins: model.origins, }));
         }
-        if (model.ROIs !== null && model.ROIs !== undefined) {
-           setLaneState((prev) => ({ ...prev, ROIs: model.ROIs, num_lanes: model.ROIs.length}));
+       //if (model.ROIs !== null && model.ROIs !== undefined) {
+        //   setLaneState((prev) => ({ ...prev, ROIs: model.ROIs, num_lanes: model.ROIs.length}));
+        //}
+        if (model.roi_list !== null && model.roi_list !== undefined) {
+          setLaneState((prev) => ({ ...prev, roi_list: model.roi_list, }));
         }
-    }, [model.auto_lane, /*model.num_lanes,*/ model.origins, model.ROIs])
+        if (model.lane_list !== null && model.lane_list !== undefined) {
+          setLaneState((prev) => ({ ...prev, lane_list: model.lane_list, }));
+        }
+   }, [/*model.auto_lane, model.num_lanes,*/ model.origins, /*model.ROIs,*/ model.roi_list, model.lane_list])
 
     const initialLegacyState = {
         doRF: false,  // LEGACY: phase this out 
-        results: [],            // TODO: will come from ROIs later
     };
 
-    // TODO: in future results come from ROI states
     React.useEffect(() => {
         if (model.doRF !== null && model.doRF !== undefined) {
             setLegacyState((prev) => ({...prev, doRF: model.doRF}));
         }
-        if (model.results !== null && model.results !== undefined) {
-            setLegacyState((prev) => ({...prev, results: model.results}));
-        }
-    }, [model.doRF, model.results])
+    }, [model.doRF])
 
     const initialImageState = {
         radio_brightness: 0,
@@ -256,24 +261,23 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
     // Make API call
     // Note: send ROI list back to server.  QUESTION: is this to ensure no overlap?
     // TODO: update API call to pass the x, y, shift data as part of formData
-    var data = {
-        'ROIs': JSON.stringify(laneState.ROIs),
-    };
-    callAPI('POST', `api/analysis/roi_build/${model.analysis_id}/${x}/${y}/${shift}`, data)
+    //var data = {
+    //    'ROIs': JSON.stringify(laneState.ROIs),
+    //};
+    callAPI('GET', `api/analysis/roi_build/${model.analysis_id}/${x}/${y}/${shift}`, {})
       .then((res) => {
         // Add the new ROI info (assign initially to lane '0')
         // QUESTION: is n_l changed by the server?
         // TODO: maybe the server should regenerate the lane list as much as possible?
         return setLaneState(prev => {
-          var newROIs = [];
-          if (prev.ROIs) newROIs = JSON.parse(JSON.stringify(prev.ROIs)); // hack to make a true DEEP copy, [...prev.ROIs only first level are copied, rest are referenced]
-          const ROI_to_add = [ res.data.row, res.data.col, res.data.rowRadius, res.data.colRadius];
-          if (!newROIs[0]) newROIs[0] = [ROI_to_add];
-          else newROIs[0].push(ROI_to_add);
+          const new_roi = res.data.roi;
+          console.log('new roi in build_roi', new_roi);
+          let new_roi_list = JSON.parse(JSON.stringify(prev.roi_list)); // Deep copy
+          new_roi_list.push(new_roi)
+          console.log('new_roi_list in buildROI', new_roi_list);
           return {...prev,
-            ROIs: newROIs,
-            num_lanes: res.data.num_lanes,
-            selectedROI: {lane: 0, band: (!Array.isArray(prev.ROIs) || !prev.ROIs[0]) ? 0 : prev.ROIs[0].length-1+1},
+            roi_list: new_roi_list,
+            selectedROI: new_roi_list.length-1,
           };
         });
       });
@@ -292,14 +296,18 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
 
     // Ignore keypress if no ROI is selected
     //console.log('just entered onKeypress, here is value of laneState', laneState);
-    let lane = laneState.selectedROI.lane;
-    let band = laneState.selectedROI.band;
-    if (lane === UNDEFINED || band === UNDEFINED) return;
+    //let lane = laneState.selectedROI.lane;
+    //let band = laneState.selectedROI.band;
+    let roi_id = laneState.selectedROI;
+    if (roi_id === UNDEFINED) return;
+//    if (lane === UNDEFINED || band === UNDEFINED) return;
 
-    console.log ('in onKeyPress, lane=', lane);
-    console.log ('in onKeyPress, band=', band);
+//    console.log ('in onKeyPress, lane=', lane);
+//    console.log ('in onKeyPress, band=', band);
+    console.log ('in onKeyPress, roi_id=', roi_id);
 
-    let roi = laneState.ROIs[lane][band]; // selected ROI
+    // Does this do a copy?
+    let roi = laneState.roi_list[roi_id]; // selected ROI
     console.log ('roi before', roi);
     switch (key) { //e.key) {
       case "w":
@@ -340,9 +348,13 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
     console.log('roi after', roi);
     // TODO: is this correct?
     setLaneState(prev => {
-      let newROIs = JSON.parse(JSON.stringify(prev.ROIs)); 
-      newROIs[lane][band] = roi;
-      return {...prev, ROIs: newROIs};
+      //let newROIs = JSON.parse(JSON.stringify(prev.ROIs)); // Deep copy
+      //newROIs[lane][band] = roi;
+      //return {...prev, ROIs: newROIs};
+      let new_roi_list = JSON.parse(JSON.stringify(prev.roi_list)); // Deep copy
+      // TODO: is the coordinate ordering correct here?
+      new_roi_list[roi_id] = roi;
+      return {...prev, roi_list: new_roi_list};
     }); 
   }, [laneState, setLaneState]);
 
@@ -350,72 +362,75 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
   useEventListener('keydown', onKeypress);
 
   const moveVert = (roi) => {
-    if (roi[0] + STEP_Y + roi[2] < imageState.size_y)  roi[0] += STEP_Y;
+//    if (roi[0] + STEP_Y + roi[2] < imageState.size_y)  roi[0] += STEP_Y;
+    if (roi['shape_params']['y'] + STEP_Y + roi['shape_params']['ry'] < imageState.size_y)  roi['shape_params']['y'] += STEP_Y;
     return roi;
   }
 
   const moveHorz = (roi) => {
-    if (roi[1] + STEP_X + roi[3] < imageState.size_x) roi[1] += STEP_X;
-    return roi;
+//    if (roi[1] + STEP_X + roi[3] < imageState.size_x) roi[1] += STEP_X;
+    if (roi['shape_params']['x'] + STEP_X + roi['shape_params']['rx'] < imageState.size_x)  roi['shape_params']['x'] += STEP_X;
+return roi;
   }
 
   const backHorz = (roi) => {
-    if (roi[1] - STEP_X - roi[3] > 0) roi[1] -= STEP_X;
-    return roi;
+//    if (roi[1] - STEP_X - roi[3] > 0) roi[1] -= STEP_X;
+    if (roi['shape_params']['x'] - STEP_X - roi['shape_params']['rx'] < 0)  roi['shape_params']['x'] -= STEP_X;
+return roi;
   }
 
   const backVert = (roi) => {
-    if (roi[0] - STEP_Y - roi[2] > 0) roi[0] -= STEP_Y;
-    return roi;
+//    if (roi[0] - STEP_Y - roi[2] > 0) roi[0] -= STEP_Y;
+    if (roi['shape_params']['y'] - STEP_Y - roi['shape_params']['ry'] < 0)  roi['shape_params']['y'] -= STEP_Y;
+return roi;
   }
 
   const incVert = (roi) => {
-    if (roi[0] + roi[2] < imageState.size_y-0  && roi[0] - roi[2] > 0) roi[2] += STEP_RY;
+    if (roi.shape_params.y + roi.shape_params.ry < imageState.size_y-0  && roi.shape_params.y - roi.shape_params.ry > 0) roi.shape_params.ry += STEP_RY;
     return roi;
   };
 
   const incHorz = (roi) => {
-    if (roi[1] + roi[3] < imageState.size_x-0  && roi[1] - roi[3] > 0) roi[3] += STEP_RX;
+    if (roi.shape_params.x + roi.shape_params.rx < imageState.size_x-0  && roi.shape_params.x - roi.shape_params.rx > 0) roi.shape_params.rx += STEP_RX;
     return roi;
   };
 
   const decHorz = (roi) => {
-    if (roi[3] > 14) roi[3] -= STEP_RX; // TODO: what is special about the value 14?
+    if (roi.shape_params.rx > 14) roi.shape_params.rx -= STEP_RX; // TODO: what is special about the value 14?
     return roi;
   };
 
   const decVert = (roi) => {
-    if (roi[2] > 14) roi[2] -= STEP_RY; // TODO: what is special about the value 14?
+    if (roi.shape_params.ry > 14) roi.shape_params.ry -= STEP_RY; // TODO: what is special about the value 14?
     return roi;
   };
 
-
-
-  const onClickROI = (e, l, i) => {  // event, lane, and band
+  const onClickROI = (e, roi_id) => {  // event and roi_id
 
     if (selectMode == "roi") {
-      if (l === laneState.selectedROI.lane && i === laneState.selectedROI.band) {  
+      if (roi_id === laneState.selectedROI) {  
         // Remove the specified ROI, and nullify selectedROI
         console.log ('onClickROI - a selectedROI is defined... deleting it');
         setLaneState(prev => {
-          let newROIs = JSON.parse(JSON.stringify(prev.ROIs)); 
-          newROIs[l].splice(i,1);
-          return {...prev, ROIs: newROIs, selectedROI: {lane: UNDEFINED, band: UNDEFINED},};
+          let new_roi_list = JSON.parse(JSON.stringify(prev.roi_list)); // Deep copy
+          new_roi_list.splice(roi_id,1);
+          return {...prev, roi_list: new_roi_list, selectedROI: UNDEFINED,};
         });
       } else {
         // Select the specified ROI
         console.log ('onClickROI - a selectedROI is not defined... selecting one');
-        setLaneState(prev => ({...prev, selectedROI: { lane: l, band: i},}));
+        setLaneState(prev => ({...prev, selectedROI: roi_id,}));
       }
 
     } else if (selectMode == "origin") {
       // QUESTION: why so much calculation for origins?  And what is the + 3 near the end?
+      // It's for clicking inside an ROI -- to find the true coordinates with respect to image
       var x = e.nativeEvent.offsetX;
       var y = e.nativeEvent.offsetY;
-      var radx = laneState.ROIs[l][i][3];
-      var rady = laneState.ROIs[l][i][2];
-      var px = laneState.ROIs[l][i][1];
-      var py = laneState.ROIs[l][i][0];
+      var radx = laneState.roi_list[roi_id].shape_params.rx;
+      var rady = laneState.roi_list[roi_id].shape_params.ry;
+      var px = laneState.roi_list[roi_id].shape_params.x;
+      var py = laneState.roi_list[roi_id].shape_params.y;
       console.log(x, y, radx, rady, px, py);
       console.log(e.nativeEvent.offsetX, e.nativeEvent.offsetY);
       x = px - radx + x + 3; 
@@ -431,13 +446,23 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
 
   // Clear all ROIs.  Just a local change until save to backend
   const clearROIs = () => {
-      if (laneState.ROIs.length > 0) {
+      if (laneState.roi_list.length > 0) {
           confirm ({/*title:<title>, description:<description>*/})
           .then(() => {
-              setLaneState(prev => ({...prev, ROIs: [], selectedROI:{lane:UNDEFINED, band:UNDEFINED},}));
+              setLaneState(prev => ({...prev, roi_list: [], selectedROI: UNDEFINED,}));
           });
       } else {
-          setLaneState(prev => ({...prev, ROIs: [], selectedROI:{lane:UNDEFINED, band:UNDEFINED},}));
+          setLaneState(prev => ({...prev, roi_list: [], selectedROI: UNDEFINED,}));
+      }
+  };
+
+  // Clear all Lanes.  Just a local change until save to backend
+    const clearLanes = () => {
+      if (laneState.lane_list.length > 0) {
+          confirm ({/*title:<title>, description:<description>*/})
+          .then(() => {
+              setLaneState(prev => ({...prev, lane_list: [], }));
+          });
       }
   };
 
@@ -458,31 +483,65 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
       setImageState(prev => (initialImageState));
   };
 
-
   // Autoselect the ROIs. Just a local change until save to backend
-  async function autoSelectWrapper() {
-      if (laneState.ROIs.length > 0) {
+  async function autoselectROIsWrapper() {
+      if (laneState.roi_list.length > 0) {
           confirm ({/*title:<title>, description:<description>*/})
           .then(() => {
-              return autoSelect();
+              return autoselectROIs();
           });          
       } else {
-          return autoSelect();
+          return autoselectROIs();
       }
   }
 
-  async function autoSelect() {
-      return callAPI('POST', `/api/analysis/rois_autoselect/${model.analysis_id}`, {})
+  async function autoselectROIs() {
+      return callAPI('GET', `/api/analysis/rois_autoselect/${model.analysis_id}`, {})
       .then((response) => {
           if (response.error) {
               setAlert({severity: 'warning', message: `Error autoselecting ROIs: ${response.data.error}`});
           } else {
+              // Override the ROIs (i.e. delete anything already defined).
+              console.log('Received from rois_autoselect:', response.data.roi_list);
               setLaneState(prev => ({...prev,
-                  ROIs: response.data.ROIs,
-                  selectedROI: {lane: UNDEFINED, band: UNDEFINED},
+//                  ROIs: response.data.ROIs,
+                  roi_list: response.data.roi_list,
+                  selectedROI: UNDEFINED,
               }));
           }
       })
+  }
+
+  // Autoselect the lanes. Just a local change until save to backend
+  async function autoselectLanesWrapper() {
+    if (laneState.lane_list.length > 0) {
+        confirm ({/*title:<title>, description:<description>*/})
+        .then(() => {
+            return autoselectLanes();
+        });          
+    } else {
+        return autoselectLanes();
+    }
+  }
+
+  async function autoselectLanes() {
+    
+    var data = {
+      'roi_list': JSON.stringify(laneState.roi_list),
+      'num_lanes': laneState.num_lanes,
+      'origins': JSON.stringify(laneState.origins),
+    };
+    return callAPI('POST', `api/analysis/lanes_autoselect/${model.analysis_id}`, data)
+    .then((response) => {
+        if (response.error) {
+            setAlert({severity: 'warning', message: `Error autoselecting lanes: ${response.data.error}`});
+        } else {
+            // Override the ROIs (i.e. delete anything already defined).
+            setLaneState(prev => ({...prev,
+                lane_list: response.data.lane_list,
+            }));
+        }
+    })
   }
 
   const onClickOrigin = (e, i) => {
@@ -523,13 +582,17 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
   async function submitParams() {
     console.log(laneState.origins);
     setBusy(true);
-    console.log('ROIs', laneState.ROIs);
+//    console.log('ROIs', laneState.ROIs);
+    console.log('roi_list', laneState.roi_list);
+    console.log('lane_list', laneState.lane_list);
     const data = {
-      ROIs: JSON.stringify(laneState.ROIs),
+//      ROIs: JSON.stringify(laneState.ROIs),
+      roi_list: JSON.stringify(laneState.roi_list),
+      lane_list: JSON.stringify(laneState.lane_list),
       origins: JSON.stringify(laneState.origins),
-      num_lanes: laneState.num_lanes, // phase this out later...
+//      num_lanes: laneState.num_lanes, // phase this out later...
       doRF: legacyState.doRF, // phase this out later
-      autoLane: !originsDefined(),
+//      autoLane: !originsDefined(),
       radio_brightness: imageState.radio_brightness,
       radio_contrast: imageState.radio_contrast,
       radio_opacity: imageState.radio_opacity,
@@ -542,15 +605,15 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
       .then((res) => {
         // Save the returned ROI results
         setLaneState(prev => ({...prev,
-          ROIs: res.data.ROIs,
+//          ROIs: res.data.ROIs,
           origins: res.data.origins,
-          num_lanes: res.data.ROIs ? res.data.ROIs.length : 0, /// TODO: is this correct? is it needed here?
+//          num_lanes: res.data.ROIs ? res.data.ROIs.length : 0, /// TODO: is this correct? is it needed here?
+          roi_list: res.data.roi_list,
+          lane_list: res.data.lane_list,
         }));
-        // Also save the returned analysis results /// TODO: or have a model that retrieves it directly?
-        setLegacyState(prev => ({ ...prev,
-          results: res.data.results,
-        }));
+        console.log("After ROI saved, received the following data", res.data);
         setBusy(false);
+        setAlert({severity: 'success', message: `Successfully saved ROIs and lanes`});
       }).catch('An Error Occurred');
   }
 
@@ -563,7 +626,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
       setLaneState(prev => {
         let newOrigins = [...prev.origins];
         newOrigins.push(new_origin);
-        return {...prev, origins: newOrigins, is_dirty: true,}; // is_dirty maybe to trigger state update
+        let num_lanes = newOrigins.length-2;
+        return {...prev, origins: newOrigins, num_lanes: num_lanes, is_dirty: true,}; // is_dirty maybe to trigger state update
       });
 
     } else if (selectMode == "roi") {
@@ -663,44 +727,12 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                   alt=''
                 />
 
-                {/* Draw ROIs if available */}
+<div>
 
-
-                {laneState.ROIs.length > 0 ? laneState.ROIs.map((Lane,l)=>{
-
-                  return(
-                    
-                    <div key={`roi-lane-${Lane}`}>
-                      
-                  {Lane.map((x,i)=>{
-                    return(
-                      
-                      <canvas
-                      key={`roi-${l}-${i}`}
-                      style={{
-                        position: "absolute",
-                        backgroundColor: "transparent",
-                        zIndex: (selectMode == "roi") ? 11 : 10,
-                        borderRadius: "50%/50%",
-                        border:
-                          (i === laneState.selectedROI.band && l === laneState.selectedROI.lane)
-                            ? "dashed 2px #0ff"
-                            : `dashed 2px #${((l%2)*15).toString(16)}${(15*(l%2)).toString(16)}${(15*(l%2)).toString(16)}`,
-                        width: "" + 2 * x[3] - 2 + "px",
-                        height: "" + 2 * x[2] - 2 + "px",
-                        marginTop: "" + x[0] - 1 * x[2] + 1 - imageState.size_x + "px",
-                        marginLeft: "" + x[1] - 1 * x[3] + 1 + "px",
-                      }}
-                      onClick={(e) => {
-                        //e.preventDefault();
-                        onClickROI(e,l, i);  
-                      }}
-                    />
-                    );
-
-                  })}
-                  </div>)
-                }) : (<div></div>)}
+                { /* NOTE: NEED THE DIV TO GET THESE TO ALIGN ON THE IMAGE */ }
+                { /* TODO: how to prevent click issue. ROIs are on top of image. if want to click */ }
+                { /* an origin INSIDE an ROI, then the ROI gets clicked, not the image */ }
+                { /* TODO: draw lanes in another manner (not canvas) to avoid this issue */ }
 
                 {/* Draw origins if available */}
 
@@ -724,6 +756,75 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                         onClickOrigin(e, i);
                       }}
                     />
+                  );
+                }) : ( <></> )}
+
+                {/* Draw ROIs if available */}
+
+                {laneState.roi_list.length > 0 ? laneState.roi_list.map((roi,roi_id)=>{
+
+                return(
+                  
+                    <canvas
+                    key={`roi-${roi_id}`}
+                    style={{
+                      position: "absolute",
+                      backgroundColor: "transparent",
+                      zIndex: (selectMode == "roi") ? 11 : 10,
+                      borderRadius: "50%/50%",
+                      border:
+                        (roi_id === laneState.selectedROI)
+                          ? "dashed 2px #0ff"
+                          : `dashed 2px #ffffff`,
+                      width: "" + 2 * roi.shape_params.rx - 2 + "px",
+                      height: "" + 2 * roi.shape_params.ry - 2 + "px",
+                      marginTop: "" + roi.shape_params.y - 1 * roi.shape_params.ry + 1 - imageState.size_x + "px",
+                      marginLeft: "" + roi.shape_params.x - 1 * roi.shape_params.rx + 1 + "px",
+                    }}
+                    onClick={(e) => {
+                      // e.preventDefault();
+                      onClickROI(e,roi_id);
+                    }}
+                    //onClick = { selectMode == 'roi'
+                    //  ? (e) => { /*e.preventDefault();*/ onClickROI(e,roi_id); }
+                    //  : undefined
+                    //}}
+                  />
+                  );
+
+                }) : (<></>)}
+
+</div>
+
+                {/* Draw lanes if available. For TLC lanes, draw a vertical line at origin_x coordinate
+                    TODO: why do we need the -6 in here? Maybe from z-index and shadow feature? */}
+
+                {laneState.lane_list.length > 0 ? laneState.lane_list.map((lane, i) => {
+                  return (
+                    <>
+                    {lane.lane_params.origin_x !== null ? (
+                    <canvas
+                      className="lane"
+                      key={`lane-${i}`}
+                      style={{
+                        borderRadius: "50%/50%",
+                        backgroundColor: "#222222",
+                        position: "absolute",
+                        marginTop: "" - 6 - imageState.size_y + "px",
+                        marginLeft: "" + lane.lane_params.origin_x + "px",
+                        width: "1px",
+                        height: "" + imageState.size_y + "px",
+                        //zIndex: (selectMode == "roi") ? 10 : 11,
+                        zIndex: 12, // put in the back
+                      }}
+                      //onClick={(e) => {
+                      //  e.preventDefault();
+                      //  onClickOrigin(e, i);
+                      //}}
+                    />
+                    ) : ( <> </> ) }
+                    </>
+
                   );
                 }) : ( <></> )}
 
@@ -752,7 +853,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                                 [s / S] jog down (top or bottom side)<br/> 
                                 [d / D] jog right (left or right side)<br/>
                           </Popup>
-                          <Button size='small' variant='outlined' onClick={autoSelectWrapper}> Autoselect ROIs </Button>
+                          <Button size='small' variant='outlined' onClick={autoselectROIsWrapper}> Autoselect ROIs </Button>
                           <Button size='small' variant='outlined' onClick={clearROIs}> Clear ROIs </Button>
                       </Box>}
                   />
@@ -766,6 +867,14 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                               are assumed to be the highest two points chosen.
                           </Popup>
                           <Button size='small' variant='outlined' onClick={clearOrigins}> Clear origins </Button>
+                          <Button size='small' variant='outlined' onClick={autoselectLanesWrapper}> Create lanes without origins </Button>
+
+                          {//<Button size='small' variant='outlined' onClick={createLanes}> Create lanes from origins </Button>
+                          // TODO: think about whether to create lanes at frontend or backend,
+                          //  when to populate which ROIs are in the lanes and what to do about redundancy
+                          //  of origins and lanes
+                          }
+                          <Button size='small' variant='outlined' onClick={clearLanes}> Clear lanes </Button>
                       </Box>}
                   />
                 </RadioGroup>
@@ -918,9 +1027,9 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                         onChange={(event) => {
                           setLegacyState(prev=>({...prev, doRF: event.target.checked,}));
                         }}
-                        name="enable_RF"
+                        name="show_rf"
                       />}
-                      label="Enable RF calculation"
+                      label="Show Rf values"
                     />
                     </FormGroup>
                   </Grid>
@@ -948,7 +1057,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
 
                     <p>Number of lanes: {laneState.num_lanes}</p>
                     <input type = 'range'
-                      disabled={originsDefined()}
+                      //disabled={originsDefined()}
                       name = {'#Lanes'}
                       step={1} 
                       valueLabelDisplay="on"
@@ -966,7 +1075,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
 
                 </Grid>
             </Grid>
-                <Button color="primary" variant="contained" onClick={submitParams}> Save ROI info </Button>
+                <Button color="primary" variant="contained" onClick={submitParams}> Save ROI info and Regenerate Results </Button>
 
             </Grid>
 
@@ -983,9 +1092,9 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
             <AccordionDetails>
 
               <AnalysisResults
-                results={legacyState.results}
-                results_loaded={legacyState.results.length > 0}
-                doRF={legacyState.doRF}
+                show_Rf={legacyState.doRF}
+                roi_list={laneState.roi_list}
+                lane_list={laneState.lane_list}
               />
 
         </AccordionDetails>

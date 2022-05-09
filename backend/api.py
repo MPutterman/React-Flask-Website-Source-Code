@@ -24,12 +24,13 @@
 # * Need to test whether session timeout is working properly, and remember-me feature
 # * Make API more consistent. Some failed calls return status 500. Some return { error: message }
 # * Add caching of images to the session, to avoid re-loading files when doing multiple back-to-back requests
+# * If we allow analysis with UV images, probably need to superimpose the UV and add controls for mixing it's intensity
+#   and then probably need a way to select UV ROIs...  ignore for now
 
 import time
 import json
 from flask import Flask, request,Response,send_file,send_from_directory,make_response,Response,session
 from flask_session import Session
-import numpy as np
 import PIL
 import os
 from flask_cors import CORS,cross_origin
@@ -42,14 +43,10 @@ import datetime
 from dateutil import parser
 from analysis import AnalysisHelper
 
-# TODO: these, and dependent code should be moved into Analysis class
-from skimage import morphology,filters,transform, exposure
-from matplotlib import pyplot as plt
-
 # Include database layer
 from database import db_create_tables, db_add_test_data, db_cleanup, object_type_valid
 
-
+# Include permission handling
 from permissions import check_permission, has_permission, list_permissions
 
 
@@ -548,63 +545,6 @@ def image_save():
     else:
         return { 'id': record.image_id }
 
-
-# TODO: I don't think I understand this function. How does it differ from other
-#   background subtraction in analysis_generate_working_images?
-#   Also, why doesn't the 'radii' image get corrected?
-@app.route('/fix_background/<analysis_id>')
-@cross_origin(supports_credentials=True)
-def fix_background(analysis_id):
-    #print('f')
-    from filestorage import analysis_radii_path
-    img = np.load(analysis_radii_path(analysis_id))
-    val = img.copy()
-    img-=np.min(img)
-    img+=.001
-    ideal_r = 25
-    #print(ideal_r)
-    b4=morphology.opening(img,morphology.disk(ideal_r-10))
-    b0 = morphology.closing(img,morphology.disk(ideal_r))
-    b1 = morphology.opening(img,morphology.disk(ideal_r+5))
-    b2 = morphology.opening(img,morphology.disk(ideal_r))
-    b3 = morphology.opening(img,morphology.disk(ideal_r-5))
-    b = b1.copy()
-    c = ideal_r*2
-    arr = np.array([[-1*ideal_r,1],[ideal_r-10,1],[0,1],[ideal_r-5,1],[ideal_r,1],[ideal_r+5,1]])
-    arr = np.linalg.pinv(arr)
-    for i in range(len(b)):
-        
-        for j in range(len(b[i])):
-            if abs(b3[i][j]-b1[i][j])>20:
-                arr2=arr @ np.log(np.array([b0[i][j],b4[i][j],img[i][j],b3[i][j], b2[i][j], b1[i][j]]))
-                x = arr2[0]
-                y=arr2[1]
-                b[i][j] = np.exp(y)*np.exp(x*c)
-    b=filters.median(b,selem=morphology.rectangle(40,2))
-    b=filters.median(b,selem=morphology.rectangle(2,40))
-    img-=b
-    img-=np.median(img)
-    from filestorage import analysis_compute_path, save_array
-    save_array(img, analysis_compute_path(analysis_id)) # retrieve_image_path('cerenkovcalc',analysis_id)
-    #os.remove(path)
-    #np.save(path,img)
-    img-=np.min(img)
-    img/=np.max(img)   
-    ## TODO: these images should be 16-bit... this might be truncating
-    ## them...
-    img = PIL.Image.fromarray((np.uint8(plt.get_cmap('viridis')(img)*255)))
-    from filestorage import analysis_display_radio_path, save_file
-    save_file(img, analysis_display_radio_path(analysis_id))
-
-    from database import db_analysis_image_cache
-    db_analysis_image_cache(analysis_id, f"/api/file/analysis/display-radio/{analysis_id}")
-
-    #filepath = analysis_display_path(analysis_id) #retrieve_image_path('cerenkovdisplay',analysis_id)
-    #os.remove(filepath)
-    #img.save(filepath)
-    return {'r':2}
-
-
 @app.route('/user/login/<login_method>', methods=['POST'])
 @cross_origin(supports_credentials=True)
 def user_login(login_method):
@@ -679,84 +619,103 @@ def user_logout():
     else:
         return prepare_session_response(None, True, 'Not logged in')
 
-
-@app.route('/api/analysis/rois_autoselect/<analysis_id>', methods=['POST','GET']) # TODO: pick one method
+# Auto-select ROIs based on the image (geometry aspects of ROIs only)
+# NOTE: Analysis in database is not updated. User must separately save the ROIs.
+@app.route('/api/analysis/rois_autoselect/<analysis_id>', methods=['GET'])
 @cross_origin(supports_credentials=True)
 def analysis_rois_autoselect(analysis_id):
 
-    # Load analysis object
-    from database import db_object_load
-    analysis = db_object_load('analysis', analysis_id)
+    # Since ROI list is not yet organized into lanes, return list as ROI[0]
+    # TODO: get rid of the [0] part
+    # TODO: make full-fledged ROIs
+    from analysis import analysis_rois_find
+    results = analysis_rois_find(analysis_id)
+    #auto_ROIs = [results['ROIs']]
+    # New format
+    roi_list = results['roi_list']
+    print ("ROI list")
+    print (roi_list)
 
-    # Variables needed by Analysis class.  TODO: just pass minimum set
-    # - Stripped out, arg0 - analysis.ROIs, arg2, analysis.origins
-    doUV = (analysis.uv_image_id is not None) # is this needed?
-    doRF = analysis.doRF # is this needed?
-    num_lanes = None # is this needed?
-    autolane = False # is this needed?
-    analysis_retrieve = AnalysisHelper([], num_lanes, [], doUV, doRF, autolane)
+    return {'roi_list': roi_list }
 
-    # Retrieve files needed for analysis
-    # TODO: check if they exist? and generate if not?
-    from filestorage import analysis_compute_path, analysis_radii_path
-    img = np.load(analysis_compute_path(analysis_id))
-    imgR = np.load(analysis_radii_path(analysis_id))
+# Auto-select TLC lanes based on ROIs (geometric aspects only)
+# NOTE: Analysis in database is not updated. User must separately save the lanes.
+# TODO: also build into this the use of origins if desired...?
+@app.route('/api/analysis/lanes_autoselect/<analysis_id>', methods=['POST']) # TEMPORARY NEED POST TO PASS IN DATA
+@cross_origin(supports_credentials=True)
+def analysis_lanes_autoselect(analysis_id):
 
-    # Retrieve generated ROIs. They are not organized into lanes yet, so
-    # return the list as ROI[0]
-    auto_ROIs = [analysis_retrieve.predict_ROIs(img, imgR)]
+    data = json.loads(request.form.get('JSON_data'))
+    #ROIs = json.loads(data.get('ROIs')) if data.get('ROIs') is not None else []
+    roi_list = json.loads(data.get('roi_list')) if data.get('roi_list') is not None else []
+    origins = json.loads(data.get('origins')) if data.get('origins') is not None else []
+    # TODO: MAJOR use JSON.stringify for ALL data from frontend??
+    num_lanes = int(data.get('num_lanes'))
+    # TODO: in future, if num_lanes is zero, try to automatically determine the number
+    #   of lanes (see code in analysis.js)
+    if (num_lanes == 0):
+        return {'lane_list': []}
 
-    # TODO: should we save this to database or update results?
-    # Currently doesn't do
-
-    return {'ROIs': auto_ROIs }
-
+    from analysis import analysis_lanes_find
+    return {'lane_list': analysis_lanes_find(roi_list, num_lanes)}
 
 # TODO: current there is a lot of info packed into the arguments
 #   Consider having separate route for 'autolane' etc... and this just
 #   purely update the ROIs from front-end (and group into lanes, if appropriate)
+#   -- Right now, it sorts and auto-selects lanes. Perhaps we should have a 
+#   -- specific button for lane selection.  We should also do some sorting
+#   -- such as flagging which ROIs belong to no lane?
+# Save the ROI and lane information (plus GUI options selected by user) to
+# the analysis. It also computes all the data for ROIs and lanes for any changed ROIs
+# and lanes.
+# TODO: is this expensive? Should we just recalculate all lanes and ROIs every time for now?
 @app.route('/api/analysis/rois_save/<analysis_id>',methods = ['POST'])
-@app.route('/analysis_edit/<analysis_id>',methods = ['POST'])
 @cross_origin(supports_credentials=True)
 def analysis_rois_save(analysis_id):
 
-    # Retrieve JSON data from request (preserves booleans etc.)
+    # Retrieve JSON data from request (preserves proper types)
     data = json.loads(request.form.get('JSON_data'))
+    roi_list = json.loads(data.get('roi_list')) if data.get('roi_list') is not None else {}
+    lane_list = json.loads(data.get('lane_list')) if data.get('lane_list') is not None else []
 
-    doRF = data.get('doRF') if data.get('doRF') is not None else False #request.form['doRF']=='true'
-    doUV = False #data['doUV'] #request.form['doUV']=='true'
-    # TODO: what is reasoning for logic below?
-    autoLane_received = data.get('autoLane') if data.get('autoLane') is not None else False
-    autoLane = autoLane_received and not (doRF or doUV) # request.form['autoLane']=='true' and not (doRF or doUV)
-    if autoLane:
-        num_lanes=int(data['num_lanes']) #request.form['n_l'])
-    else:
-        num_lanes=1
-    
-    print('autolane', autoLane)
-    print('num_lanes', num_lanes)
-    print ('dorf', doRF)
+    # Automatically assign ROIs to lanes.
+    # TODO: in future, we may not always want to do this, but for now the user has no
+    # manual way to make assignments so this is a good option in case new ROIs were
+    # added or removed.
+    from analysis import analysis_assign_rois_to_lanes
+    analysis_assign_rois_to_lanes(roi_list, lane_list)
 
-    newROIs = json.loads(data.get('ROIs')) if data.get('ROIs') is not None else []
+    # Compute data for ROIs and lanes
+    # TODO: in future we can be more selective and maybe use a 'dirty' flag to only update what is needed
+    from analysis import analysis_compute
+    analysis_compute(analysis_id, roi_list, lane_list)
+
+    # TODO: rename doRF to show_Rf
+    doRF = data.get('doRF') if data.get('doRF') is not None else False
+
     newOrigins = json.loads(data.get('origins')) if data.get('origins') is not None else []
 
-    # TODO: what is the purpose of this (i.e. adding extra array dimension and removing later)
-    newOrigins = [newOrigins]
+    # TODO: CHECK THE OLD "organize_into_lanes" and "results" (from analysis.py)
+    # TO FIGURE OUT HOW TO DO THE AUTOMATIC LANE PREDICTION
 
-    # TODO: should reorganize class Analysis into either all static methods, or 
-    #   or take more advantage of it's object nature and methods...
-    newROIs = AnalysisHelper.flatten(newROIs)
-    analysis = AnalysisHelper(newROIs, num_lanes, newOrigins, doUV, doRF, autoLane)
+    # TODO: what is reasoning for logic below?
+#    autoLane_received = data.get('autoLane') if data.get('autoLane') is not None else False
+#    autoLane = autoLane_received and not (doRF) # request.form['autoLane']=='true' and not (doRF)
+#    if autoLane:
+#        num_lanes=int(data['num_lanes']) #request.form['n_l'])
+#    else:
+#        num_lanes=1
+#    analysis = AnalysisHelper(newROIs, num_lanes, newOrigins, doRF, autoLane) # ROIs are flattened first, and origins is sent as [newOrigins]
 
     # TODO: what does this stuff below do?  and does it work if origins is empty?
-    analysis.sort2(analysis.origins,index = 0)
-    analysis.origins=analysis.origins[0]
-    analysis.origins = analysis.origins[::-1]
-    analysis.organize_into_lanes()
+#    analysis.sort2(analysis.origins,index = 0)
+#    analysis.origins=analysis.origins[0]
+#    analysis.origins = analysis.origins[::-1]
+#    analysis.organize_into_lanes(roi_list, lane_list)
     newdata = {}
 
-    newdata['ROIs'] = analysis.ROIs
-    newdata['origins'] = analysis.origins
+#    newdata['ROIs'] = analysis.ROIs
+    newdata['origins'] = newOrigins
     newdata['doRF'] = doRF
     newdata['radio_brightness'] = data.get('radio_brightness')
     newdata['radio_contrast'] = data.get('radio_contrast')
@@ -767,28 +726,30 @@ def analysis_rois_save(analysis_id):
 
     # Also compute results
     # Force autolane and num_lanes to False and None
-    doUV = False # TODO: fix to reflect actual desired value
-    new_analysis = AnalysisHelper(analysis.ROIs,None,analysis.origins,doUV, doRF, False)
+    # TODO: is origins backwards here and thus will cause problems in results?
+#    new_analysis = AnalysisHelper(analysis.ROIs,None,analysis.origins, doRF, False)
     # Load relevant image and send for computations
-    from filestorage import analysis_compute_path
-    img = np.load(analysis_compute_path(analysis_id))
-    results = new_analysis.results(img)
+#    analysis_compute(analysis_id, roi_list, lane_list)
+#    from filestorage import analysis_compute_path
+#    img = np.load(analysis_compute_path(analysis_id))
+#    results = new_analysis.results(img)
 
-    newdata['results'] = results
+    newdata['roi_list'] = roi_list
+    newdata['lane_list'] = lane_list
 
     # Save all info to the database (including results)
     from database import db_analysis_rois_save
     db_analysis_rois_save(analysis_id, newdata)
 
     return{
-        'ROIs': analysis.ROIs,
-        'origins': analysis.origins,
-        'results': results,
+#        'ROIs': analysis.ROIs,
+        'origins': newOrigins, # TODO: is there any reason to send this back to frontend?
+        'roi_list': roi_list,
+        'lane_list': lane_list,
     }
     
 # TODO: add error checking
 @app.route('/api/analysis/save', methods=['POST'])
-#@app.route('/time', methods = ['POST'])
 @cross_origin(supports_credentials=True)
 def analysis_save():
 
@@ -807,6 +768,7 @@ def analysis_save():
     if (prev_analysis is not None):
         # Compare previous and newly saved analysis to see if any fields changed that affect
         # display images or computation images ('compute'/'calc' and 'radii')
+        # TODO: this could be a bit streamlined. E.g. dirty bright_image_id or uv_image_id doesn't affect much
         if (data.get('radio_image_id') != prev_analysis.radio_image_id): cache_dirty = True
         if (data.get('dark_image_id') != prev_analysis.dark_image_id): cache_dirty = True
         if (data.get('flat_image_id') != prev_analysis.flat_image_id): cache_dirty = True
@@ -828,276 +790,37 @@ def analysis_save():
     if (cache_dirty):
         print ("/api/analysis/save: Change in parameters detected; image cache is dirty")
         # TODO: implement error checking for the following
+        from analysis import analysis_generate_working_images
         analysis_generate_working_images(analysis.analysis_id)
     
     return { 'id': analysis.analysis_id }
 
-
-# Helper function to load image files associated with an analysis
-# Return a dictionary of files
-def analysis_load_image_files(analysis_id):
-
-    from database import db_object_load
-    analysis = db_object_load('analysis', analysis_id)
-    from filestorage import image_file_upload_path
-
-    # Load radio image
-    Radio = None
-    if (analysis.radio_image_id is not None):
-        radio_image = db_object_load('image', analysis.radio_image_id)
-        radio_image_path = image_file_upload_path(radio_image.image_id, radio_image.filename)
-        Radio = np.loadtxt(radio_image_path) # TODO: rename to radio_image_array
-
-    # Load dark image
-    Dark = None
-    if (analysis.dark_image_id is not None):
-        dark_image = db_object_load('image', analysis.dark_image_id)
-        dark_image_path = image_file_upload_path(dark_image.image_id, dark_image.filename)
-        Dark = PIL.Image.open(dark_image_path) # TODO: rename to dark_image_array
-        Dark = np.asarray(Dark)
-
-    # Load flat image
-    Flat = None
-    if (analysis.flat_image_id is not None):
-        flat_image = db_object_load('image', analysis.flat_image_id)
-        flat_image_path = image_file_upload_path(flat_image.image_id, flat_image.filename)
-        Flat = PIL.Image.open(flat_image_path) # TODO: rename to flat_image_array
-        Flat = np.asarray(Flat)
-
-    # Load bright image
-    Bright = None
-    BrightFlat = None
-    if (analysis.bright_image_id is not None):
-        bright_image = db_object_load('image', analysis.bright_image_id)
-        bright_image_path = image_file_upload_path(bright_image.image_id, bright_image.filename)
-        Bright = np.loadtxt(bright_image_path) # TODO: rename to bright_image_array
-        # TEMP: create an all-ones flat image (since we for sure don't have a real one)
-        BrightFlat = np.zeros_like(Bright) + 1
-
-    # Load uv image
-    UV = None
-    UVFlat = None
-    if (analysis.uv_image_id is not None):
-        uv_image = db_object_load('image', analysis.uv_image_id)
-        uv_image_path = image_file_upload_path(uv_image.image_id, uv_image.filename)
-        UV = np.loadtext(uv_image_path) # TODO: rename to uv_image_array
-        # TEMP: create an all-ones flat image (since we for sure don't have a real one)
-        UVFlat = np.zeros_like(UV) + 1
-
-    return {
-        'radio': Radio,
-        'dark': Dark,
-        'flat': Flat,
-        'bright': Bright,
-        'uv': UV,
-        'brightflat': BrightFlat,   # TODO: eliminate?
-        'uvflat': UVFlat,           # TODO: eliminate?
-    }
-
-# Helper function to create cached images 
-# Probably portions should be moved into Analysis class
-# TODO: make sure we are capture full bpp data received from various image formats....
-def analysis_generate_working_images(analysis_id):
-
-    # Retrieve files
-    files = analysis_load_image_files(analysis_id)
-    Cerenkov = files['radio']
-    Dark = files['dark']
-    Flat = files['flat']
-    Bright = files['bright']
-    UV = files['uv']
-    BrightFlat = files['brightflat']
-    UVFlat = files['uvflat']
-
-    # TODO: does 'doUV' truly mean UV, or just 'superimpose'?
-    # Use UV as Bright if Bright not exists (NOT vice versa)
-
-    doUV = (UV is not None)
-
-    if (Bright is None):
-        Bright = UV
-        BrightFlat = UVFlat
-
-    # Apply image transformations
-    # TODO: need to actually look at the analysis parameters (i.e. corrections to apply)
-    # TODO: maybe allow user to apply a rotation to whole set of images????
-    # TODO: rest of this function is super-convoluted and needs to be simplified
-    #    Also, it is not clear why the 'calc' and 'radii' images are computed differently
-    #    Only the display image should be different I think...
-
-    # Computed the corrected radio image
-    if (Dark is not None): # if correct_dark
-        Cerenkov = Cerenkov-Dark
-    if (Flat is not None): # if correct_flat
-        Cerenkov = Cerenkov/Flat
-    # if correct_filter (also TODO: choose algorithm)
-    Cerenkov = filters.median(Cerenkov)
-    Cerenkov = transform.rotate(Cerenkov,270)
-    
-    Cerenkov_2 = Cerenkov.copy()
-
-    # TODO: this background should be computed before some corrections (e.g. flat)
-    # Compute background of this corrected image
-    disk = morphology.disk(25)
-    background = morphology.opening(Cerenkov,selem=disk)
-    #mean = np.mean(background)  # Doesn't appear to be used anywhere
-    Cerenkov -= background.copy()
-
-    # TODO: this is a crude background subtraction. CAREFUL!!!! only works if > half image
-    #   has background intensite
-    # TODO: QUESTION: why is there both the morphology and also 'median' background subtraction
-    #   methods?
-    Cerenkov-=np.median(Cerenkov)
-    Cerenkov_2-=np.median(Cerenkov_2)
-
-    # QUESTION: does this mean UV (as a second selection window), or just
-    # superimposed radio and brightfield??                    
-    if doUV:
-        Display_Radio = Cerenkov.copy()
-        Display_Radio = Display_Radio-np.min(Display_Radio)
-        Display_Radio = Display_Radio *1/np.max(Display_Radio)
-        Display_Radio = PIL.Image.fromarray((np.uint8(plt.get_cmap('viridis')(Display_Radio)*255)))
-        UV/=UVFlat
-        UV = transform.rotate(UV,270)
-        UV = filters.median(UV)
-        UV = (np.max(UV)-UV)
-        UV-=np.min(UV)
-        UV *= ((np.max(Cerenkov)-np.min(Cerenkov))/(np.max(UV)-np.min(UV)))
-        UV -=morphology.opening(UV,morphology.disk(30))
-        UV = UV**.65
-        UV*=(np.max(Cerenkov))/(np.max(UV))
-        Display_UV = UV.copy()
-        Display_UV = Display_UV-np.min(Display_UV)
-        Display_UV = Display_UV *1/np.max(Display_UV)
-        Display_UV = PIL.Image.fromarray((np.uint8(plt.get_cmap('viridis')(Display_UV)*255)))
-        Display = UV.copy()+Cerenkov_2.copy()
-
-    if  not doUV:
-        Cerenkov_2 -= np.median(Cerenkov_2)
-        Display = Cerenkov_2.copy()
-
-    # Save the radio image for finding ROIs... (Cerenkov => 'radii')
-    from filestorage import analysis_radii_path, save_array
-    save_array(Cerenkov, analysis_radii_path(analysis_id))
-
-    # Save the radio image for doing calculations... (Cerenkov_2 => 'compute'/'calc')
-    from filestorage import analysis_compute_path, save_array
-    save_array(Cerenkov_2, analysis_compute_path(analysis_id))
-
-    # Generate display image        
-    # TODO: remove redundancy with above
-    img = Display
-    img = img-np.min(img)
-    img = img *1/np.max(img)
-    img = PIL.Image.fromarray((np.uint8(plt.get_cmap('viridis')(img)*255)))
-    from filestorage import analysis_display_radio_path, save_file
-    save_file(img, analysis_display_radio_path(analysis_id))
-
-    if doUV:
-        # Not currently used in front-end
-        from filestorage import analysis_display_radio_path, analysis_display_uv_path, analysis_compute_path, save_file
-        save_file(Display_Radio, analysis_display_radio_path(analysis_id))
-        save_file(Display_UV, analysis_display_uv_path(analysis_id))
-
-    # TEMP MIKE ADDED: Create brightfield display image
-    if Bright is not None:
-        b = Bright
-        # TODO: apply corrections
-        b = b - np.min(b)  # subtract min, so lowest signal has zero value
-        b = b * 1/np.max(b) # divide by max so all all numbers are between 0 and 1
-        b = b * 255 # scale to full range of 8-bit image [[[[ DO browsers support 16-bit png??]]]]
-        b = transform.rotate(b,270)
-        b = PIL.Image.fromarray(np.uint8(b))
-        from filestorage import analysis_display_bright_path, save_file
-        save_file(b, analysis_display_bright_path(analysis_id))
-
-    # Update in database where the display image is, and when cache was updated
-
-    from database import db_analysis_image_cache
-    db_analysis_image_cache(
-        analysis_id,
-        f"/api/file/analysis/display-radio/{analysis_id}",
-        f"/api/file/analysis/display-bright/{analysis_id}" if Bright is not None else None
-    )
-
-    return True
-
 # TODO: maybe change this so it just finds one ROI and doesn't depend on others?
 #   also maybe don't have it save to the database, until clicking on 'submit lane info'?
+#   WHAT IS SHIFT DOING EXACTLY?
+# NOTE: ROI is not added to the database (user must do so explicitly)
 @app.route('/api/analysis/roi_build/<analysis_id>/<x>/<y>/<shift>',methods = ['POST', 'GET'])
 @cross_origin(supports_credentials=True)
 def analysis_roi_build(analysis_id,x,y,shift):
-    ROIs = json.loads(request.form.get('ROIs')) if request.form.get('ROIs') else []
+    #ROIs = json.loads(request.form.get('ROIs')) if request.form.get('ROIs') else []
     #ROIs = request.form.getlist('ROIs')
     #ROIs = ast.literal_eval(ROIs[0])
-    print(ROIs)
+    #print(ROIs)
     
-    from filestorage import analysis_radii_path
-    img = np.load(analysis_radii_path(analysis_id))
-    rowRadius = 0
-    colRadius = 0
-    num_zeros = 0
+    from analysis import analysis_roi_create_from_point
+    return { 'roi': analysis_roi_create_from_point(analysis_id, x, y, shift), }
 
-    row = int(y)
-    col = int(x)
-    #print(shift)
-    if (shift=='0'):
-        for i in range(3):
-            center  = AnalysisHelper.find_RL_UD(img,[(row,col)])
-            row = center[0][0]
-            col=center[0][1]
-    val =1.35*(np.mean(img[:,150:len(img[0])-150]))
-    max_zeros = 25
-    thickness = 8
-    while num_zeros<max_zeros and row+rowRadius<len(img) and row-rowRadius>0:
-        for i in range(round(-thickness/2),round(thickness/2)):
-            if img[(row+rowRadius)][(col+i)] <=val:
-                    num_zeros +=1
-            if img[row-rowRadius][col+i]<=val:
-                num_zeros+=1
-        rowRadius+=1
-    num_zeros = 0
-    while num_zeros<max_zeros and col+colRadius<len(img) and col-colRadius>0:
-        for i in range(round(-thickness/2),round(thickness/2)):
-            if img[row+i][col+colRadius] <= val:
-                num_zeros +=1
-            if img[row+i][col-colRadius] <=val:
-                num_zeros+=1
-        colRadius+=1
-    if shift ==('1'):
-        rowRadius,colRadius = 0,0
-    rowRadius,colRadius = min(max(rowRadius+3,14),55),min(max(colRadius+3,14),55)
-    
-    if (ROIs == []): ROIs[0] = []
+#    if (ROIs == []): ROIs[0] = []
     # TODO: change to roi.id, roi.x, roi.y, roi.rx, roi.ry
-    ROIs[0].append([int(y),int(x),int(rowRadius),int(colRadius)])
-    ROIs = AnalysisHelper.flatten(ROIs)
-    print('2',ROIs)
+#    ROIs[0].append([int(y),int(x),int(rowRadius),int(colRadius)])
+#    ROIs = AnalysisHelper.flatten(ROIs)
+#    print('2',ROIs)
     # TODO:  I think we should return the reorganized lane list also... or don't return
     #   num_lanes (just the ROI info).  It's a bit strange to return all ROIs as if
     #   they are one lane, but then return a non-1 value for num_lanes...
-    num_lanes = AnalysisHelper.numLanes_finder(ROIs)
-    return{"col":col,"row":row,"colRadius":colRadius,"rowRadius":rowRadius,"num_lanes":num_lanes}
+#    num_lanes = AnalysisHelper.numLanes_finder(ROIs)
+#    return{"col":col,"row":row,"colRadius":colRadius,"rowRadius":rowRadius,"num_lanes":num_lanes}
     
-'''
-@app.route('/api/analysis/results/<analysis_id>',methods = ['GET'])
-@cross_origin(supports_credentials=True)
-def analysis_results(analysis_id):
-        from database import db_object_load
-        analysis = db_object_load('analysis', analysis_id)
-        doUV = False # TODO: fix to reflect actual desired value
-        autolane = False
-        # TODO: doRF should always be true (at least attempt)
-        analysis_retrieve = AnalysisHelper(analysis.ROIs,None,analysis.origins,analysis_id,doUV, analysis.doRF,autolane)
-
-        # Load relevant image and send for computations
-        from filestorage import analysis_compute_path
-        img = np.load(analysis_compute_path(analysis_id))
-        analysis_results = analysis_retrieve.results(img)
-        #print(analysis_results)
-        return{ 'results': analysis_results}
-'''
-
 # Retrieve a file
 # TODO: add permission checks
 @app.route('/api/file/<object_type>/<file_type>/<object_id>', methods=['GET'])
@@ -1118,5 +841,4 @@ def get_file(object_type, file_type, object_id):
 if __name__ == '__main__':
     # TODO: consider what should go here, in 'before_app_first_request' or at the top of this file
     # (This is only run when it is the main app, not included in another file)
-    ##print("Running!")
     app.run(host='0.0.0.0',debug=False,port=5000)

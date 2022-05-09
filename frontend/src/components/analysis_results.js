@@ -1,6 +1,7 @@
 
 import React from "react";
 
+import Grid from "@material-ui/core/Grid";
 import Button from "@material-ui/core/Button";
 import Table from "@material-ui/core/Table";
 import TableBody from "@material-ui/core/TableBody";
@@ -15,53 +16,63 @@ const AnalysisResults = (props) => {
     return (
 
       <>  
-      {props.results_loaded ? ( 
+      {props.lane_list?.length > 0 ? ( 
 
+        <>
+
+        <Grid container direction='column' spacing={1}>
+
+        <Grid item>
+        <p>
+          For each lane (column), data for all ROIs are listed. The first value is the
+          signal fraction in that ROI, and the second value is the Rf value (if option selected).
+        </p>
+        </Grid>
+
+        <Grid item>
         <TableContainer component={Paper}>
-          <Table>
+          <Table fullWidth>
             <TableHead>
               <TableRow>
-                <TableCell id="tc">
-                  ROIS
-                </TableCell>
-                {props.results[0].map((band, i) => {
+                {props.lane_list.map((lane, i) => {
                   return (
-                    <TableCell id="tc" key={`lane-${i}`} align="right">
-                      Lane {i + 1}
+                    <TableCell id="tc" key={`lane-${i}`} align="center">
+                      Lane {lane.lane_id != null ? lane.lane_id : i+1}
                     </TableCell>
                   );
                 })}
               </TableRow>
             </TableHead>
             <TableBody>
-              {props.results.map((lane, i) => {
-                return (
-                  <TableRow key={`band-${i}`}>
-                    <TableCell id="tc" component="th" scope="row">
-                      <strong>Band {i + 1}</strong>
-                      <br/>Signal
-                      {props.doRF && (
-                        <><br/>RF value</>
-                      )}          
-                    </TableCell>
-                    {lane.map((band, j) => {
-                      return (
-                        <TableCell id="tc" key={`band-${i}-lane-${j}`} align="right">
+              <TableRow>
+                {props.lane_list.map((lane, i) => {
+                  return (
+                    <TableCell id="tc" key={`lanedata-${i}`} align="center" style={{ verticalAlign: 'top' }}>
+                      {lane.roi_list.map((roi, j) => {
+                        return (
+                          <>
+                            <br/>
+                            ROI {roi.roi_id} <br/>
+                            {(roi.signal_fraction * 100).toFixed(1)}%<br/>
+                            {props.show_Rf ? ("Rf = " + roi.Rf.toFixed(2) ) : (<></>)}
                           <br/>
-                          {(band[0] * 100).toFixed(1)}%<br/>
-                          {band.length > 1 ? " " + band[1].toFixed(2) : ""}
-                        </TableCell>
-                      );
-                    })}
-                  </TableRow>
-                );
-              })}
+                          </>
+                        );
+                      })}
+                    </TableCell>
+                  );
+                })}
+              </TableRow>
             </TableBody>
           </Table>
         </TableContainer>
+        </Grid>
+
+        </Grid>
+        </>
 
       ) : (
-        <p>No results available</p>
+        <p>Define at least one lane to show analysis results.</p>
       )}
       </>
                   
