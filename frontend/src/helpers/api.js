@@ -7,7 +7,6 @@
 // formData (creating many problems in the backend).
 //
 // TODO: 
-// * Change backend calls uniformly to '/api/....'
 // * Add error checking if missing API config environment variables
 // * Add error handling in backend (set status codes, add message, e.g. in data.error)
 // * For axios defaults, not sure which are critical to the sessions now working properly,
@@ -93,7 +92,7 @@ const backend_port = () => {
 // TODO: remove export once remove backend_url from all code
 // TODO: any way to detect whether http or https?
 export function backend_url(route) {
-    return 'http://' + backend_ip() + ':' + backend_port() + '/' + route;
+    return 'http://' + backend_ip() + ':' + backend_port() + route;
 }
 
 

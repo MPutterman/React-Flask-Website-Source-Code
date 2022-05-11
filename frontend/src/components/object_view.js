@@ -129,7 +129,7 @@ return (props) => {
     function objectLoad(id) {
         if (id) {
             setBusy(true);
-            callAPI('GET', `${object_type}/load/${id}`) // change to api/object/load/id
+            callAPI('GET', `/api/${object_type}/load/${id}`) 
             .then((response) => {
 
               if (response.error) {

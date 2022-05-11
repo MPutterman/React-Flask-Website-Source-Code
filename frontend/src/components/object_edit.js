@@ -176,7 +176,7 @@ return (props) => {
     function objectLoad(id) {
         if (id) {
             setBusy(true);
-            callAPI('GET', `${object_type}/load/${id}`) // TODO: change to api/object/load/id
+            callAPI('GET', `/api/${object_type}/load/${id}`)
             .then((response) => {
                 if (response.error) {
                     // TODO: handle some specific errors (e.g. unauthorized) or add error details?
@@ -568,7 +568,7 @@ const WrappedUserEdit = ({model, ...props}) => {
     const handlePhotoChange = (event) => {
         if (event instanceof File) {
             setBusy(true);
-            callAPI('POST', `api/user/photo_upload/${model.user_id}`, { file: event })
+            callAPI('POST', `/api/user/photo_upload/${model.user_id}`, { file: event })
             .then((response) => {
                 // TODO: Interpret response
                 // TODO: Reload (if we show the image)

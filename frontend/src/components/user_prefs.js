@@ -190,7 +190,7 @@ const UserPrefs = (props) => {
         let newdata = {prefs: JSON.stringify(data)};
         console.log ('saveUserPrefs, sanitized data', newdata);
 
-        return callAPI('POST', 'api/prefs/save', newdata)
+        return callAPI('POST', '/api/prefs/save', newdata)
         .then((response) => {
             setAlert({severity: 'success', message: 'Preferences successfully saved'});
             setBusy(false);

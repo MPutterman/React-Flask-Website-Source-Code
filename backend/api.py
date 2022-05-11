@@ -380,7 +380,7 @@ def object_name_lookup(object_type, object_id):
 
 # Generic handler to load object not caught by ealier routes
 # Return dict of fields
-@app.route('/<object_type>/load/<object_id>', methods = ['GET'])
+@app.route('/api/<object_type>/load/<object_id>', methods = ['GET'])
 @cross_origin(supports_credentials=True)
 def object_load(object_type, object_id):
     if not object_type_valid(object_type):
@@ -491,7 +491,7 @@ def object_clone(object_type, object_id):
 # Generic handler to search objects not caught by earlier routes
 # Filters and pagination passed as URL arguments    TODO: implement this
 # Return { results: [Array of dict] }
-@app.route('/<object_type>/search', methods = ['GET'])
+@app.route('/api/<object_type>/search', methods = ['GET'])
 @cross_origin(supports_credentials=True)
 def object_search(object_type, object_filter={}):
     if not object_type_valid(object_type):
@@ -504,7 +504,7 @@ def object_search(object_type, object_filter={}):
         return api_error_response(HTTPStatus['INTERNAL_SERVER_ERROR'], 'Database error')
     return { 'results': [record.as_dict() for record in record_list] }
 
-@app.route('/<object_type>/search/favorites', methods = ['GET'])
+@app.route('/api/<object_type>/search/favorites', methods = ['GET'])
 @cross_origin(supports_credentials=True)
 def object_search_favorites(object_type):
     return object_search(object_type, {'favorites': {'user_id': flask_login.current_user.get_id()}})
@@ -543,7 +543,7 @@ def image_save():
     else:
         return { 'id': record.image_id }
 
-@app.route('/user/login/<login_method>', methods=['POST'])
+@app.route('/api/user/login/<login_method>', methods=['POST'])
 @cross_origin(supports_credentials=True)
 def user_login(login_method):
 
@@ -607,7 +607,7 @@ def user_login(login_method):
     else:
         return prepare_session_response(None, False, 'Invalid login type')
 
-@app.route('/user/logout', methods=['POST'])
+@app.route('/api/user/logout', methods=['POST'])
 #@flask_login.login_required
 @cross_origin(supports_credentials=True)
 def user_logout():

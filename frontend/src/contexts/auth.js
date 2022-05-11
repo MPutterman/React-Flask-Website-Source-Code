@@ -261,7 +261,7 @@ export const AuthReducer = ({session: prevSession, profile: prevProfile, roles: 
 async function loadSessionFromServer(dispatch) { // This one is not exported and only called internally by AuthContext
 
     dispatch({ type: 'REQUEST_SESSION' });
-    return callAPI('GET', 'api/session/load')
+    return callAPI('GET', '/api/session/load')
     .then((response) => {
         let user = response.data.current_user;
         let prefs = response.data.prefs;
@@ -287,9 +287,9 @@ export async function authGoogleLogin(dispatch,data){
   dispatch({ type: 'REQUEST_LOGIN' });
   // TODO: filter 'data' to contain only tokenId and remember
   data.remember = false;  
-  return callAPI('POST', 'user/login/google', data)
+  return callAPI('POST', '/api/user/login/google', data)
   .then((response) => {
-    console.log ('POST /user/login/google, response =>', response.data);
+    console.log ('POST /api/user/login/google, response =>', response.data);
     let user = response.data.current_user;
     let prefs = response.data.prefs;
     let favorites = response.data.favorites;
@@ -314,9 +314,9 @@ export async function authLogin(dispatch, data) {
 
     // TODO: filter 'data' to just contain the keys: email, password, remember
 
-    return callAPI('POST', 'user/login/basic', data)
+    return callAPI('POST', '/api/user/login/basic', data)
     .then((response) => {
-        console.log ('POST /user/login/basic, response =>', response.data);
+        console.log ('POST /api/user/login/basic, response =>', response.data);
         let user = response.data.current_user;
         let prefs = response.data.prefs;
         let favorites = response.data.favorites;
@@ -339,7 +339,7 @@ export async function authLogin(dispatch, data) {
 
 export async function authLogout(dispatch) {
 
-    return callAPI('POST', 'user/logout', [])
+    return callAPI('POST', '/api/user/logout', [])
     .then((response) => {
         let user = response.data.current_user;
         if (!user) {

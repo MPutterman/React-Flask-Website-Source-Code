@@ -100,7 +100,7 @@ const ObjectSearch = ({
     // Retrieve list of images
     const loadObjects = (filters=[]) => {
         setBusy(true);
-        var url = `${object_type}/search`;
+        var url = `/api/${object_type}/search`;
         if (filters.includes('favorites')) url += '/favorites';
         callAPI('GET', url)
         .then((response) => {

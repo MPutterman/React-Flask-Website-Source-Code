@@ -26,7 +26,7 @@ const cachedListPemissions = React.memo(({ objectType, objectID }) => {
 
 // Determine if user has permission to perform an action on an object (or object type)
 async function hasPermission(action, object_type, id) {
-    return callAPI('GET', `api/check_permission/${object_type}/${action}/${id}`)
+    return callAPI('GET', `/api/check_permission/${object_type}/${action}/${id}`)
     .then((response) => {
         if (response.error) {
             console.warn(`Error ${response.status} from /api/check_permission call: ${response.data.error}`);
@@ -43,7 +43,7 @@ async function hasPermission(action, object_type, id) {
 
 // List the allowed actions on the object (or object type)
 async function listPermissions(object_type, id) {
-    return callAPI('GET', `api/list_permissions/${object_type}/${id}`)
+    return callAPI('GET', `/api/list_permissions/${object_type}/${id}`)
     .then((response) => {
         if (response.error) {
             console.warn(`Error ${response.status} from /api/list_permissions call: ${response.data.error}`);
@@ -66,7 +66,7 @@ async function listPermissions(object_type, id) {
             ['listPermissions', {type:object_type, id:id}],
             async () => {
                 // TODO: throw error (for useQuery to detect) if any error occurs...
-                return callAPI('GET', `api/list_permissions/${object_type}/${id}`)
+                return callAPI('GET', `/api/list_permissions/${object_type}/${id}`)
                 .then((response) => {
                     if (response.error) {
                         console.warn(`Error ${response.status} from /api/list_permissions call: ${response.data.error}`);

@@ -104,7 +104,7 @@ const ObjectFavoriteButton = (props) => {
 
         const action = is_fav() ? 'remove' : 'add';
         
-        callAPI('POST', `api/favorite/${action}/${object_type}/${id}`)
+        callAPI('POST', `/api/favorite/${action}/${object_type}/${id}`)
         .then((response) => {
 
             if (response.error) {
@@ -164,7 +164,7 @@ const ObjectCloneButton = (props) => {
         .then(() => {
 
             setBusy(true);
-            callAPI('POST', `api/${object_type}/clone/${id}`)
+            callAPI('POST', `/api/${object_type}/clone/${id}`)
             .then((response) => {
 
                 if (response.error) {
@@ -216,7 +216,7 @@ const ObjectDeleteButton = (props) => {
         .then(() => {
 
             setBusy(true);
-            callAPI('POST', `api/${object_type}/delete/${id}`)
+            callAPI('POST', `/api/${object_type}/delete/${id}`)
             .then((response) => {
 
                 if (response.error) {
@@ -265,7 +265,7 @@ const ObjectRestoreButton = (props) => {
 
             setBusy(true);
 
-            callAPI('POST', `api/${object_type}/restore/${id}`)
+            callAPI('POST', `/api/${object_type}/restore/${id}`)
             .then((response) => {
 
                 if (response.error) {
@@ -348,7 +348,7 @@ const ObjectPurgeButton = (props) => {
 
             setBusy(true);
 
-            callAPI('POST', `api/${object_type}/purge/${id}`)
+            callAPI('POST', `/api/${object_type}/purge/${id}`)
             .then((response) => {
 
                 if (response.error) {

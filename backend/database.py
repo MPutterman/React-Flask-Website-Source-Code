@@ -808,8 +808,8 @@ def db_user_photo_upload(user_id, photo, thumbnail, avatar):
     # Update filename and paths in database
     user = db_object_load('user', user_id)
     user.photo_filename = filename
-    user.thumbnail_url = f"api/file/user/thumbnail/{str(user_id)}"
-    user.avatar_url = f"api/file/user/avatar/{str(user_id)}"
+    user.thumbnail_url = f"/api/file/user/thumbnail/{str(user_id)}"
+    user.avatar_url = f"/api/file/user/avatar/{str(user_id)}"
     db_session.commit()
     print (user)
     return True

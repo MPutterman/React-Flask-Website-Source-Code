@@ -583,7 +583,7 @@ async function userValidator(model, error) {
     console.log ('userValidator: model =>', model);
     if (error) console.log ('error.details =>', error.details);
     if (!model.user_id && model.email) { 
-        return callAPI('GET', `api/user/email_exists/${encodeURIComponent(model.email)}`)
+        return callAPI('GET', `/api/user/email_exists/${encodeURIComponent(model.email)}`)
         .then((response) => {
             // TODO: error checking?
             if (response.data.exists) {

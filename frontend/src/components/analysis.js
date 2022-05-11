@@ -141,7 +141,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
   // any lane until the ROIs and lanes are saved.
   // QUESTION: what does 'shift' do? (seems related to whether shift key is pressed??)
   async function buildROI(x,y,shift) {
-    callAPI('GET', `api/analysis/roi_build/${model.analysis_id}/${x}/${y}/${shift}`, {})
+    callAPI('GET', `/api/analysis/roi_build/${model.analysis_id}/${x}/${y}/${shift}`, {})
       .then((res) => {
         return setLaneState(prev => {
           const new_roi = res.data.roi;
@@ -393,7 +393,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
       'num_lanes': laneState.num_lanes,
       'origins': JSON.stringify(laneState.origins),
     };
-    return callAPI('POST', `api/analysis/lanes_autoselect/${model.analysis_id}`, data)
+    return callAPI('POST', `/api/analysis/lanes_autoselect/${model.analysis_id}`, data)
     .then((response) => {
         if (response.error) {
             setAlert({severity: 'warning', message: `Error autoselecting lanes: ${response.data.error}`});
