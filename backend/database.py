@@ -1,23 +1,19 @@
 # TODO:
-# * Currently images (radio, dark, bright) are in different formats... this should be reconsidered in the future
-# * Enforce adding of extension to upload files
+# * Enforce adding of extension to upload files?
 # * Auto-create a thumbnail of uploaded Image files...
-# * Perhaps can use a mixin to share code of common fields (owner_id, modified, created, deleted)
 # * Check saving methods to make sure immune to SQL injection. (SQLAlchemy handles a lot automatically with the ORM)
 # * Add some convenience methods, e.g. get_id(), get_name()?
+# * Perhaps can use a mixin to share code of common fields (owner_id, modified, created, deleted)?
 # * An alternative design strategy would be to put owner_id, modified, created, deleted into a separate table
-#     to basically track ownership/permissions, deletion status, and edit history
+#     to basically track ownership/permissions, deletion status, and edit history.
 # * Be careful of string versus number IDs!!!
 # * SQLAlchemy PickleType does NOT detect changes to a portion of the object (e.g. dict) and will not properly
 #     commit to database when a partial change is made. For now we rewrite the
 #     whole thing whenever we make a change. Need to look into how to use 'MutableDict' or other approaches
 #     to make this more efficient or intutive
-# * If an Image is updated (e.g. replace image)... then should dependent analyses be recomputed??... Problably
+# * If an Image is updated (e.g. replace a dark image)... then should all dependent analyses be recomputed??... Problably
 #     Should prevent updating the image after saving to prevent issues...
-
-# Package dependencies:
-# mysql-connector-python, SQLAlchemy, flask-login
-
+#
 # REFERENCES and CREDITS:
 # * https://variable-scope.com/posts/storing-and-verifying-passwords-with-sqlalchemy (more sophisticated handling of password hashes)
 # * http://docs.sqlalchemy.org/en/14/orm/basic_relationships.html#many-to-many (how to set up data relationships with SQLAlchemy)
@@ -284,7 +280,7 @@ class Analysis(Base):
     bright_contrast = Column(Integer)
     bright_brightness = Column(Integer)
     bright_opacity = Column(Integer)
-    doRF = Column(Boolean)
+    show_Rf = Column(Boolean)
     origins = Column(PickleType, default=[], nullable=False)
     roi_list = Column(PickleType, default=[], nullable=False)
     lane_list = Column(PickleType, default=[], nullable=False)
@@ -887,15 +883,15 @@ def db_analysis_image_cache(analysis_id, url_radio, url_bright=None):
     analysis.image_cache_modified = datetime.now(timezone.utc)
     db_session.commit()
 
-# Save ROI and origin info
+# Save ROI and lane info
 # Returns an analysis object
 # TODO: add error checking
 # TODO: should this affect 'modified' flag?  Probably
-def db_analysis_rois_save(analysis_id, data):
+def db_analysis_rois_lanes_save(analysis_id, data):
     analysis = db_object_load('analysis', analysis_id)
     # Only update fields provided
     analysis.origins = data['origins']
-    analysis.doRF = data['doRF']
+    analysis.show_Rf = data['show_Rf']
     analysis.radio_brightness = data['radio_brightness']
     analysis.radio_contrast = data['radio_contrast']
     analysis.radio_opacity = data['radio_opacity']

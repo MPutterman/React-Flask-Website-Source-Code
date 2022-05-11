@@ -24,8 +24,7 @@
 # * Need to test whether session timeout is working properly, and remember-me feature
 # * Make API more consistent. Some failed calls return status 500. Some return { error: message }
 # * Add caching of images to the session, to avoid re-loading files when doing multiple back-to-back requests
-# * If we allow analysis with UV images, probably need to superimpose the UV and add controls for mixing it's intensity
-#   and then probably need a way to select UV ROIs...  ignore for now
+
 
 import time
 import json
@@ -41,7 +40,6 @@ import urllib
 import ast
 import datetime
 from dateutil import parser
-from analysis import AnalysisHelper
 
 # Include database layer
 from database import db_create_tables, db_add_test_data, db_cleanup, object_type_valid
@@ -619,29 +617,18 @@ def user_logout():
     else:
         return prepare_session_response(None, True, 'Not logged in')
 
-# Auto-select ROIs based on the image (geometry aspects of ROIs only)
+# Automatically select ROIs based on the image (geometry aspects of ROIs only)
 # NOTE: Analysis in database is not updated. User must separately save the ROIs.
 @app.route('/api/analysis/rois_autoselect/<analysis_id>', methods=['GET'])
 @cross_origin(supports_credentials=True)
 def analysis_rois_autoselect(analysis_id):
-
-    # Since ROI list is not yet organized into lanes, return list as ROI[0]
-    # TODO: get rid of the [0] part
-    # TODO: make full-fledged ROIs
     from analysis import analysis_rois_find
-    results = analysis_rois_find(analysis_id)
-    #auto_ROIs = [results['ROIs']]
-    # New format
-    roi_list = results['roi_list']
-    print ("ROI list")
-    print (roi_list)
+    return {'roi_list': analysis_rois_find(analysis_id), }
 
-    return {'roi_list': roi_list }
-
-# Auto-select TLC lanes based on ROIs (geometric aspects only)
+# Automatically define TLC lanes based on ROIs (geometric aspects only)
 # NOTE: Analysis in database is not updated. User must separately save the lanes.
-# TODO: also build into this the use of origins if desired...?
-@app.route('/api/analysis/lanes_autoselect/<analysis_id>', methods=['POST']) # TEMPORARY NEED POST TO PASS IN DATA
+# TODO: check various combinations of num_lanes and num_ROIs and check error handling
+@app.route('/api/analysis/lanes_autoselect/<analysis_id>', methods=['POST'])
 @cross_origin(supports_credentials=True)
 def analysis_lanes_autoselect(analysis_id):
 
@@ -649,39 +636,41 @@ def analysis_lanes_autoselect(analysis_id):
     #ROIs = json.loads(data.get('ROIs')) if data.get('ROIs') is not None else []
     roi_list = json.loads(data.get('roi_list')) if data.get('roi_list') is not None else []
     origins = json.loads(data.get('origins')) if data.get('origins') is not None else []
-    # TODO: MAJOR use JSON.stringify for ALL data from frontend??
+
+    if (len(origins) > 0):
+        from analysis import analysis_lanes_from_origins
+        return {'lane_list': analysis_lanes_from_origins(roi_list, origins),'origins': origins}
+
     num_lanes = int(data.get('num_lanes'))
-    # TODO: in future, if num_lanes is zero, try to automatically determine the number
-    #   of lanes (see code in analysis.js)
-    if (num_lanes == 0):
-        return {'lane_list': []}
+    # If num_lanes is missing, try to estimate number of lanes
+    if num_lanes == 0 or num_lanes is None:
+        from analysis import analysis_lanes_autocount
+        auto_num_lanes = analysis_lanes_autocount(roi_list)
+        print ('autonumlanes and num_lanes')
+        print(auto_num_lanes)
+        print(num_lanes)
+        if auto_num_lanes is None:
+            return api_error_response(HTTPStatus['INTERNAL_SERVER_ERROR'],'Number of lanes must be specified. Attempt to guess failed.')
 
     from analysis import analysis_lanes_find
-    return {'lane_list': analysis_lanes_find(roi_list, num_lanes)}
+    lanes = analysis_lanes_find(roi_list, num_lanes)
+    if lanes is None:
+        return api_error_response(HTTPStatus['INTERNAL_SERVER_ERROR'], 'Unable to find the number of lanes specified.')
+    return {'lane_list': lanes, 'origins': origins}
 
-# TODO: current there is a lot of info packed into the arguments
-#   Consider having separate route for 'autolane' etc... and this just
-#   purely update the ROIs from front-end (and group into lanes, if appropriate)
-#   -- Right now, it sorts and auto-selects lanes. Perhaps we should have a 
-#   -- specific button for lane selection.  We should also do some sorting
-#   -- such as flagging which ROIs belong to no lane?
 # Save the ROI and lane information (plus GUI options selected by user) to
-# the analysis. It also computes all the data for ROIs and lanes for any changed ROIs
-# and lanes.
-# TODO: is this expensive? Should we just recalculate all lanes and ROIs every time for now?
-@app.route('/api/analysis/rois_save/<analysis_id>',methods = ['POST'])
+# the analysis. It also groups all ROIs into lanes. (All previous assignments are discared.)
+# It also computes all the data for ROIs and lanes for all ROIs and lanes.
+@app.route('/api/analysis/rois_lanes_save/<analysis_id>',methods = ['POST'])
 @cross_origin(supports_credentials=True)
-def analysis_rois_save(analysis_id):
+def analysis_rois_lanes_save(analysis_id):
 
     # Retrieve JSON data from request (preserves proper types)
     data = json.loads(request.form.get('JSON_data'))
     roi_list = json.loads(data.get('roi_list')) if data.get('roi_list') is not None else {}
     lane_list = json.loads(data.get('lane_list')) if data.get('lane_list') is not None else []
 
-    # Automatically assign ROIs to lanes.
-    # TODO: in future, we may not always want to do this, but for now the user has no
-    # manual way to make assignments so this is a good option in case new ROIs were
-    # added or removed.
+    # Automatically assign ROIs to lanes
     from analysis import analysis_assign_rois_to_lanes
     analysis_assign_rois_to_lanes(roi_list, lane_list)
 
@@ -690,33 +679,16 @@ def analysis_rois_save(analysis_id):
     from analysis import analysis_compute
     analysis_compute(analysis_id, roi_list, lane_list)
 
-    # TODO: rename doRF to show_Rf
-    doRF = data.get('doRF') if data.get('doRF') is not None else False
+    show_Rf = data.get('show_Rf') if data.get('show_Rf') is not None else False
+    # TODO: should we use these origins?  Currently we expect user to 
+    #  hit "generate lanes" before saving
+    origins = json.loads(data.get('origins')) if data.get('origins') is not None else []
 
-    newOrigins = json.loads(data.get('origins')) if data.get('origins') is not None else []
-
-    # TODO: CHECK THE OLD "organize_into_lanes" and "results" (from analysis.py)
-    # TO FIGURE OUT HOW TO DO THE AUTOMATIC LANE PREDICTION
-
-    # TODO: what is reasoning for logic below?
-#    autoLane_received = data.get('autoLane') if data.get('autoLane') is not None else False
-#    autoLane = autoLane_received and not (doRF) # request.form['autoLane']=='true' and not (doRF)
-#    if autoLane:
-#        num_lanes=int(data['num_lanes']) #request.form['n_l'])
-#    else:
-#        num_lanes=1
-#    analysis = AnalysisHelper(newROIs, num_lanes, newOrigins, doRF, autoLane) # ROIs are flattened first, and origins is sent as [newOrigins]
-
-    # TODO: what does this stuff below do?  and does it work if origins is empty?
-#    analysis.sort2(analysis.origins,index = 0)
-#    analysis.origins=analysis.origins[0]
-#    analysis.origins = analysis.origins[::-1]
-#    analysis.organize_into_lanes(roi_list, lane_list)
     newdata = {}
-
-#    newdata['ROIs'] = analysis.ROIs
-    newdata['origins'] = newOrigins
-    newdata['doRF'] = doRF
+    newdata['origins'] = origins
+    newdata['show_Rf'] = show_Rf
+    newdata['roi_list'] = roi_list
+    newdata['lane_list'] = lane_list
     newdata['radio_brightness'] = data.get('radio_brightness')
     newdata['radio_contrast'] = data.get('radio_contrast')
     newdata['radio_opacity'] = data.get('radio_opacity')
@@ -724,26 +696,12 @@ def analysis_rois_save(analysis_id):
     newdata['bright_contrast'] = data.get('bright_contrast')
     newdata['bright_opacity'] = data.get('bright_opacity')
 
-    # Also compute results
-    # Force autolane and num_lanes to False and None
-    # TODO: is origins backwards here and thus will cause problems in results?
-#    new_analysis = AnalysisHelper(analysis.ROIs,None,analysis.origins, doRF, False)
-    # Load relevant image and send for computations
-#    analysis_compute(analysis_id, roi_list, lane_list)
-#    from filestorage import analysis_compute_path
-#    img = np.load(analysis_compute_path(analysis_id))
-#    results = new_analysis.results(img)
-
-    newdata['roi_list'] = roi_list
-    newdata['lane_list'] = lane_list
-
     # Save all info to the database (including results)
-    from database import db_analysis_rois_save
-    db_analysis_rois_save(analysis_id, newdata)
+    from database import db_analysis_rois_lanes_save
+    db_analysis_rois_lanes_save(analysis_id, newdata)
 
     return{
-#        'ROIs': analysis.ROIs,
-        'origins': newOrigins, # TODO: is there any reason to send this back to frontend?
+        'origins': origins, # TODO: is there any reason to send this back to frontend?
         'roi_list': roi_list,
         'lane_list': lane_list,
     }
@@ -795,31 +753,14 @@ def analysis_save():
     
     return { 'id': analysis.analysis_id }
 
-# TODO: maybe change this so it just finds one ROI and doesn't depend on others?
-#   also maybe don't have it save to the database, until clicking on 'submit lane info'?
-#   WHAT IS SHIFT DOING EXACTLY?
+# Build an ROI from a clicked point
+# TODO: what does 'shift' do exactly?
 # NOTE: ROI is not added to the database (user must do so explicitly)
 @app.route('/api/analysis/roi_build/<analysis_id>/<x>/<y>/<shift>',methods = ['POST', 'GET'])
 @cross_origin(supports_credentials=True)
 def analysis_roi_build(analysis_id,x,y,shift):
-    #ROIs = json.loads(request.form.get('ROIs')) if request.form.get('ROIs') else []
-    #ROIs = request.form.getlist('ROIs')
-    #ROIs = ast.literal_eval(ROIs[0])
-    #print(ROIs)
-    
     from analysis import analysis_roi_create_from_point
     return { 'roi': analysis_roi_create_from_point(analysis_id, x, y, shift), }
-
-#    if (ROIs == []): ROIs[0] = []
-    # TODO: change to roi.id, roi.x, roi.y, roi.rx, roi.ry
-#    ROIs[0].append([int(y),int(x),int(rowRadius),int(colRadius)])
-#    ROIs = AnalysisHelper.flatten(ROIs)
-#    print('2',ROIs)
-    # TODO:  I think we should return the reorganized lane list also... or don't return
-    #   num_lanes (just the ROI info).  It's a bit strange to return all ROIs as if
-    #   they are one lane, but then return a non-1 value for num_lanes...
-#    num_lanes = AnalysisHelper.numLanes_finder(ROIs)
-#    return{"col":col,"row":row,"colRadius":colRadius,"rowRadius":rowRadius,"num_lanes":num_lanes}
     
 # Retrieve a file
 # TODO: add permission checks

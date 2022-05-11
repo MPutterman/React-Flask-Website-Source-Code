@@ -1,31 +1,12 @@
 # TODO:
-# * Clean up autolane, n_l, doRF, etc.... - Most are now eliminated
-# * Rename doRF to show_Rf
-# ---- Add a user-preference whether to show RF values by default 
-# ---- Add a show_roi_id checkbox (visual effect only for the results table, but store setting in database)
-# * Do we want to show ROI id and Rf values on the image?
-
-# -- If lanes are defined (e.g. via origins), populate num_lanes from definitions
-# -- If lanes are not defined, have box to select number of lanes and button button to assign ROIs to lanes
-# -- Add a way to assign ROI to a lane (or remove from a lane)? Or only allow ROIs within the boundaries of the lane as drawn?
-# -- If add a bunch of ROIs (and not assigned to lane), should we have a button "auto assign all unassigned ROIs"?
-# ----- Right now build ROI automatically re-runs autolane. But maybe don't do this until 'submit roi info'
-#       button is pushed.  But we could somehow indicate that num_lanes is not accurate.??
-#  TODO: FIGURE OUT THIS INTERFACE MORE CLEARLY BEFORE TRYING TO WRITE IT :)
-#  TODO: add an 'analysis type / template', e.g. TLC, chips, etc... and apply auto ROI select
-#     and auto-lane in a consistent manner with that
-#  TODO: calculate 'pseudo-Rf' values if no origins are given?
-#
 # * Make sure to properly implement cache dirty-ing
-# * Add some support for user to draw lanes? Or load a lane-template (e.g. 4 chips or
-# *  8 lanes) and then tweak positions?
-# * Consider whether the object with constructor is needed, or whether this should be a set of
-#   static methods...
-# * There are several edge cases leading to errors, e.g. empty ROI list, etc.  Also there are some
-#     baked in assumptions that are not clear. What is the structure of origins?  Why does num_lanes
-#     change to 10 when I have 8 lanes and add two extra origins for solvent front...?
-# * Move the remaining image computations from api.py to here
-# * Need to prevent ROI overlap (both for auto-generated or user-generated)
+# * Use more uniform naming in this module
+# * REMOVE ALL TODOS from the files into feature document
+# * A few functions in here need some study to understand fully
+#
+# Resources:
+# - Using KMeans and KneeLocator to estimate number of lanes:
+#   https://practicaldatascience.co.uk/machine-learning/how-to-use-knee-point-detection-in-k-means-clustering
 
 # NOTE: The analysis aspects make extensive use of caching to improve performance, and
 # changes to the image, analysis parameters, ROIs or lanes can cause cached information
@@ -47,11 +28,11 @@ from scipy.cluster.vq import kmeans,whiten
 from skimage import morphology, filters, transform, measure
 import matplotlib
 import matplotlib.pyplot as plt
-from kneed import KneeLocator
 from skimage.measure import label
 import PIL
 import numpy as np
 from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
 
 # Helper function to load a full set of image files associated with an analysis.
 # Returns a dictionary of files
@@ -293,7 +274,7 @@ def analysis_compute(analysis_id, roi_list, lane_list):
     }
 
 # Build an ROI from a click on a point
-def analysis_roi_create_from_point(analysis_id, x, y, shift)
+def analysis_roi_create_from_point(analysis_id, x, y, shift):
     from filestorage import analysis_radii_path
     img = np.load(analysis_radii_path(analysis_id))
 
@@ -305,10 +286,8 @@ def analysis_roi_create_from_point(analysis_id, x, y, shift)
 
     return create_ellipse_ROI(col, row, colRadius, rowRadius)
 
-
-
-# TODO: this function finds the size of an ellipse ROI starting from a point
-# TODO: change this so that it loads the image itself...
+# Finds size of ellipse ROI from a starting point
+# TODO: figure out how this works in detail
 def findRadius(img,x,y,shift):
     rowRadius = 0
     colRadius = 0
@@ -348,15 +327,14 @@ def findRadius(img,x,y,shift):
     # TODO: change this so it returns an ROI?
     return{"col":col,"row":row,"colRadius":colRadius,"rowRadius":rowRadius}
 
-
-
 def find_RL_UD_multiple(img,centers):
     arr = []
     for center in centers:
         arr.append(find_RL_UD(img,center))
     return arr
 
-# TODO: finds the bounding box for ROI starting with a point
+# Finds the bounding box for ROI starting with a point
+# TODO: Figure out in detail how this works
 def find_RL_UD(img,center):
 
     x,y=center[1],center[0]
@@ -410,31 +388,52 @@ def analysis_rois_find(analysis_id):
     from filestorage import analysis_compute_path, analysis_radii_path
     img = np.load(analysis_compute_path(analysis_id))
     imgR = np.load(analysis_radii_path(analysis_id))
-    ROIs = ROIs_from_points(findCenters(img),imgR)
+
+    # Find ROI centers
+    points = findCenters(img)
+    # Find ROIs based on centers
+    ROIs = []
+    for i in range(len(points)):
+        res = findRadius(img,points[i][1],points[i][0],1)
+        ROIs.append([points[i][0],points[i][1],res['rowRadius'],res['colRadius']])
+
     # Generate new format ROIs:
     roi_list = []
     for ROI in ROIs:
         roi_list.append(create_ellipse_ROI(ROI[1],ROI[0],ROI[3],ROI[2]))
-    return {
-#        'ROIs': ROIs,
-        'roi_list': roi_list,
-    }
+    return roi_list
 
-# Helper function for analysis_rois_autoselect
-def ROIs_from_points(points,img):
-    arr = []
-    for i in range(len(points)):
-        res = findRadius(img,points[i][1],points[i][0],1)
-        arr.append([points[i][0],points[i][1],res['rowRadius'],res['colRadius']])
-    return arr
+# Create lanes from origins. Assumes two highest further points are for
+# defining the solvent front.  Mutates origins.  Returns a lane_list.
+def analysis_lanes_from_origins(roi_list, origins):
+    # Separate solvent front points from origins
+    # - First sort in Y direction (lowest Y at beginning)
+    origins.sort(reverse=False, key=lambda origin: origin[0]) #Y-coord (row)
+    # - Remove first 2 points (assumed to be solvent front)
+    origins_only = origins[2:]
+    # Sort origins from left to right
+    origins_only.sort(reverse=False, key=lambda origin: origin[1]) #X-coord (col)
+    # Generate new origins list (by re-appending solvent front definition)
+    origins = [origins[0]] + [origins[1]] + origins_only
+    # Generate formatted lane_list
+    lane_list = []
+    solvent_front_y = (origins[0][0] + origins[1][0]) / 2
+    for origin in origins_only:
+        lane_list.append(create_tlc_lane (origin[1], origin[0], origin[1], solvent_front_y))
+    return lane_list 
 
 # Predict the location of TLC lanes (vertical) by performing KMeans clustering
-# of ROIs for the selected number of lanes
-# TODO: cluster based on center of mass if available?
-# TODO: do we want to assign points to lanes also based on what's in clusters?  'Labels' are
-#  an array integer values for each input point giving cluster (i.e. lane) number.
-#  When do we do sorting?  Before or after?
-def analysis_lanes_find(roi_list,num_lanes):
+# of ROIs for the selected number of lanes. 
+# TODO: Is there a minimum number of lanes or ROIs needed?
+# TODO: should we use the 'labels' method to also capture which ROIs are in each cluster to avoid reassigning later?
+def analysis_lanes_find(roi_list, num_lanes=0, origins=[]):
+
+    if num_lanes == 0:
+        return []
+
+    if num_lanes > len(roi_list):
+        return None
+
     # Assemble list of x-values of ROIs
     x_rois = [] 
     for roi in roi_list:
@@ -445,13 +444,16 @@ def analysis_lanes_find(roi_list,num_lanes):
     # Perform clustering
     x_lanes = KMeans(n_clusters=num_lanes).fit(x_rois).cluster_centers_
     x_lanes = x_lanes.reshape(1,-1)[0].tolist()
-    x_lanes.sort() # Sort left to right
+    # Sort lanes left to right
+    x_lanes.sort()
+    # Generate formatted lane_list
     lane_list = []
     for x in x_lanes:
         lane_list.append(create_tlc_lane (x, None, None, None))
     return lane_list 
 
-# Assign ROIs to lanes based on proximity of x-coordinate
+# Assign ROIs to lanes based on proximity of x-coordinate. Sorts ROIs
+# by increasing Y-value (i.e. top to bottom) for results reporting.
 # Mutates the lanes, i.e. deletes and updates roi_list for all lanes
 # TODO: have a separate routines for group-like lanes (e.g. chips) that
 #   are not organized into vertical lanes
@@ -473,24 +475,23 @@ def analysis_assign_rois_to_lanes(roi_list, lane_list):
         lane_x_copy -= roi['shape_params']['x']
         lane_x_copy = abs(lane_x_copy)
         # Pick the lane with smallest distance
-        print("in assign_rois_to_lanes: lane_x, distances, and args array")
-        print(np.asarray(lane_x))
-        print(lane_x_copy)
-        print(np.argsort(lane_x_copy))
-        print(np.argsort(lane_x_copy).tolist())
-
         closest_lane = np.argsort(lane_x_copy).tolist()[0]
         lane_list[closest_lane]['roi_list'].append({'roi_id': roi_index, })
         roi_index += 1
+    # Sort ROIs top to bottom
+    for lane in lane_list:
+        # Sort lane.roi_list in order of the Y-coordinate. Define a lambda function
+        # to return the Y coordinate of the particular ROI
+        lane['roi_list'].sort(reverse=False, key=lambda roi: roi_list[roi['roi_id']]['shape_params']['y'])
 
     return None
-    
+
 # Find centers of potential ROIs
 # TODO: How does this work?
 def findCenters(img):        
     img-= morphology.area_opening(img,area_threshold=3500)
     img = morphology.opening(img,morphology.rectangle(19,1))
-    img=morphology.opening(img,morphology.rectangle(1,17))
+    img = morphology.opening(img,morphology.rectangle(1,17))
     img2 = morphology.h_maxima(img, 5)
     img2 = morphology.dilation(img2,morphology.disk(4))
     
@@ -540,232 +541,45 @@ def findCenters(img):
             
     return centers
 
-class AnalysisHelper():
-    """Input: ROIs, n_l, origins, doRF, autoLane"""
-    def __init__(self,ROIs,n_l,origins,doRF,autoLane):
-        self.ROIs = ROIs
-        self.n_l=n_l
-        self.origins=origins
-        self.doRF=doRF
-        self.autoLane=autoLane
+# Predict the number of lanes from the ROIs (x-coordinates)
+# TODO: KneeLocator doesn't work well for low numbers of ROIs and for
+#   larger numbers of ROIs seems to underestimate number of clusters.
+#   For now we return None indicating an error.
+def analysis_lanes_autocount(roi_list):
+    # Handle small cases manually (KneeLocator requires at least 2 points)
+    if len(roi_list) == 0:
+        return 0
+    if len(roi_list) == 1:
+        return 1
 
-    def __str__(self):
-        return (f'ROIS: {self.ROIs} \n origins: {self.origins} \n n_l: {self.n_l} \n \n doRF,{self.doRF} \n autoLane: {self.autoLane}')
+    # Bypass the rest until we get it working
+    return None
 
-    # TODO: in future, this will not be necessary.
-    # The ROI list will always be flat
-    @staticmethod
-    def flatten(ROIs):
-        newROIs = []
-        for i in range(len(ROIs)):
-            for j in range(len(ROIs[i])):
-                newROIs.append(ROIs[i][j])
-        return newROIs
+    # Extract X-values from ROIs
+    x_rois = [] 
+    for roi in roi_list:
+        x_rois.append(roi['shape_params']['x']) 
+    # Convert to nx1 array
+    x_rois = np.asarray([x_rois]).reshape(-1,1)
+    # Preprocess prior to KMeans
+    log_x_rois = np.log1p(x_rois)
+    scaler = StandardScaler()
+    scaler.fit(log_x_rois)
+    x_rois = scaler.transform(log_x_rois)
+    # Remove duplicates
+    x_rois = np.unique(x_rois, axis=0)
+    # Perform Kmeans with number of clusters up to number of unique x-coordinates
+    errors = {}
+    for i in range(len(x_rois)):
+        errors[i+1] = KMeans(n_clusters=i+1, random_state=1).fit(x_rois).inertia_
+    # Use Kneedle algorithm to find optimal number of clusters (i.e. lanes)
+    from kneed import KneeLocator
+    elbow = KneeLocator(x=list(errors.keys()), y=list(errors.values()), curve='convex', direction='decreasing').elbow
+    return elbow
 
-    def dump(self):
-        return [self.ROIs,self.n_l,self.origins,self.doRF,self.autoLane]
-
-    def results(self, img):
-        newOrigins = (np.asarray(self.origins).copy()).tolist() ## TODO: figure out what this is doing
-        newROIs = (np.asarray(self.ROIs).copy()).tolist() ## TODO: figure out what this is doing
-        #print(newROIs)
-        if self.autoLane:
-            num_lanes=self.n_l
-        autoLane=self.autoLane
-        doRF=self.doRF
-        ##print(request.form['autoLane'])
-        ##print(request.form['autoLane']=='true' and (not doRF and not doUV))
-        ##print(autoLane)
-
-        # Create our new style lane and ROI lists to pass to the front end
-
-        all_rois = {} # Dictionary of rois indexed by roi_id
-        all_lanes = [] # List of lanes
-        roi_count = 0 # Used to generate roi_id
-        lane_count = 0 # used to generate lane_id
-
-        solvent_p1, solvent_p2 = newOrigins[-2], newOrigins[-1]
-
-        for old_roi_list in newROIs: # newROIs is array of ROI lists, indexed by lane
-            new_roi_list = []
-            for roi in old_roi_list:
-                new_roi = {
-                    'id': roi_count,
-                    'shape': 'ellipse',
-                    'shape_params': {
-                        'x':roi[1],
-                        'y':roi[0],
-                        'rx':roi[3],
-                        'ry':roi[2],
-                    },
-                }
-                compute_ROI_data(new_roi, img)
-                all_rois[roi_count] = new_roi
-                new_roi_list.append({'roi_id': roi_count,})
-                roi_count += 1
-
-            new_lane = {
-                'lane_id': lane_count,
-                'roi_list': new_roi_list,
-                'lane_type': 'tlc',
-                'lane_params': {
-                    'origin_x': newOrigins[lane_count][1],
-                    'origin_y': newOrigins[lane_count][0],
-                    'solvent_x': newOrigins[lane_count][1], # Match origin_x
-                    'solvent_y': (solvent_p1[0] + solvent_p2[0])/2, # Lazy method -- just taking average of y-coordinate of solvent points; but really should be interpretting at origin_x
-                },
-            }
-            compute_lane_data(new_lane, all_rois)
-            all_lanes.append(new_lane)
-            lane_count += 1
-
-        return {'roi_list': all_rois, 'lane_list': all_lanes}
-
-    @staticmethod
-    def numLanes_finder(ROIs):
-        if len(ROIs)<=1:
-            return 1
-        if len(ROIs)==2:
-            if abs(ROIs[0][1]-ROIs[1][1])>25:
-                return 2
-            else:
-                return 1
-        print('3',ROIs)
-        losses = []
-        lanes=[]
-        ROIs = np.asarray(ROIs)
-        ROIs = ROIs[:,1]*100
-        ROIs = np.expand_dims(ROIs,axis=1)
-        ROIs = whiten(ROIs)
-        start = max(int(len(ROIs)/3-1),1)
-        print('start',start)
-        print(len(ROIs))
-        for j in range(start,len(ROIs)+2):
-            if j>len(ROIs):
-                lanes.append(j)
-                losses.append(2)
-            else:
-                try:
-                    print(j)
-                    centers, loss = kmeans(ROIs,j)
-                    losses.append(100*loss+2)
-                    lanes.append(j)
-                except:
-                    break
-        print(lanes,losses)
-        kn = KneeLocator(lanes, losses, curve='convex', direction='decreasing')
-        print(kn,kn.knee,kn.elbow)
-        return int(kn.knee)
-
-    def sort2(self,points2,index=0):
-        """Sorts points2 by simple bubblesort
-        Args:
-            points2(list)
-        Mutates:
-            points2(list)
-        """
-        #print('p2',points2)
-        u = points2
-        for i in range(len(points2)):
-            for j in range(len(points2[i])):
-                for k in range(len(points2[i])):
-                    if points2[i][j][index]<points2[i][k][index]:
-                        
-                        
-                        a = points2[i][j]
-                        points2[i][j]=points2[i][k]
-                        points2[i][k] = a 
-        return points2
-
-
-    def findClosest(self,arr1,arr2):
-        theArr = []
-        ar1 = np.asarray(arr1)
-        ar2 = np.asarray(arr2)
-        ar2_copy = ar2.copy()
-        # TODO: clever approach... both arrays are X-values
-        #  sorted in increasing order.  Subtract the first element of first array from all values of the second
-        #  array. i.e. the distance to the center of each lane.  The smallest is the closest
-        #  how to figure out the lane number?
-        #  Repeat for each value
-        for i in range(len(ar1)):
-            ar2 = ar2_copy.copy()
-            ar2 -= ar1[i]
-            ar2 = abs(ar2)
-            theArr.append(np.argsort(ar2)[0])
-        return theArr
-
-
-'''
-    def organize_into_lanes(self, roi_list, lane_list):
-
-        newArr = self.ROIs
-
-        # Bail if no ROIs
-        if len(newArr) == 0 or len(roi_list) == 0
-            return
-
-        # Get an array of x-coordinates of lanes
-
-        # TODO: figure out what is the distinguishing logic here... 
-        if self.autoLane:
-            #thresh = np.asarray(analysis_lanes_autoselect(newArr,self.n_l))[:,1].tolist()
-            result = analysis_lanes_autoselect(newArr, self.n_l)
-            thresh = result['thresh']
-            print ('autoselecting....')
-        elif self.doRF:
-            thresh = np.asarray(self.origins[:-2])[:,1].tolist()
-            print('origins[:-2]',thresh)
-        else:
-            print('hi',self.origins)
-            thresh = np.asarray(self.origins)[:,1].copy().tolist()  ## TODO: is this any different than [:-2])[:,1} statement above?
-        
-        print('thresh',thresh)
-        newArr_copy = []
-        newArr_copy2 = []
-        for i in range(len(newArr)):
-            newArr_copy2.append(newArr[i])
-            newArr_copy.append(newArr[i][1])
-        newArr = newArr_copy
-        
-        thresh.sort() 
-        #print('thresh',thresh)
-        #print('points',newArr)
-        whatLane = self.findClosest(newArr,thresh)
-        #whatLane = orgranize each center into which lane it should be in
-        final_arr = [[0]*1 for i in range(len(thresh))]
-        #create an array newArr which has lane rows
-
-        for spot in range(len(newArr)):
-            #  two thresh = 1 rectangle, which is why its len(thresh)//2
-            
-            where = whatLane[spot]
-            # set where variable equal to whatLane a certain rectangle should be in
-            
-            final_arr[where].append(spot)
-            # at that lane, append which rectangle it is
-
-        for l in range(len(final_arr)):
-            final_arr[l] = final_arr[l][1:]
-            # take away the zero at the beginning of each lane
-
-        for l in range(len(final_arr)):
-            for j in range(len(final_arr[l])):
-                # for every cell in point2, change it to the corresponding 
-                spot = final_arr[l][j]
-
-                final_arr[l][j] = (newArr_copy2[spot])
-        
-        final_arr = self.sort2(final_arr)
-        #print('le points',final_arr)
-        self.ROIs = final_arr
-        #print(self.ROIs)
-        return
-'''
-
-# TODO: Figure out what this function does. It does some kind of 
-#  correction on the 'compute' and 'display' radio images.
-#  Question: Why doesn't the 'radii' image get corrected?
+# Perform background correction of image (acts on 'compute' and 'display' radio
+# images but not the 'radii' image.)
+# TODO: Figure out what this does in detail
 def fix_background(analysis_id):
     from filestorage import analysis_radii_path
     img = np.load(analysis_radii_path(analysis_id))
