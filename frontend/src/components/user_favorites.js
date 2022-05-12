@@ -8,7 +8,7 @@
 import React from "react";
 import { withRouter } from "react-router";
 import Box from "@material-ui/core/Box";
-import { authRefreshSession } from '../contexts/auth';
+import { sessionRefresh } from '../contexts/session';
 import { UserSearch, OrgSearch, EquipSearch, PlateSearch, CoverSearch, ImageSearch, AnalysisSearch } from '../components/object_search';
 
 

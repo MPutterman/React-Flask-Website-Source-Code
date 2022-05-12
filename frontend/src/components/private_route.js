@@ -11,13 +11,13 @@
 
 import React from 'react';
 import { Route } from 'react-router';
-import { useAuthState } from '../contexts/auth';
+import { useSessionState } from '../contexts/session';
 import { useAlerts } from '../contexts/alerts';
 import { Redirect } from 'react-router-dom';
 
 export function PrivateRoute({ children, component, ...rest }) {
 
-    const { session } = useAuthState(); //TODO: only need session
+    const { session } = useSessionState(); //TODO: only need session
     const setAlert = useAlerts();
 
     return (

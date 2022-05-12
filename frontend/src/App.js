@@ -20,7 +20,7 @@ import "./App.css";
 
 // Import configuration, authentication/preferences
 import { ConfigProvider } from './contexts/config';
-import { AuthContext, useAuthState } from './contexts/auth';
+import { SessionContext, useSessionState } from './contexts/session';
 
 // Import query cache
 import { QueryClient, QueryClientProvider } from 'react-query';
@@ -72,11 +72,11 @@ const App = (props) => {
       <Throbber>
         <ConfigProvider>
           <MuiPickersUtilsProvider utils={DateFnsUtils}>
-            <AuthContext>
+            <SessionContext>
               <QueryClientProvider client={queryClient}>
                 <AppWrapped />
               </QueryClientProvider>
-            </AuthContext>
+            </SessionContext>
           </MuiPickersUtilsProvider>
         </ConfigProvider>        
       </Throbber>
@@ -85,7 +85,7 @@ const App = (props) => {
 
 const AppWrapped = (props) => {
 
-    const { prefs } = useAuthState();
+    const { prefs } = useSessionState();
 
     return (
         <ThemeProvider theme={prefs?.general?.theme === "light" ? lightMode : darkMode}>

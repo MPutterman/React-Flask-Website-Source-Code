@@ -3,7 +3,7 @@
 // * Add exception handling on login/logout errors
 
 import React from "react";
-import { authLogin, authLogout,authGoogleLogin, useAuthState, useAuthDispatch } from '../contexts/auth';
+import { sessionLogin, sessionLogout,sessionGoogleLogin, useSessionState, useSessionDispatch } from '../contexts/session';
 import { useConfigState } from '../contexts/config';
 import { withRouter } from "react-router";
 import { useHistory, useLocation } from 'react-router-dom';
@@ -31,8 +31,8 @@ const UserLogin = (props) => {
     const [defaults, setDefaults] = React.useState( {email: '', password: '', remember: false} );
 
     // Connect to Auth context
-    const authDispatch = useAuthDispatch();
-    const { session, profile, prefs } = useAuthState(); 
+    const authDispatch = useSessionDispatch();
+    const { session, profile, prefs } = useSessionState(); 
     const config = useConfigState();
 
     // Schema for automated form
@@ -69,7 +69,7 @@ const UserLogin = (props) => {
       let data={}
       data.tokenId = e.tokenId
       
-        return await authGoogleLogin(authDispatch, data)
+        return await sessionGoogleLogin(authDispatch, data)
         .then( (response) => {
             if (response) {
                 const url = prefs.general.redirect_after_login;    
@@ -82,7 +82,7 @@ const UserLogin = (props) => {
     async function onLogin(data, e) {
 
         setBusy(true);
-        return await authLogin(authDispatch, data)
+        return await sessionLogin(authDispatch, data)
         .then( (response) => {
             if (response) {
                 const url = prefs.general.redirect_after_login;
@@ -96,7 +96,7 @@ const UserLogin = (props) => {
 
     async function onLogout(data, e) {
         setBusy(true);
-        return await authLogout(authDispatch)
+        return await sessionLogout(authDispatch)
         // TODO: if received an error, where to redirect?
         .then( (response) => {
             setBusy(false);

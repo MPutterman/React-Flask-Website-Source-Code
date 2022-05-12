@@ -28,7 +28,7 @@
 
 import React, {useState, useEffect } from "react";
 import { useConfigState } from "../contexts/config";
-import { useAuthState } from "../contexts/auth";
+import { useSessionState } from "../contexts/session";
 import { useHistory } from 'react-router-dom';
 import { useThrobber } from '../contexts/throbber';
 import { useErrorResponse } from '../contexts/error';
@@ -58,7 +58,7 @@ const ObjectSearch = ({
     const config = useConfigState();
     const setBusy = useThrobber();  
     const setErrorResponse = useErrorResponse();
-    const { prefs } = useAuthState();  
+    const { prefs } = useSessionState();  
 
     // Keep array of filters.  Most will be dict tuples, but special
     // ones are just strings, e.g. 'favorites'

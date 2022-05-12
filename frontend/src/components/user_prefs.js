@@ -27,7 +27,7 @@ import CardHeader from '@material-ui/core/CardHeader';
 import CardContent from '@material-ui/core/CardContent';
 import CardActions from '@material-ui/core/CardActions';
 import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
-import { useAuthState, useAuthDispatch, defaultUserPrefs, authRefreshSession } from '../contexts/auth';
+import { useSessionState, useSessionDispatch, defaultUserPrefs, sessionRefresh } from '../contexts/session';
 import { useConfigState } from '../contexts/config';
 import { useAlerts } from '../contexts/alerts';
 import { useThrobber } from '../contexts/throbber';
@@ -45,8 +45,8 @@ const UserPrefs = (props) => {
 
     let formRef;
 
-    const { prefs } = useAuthState(); // TODO: only need 'prefs'
-    const dispatch = useAuthDispatch();
+    const { prefs } = useSessionState(); // TODO: only need 'prefs'
+    const dispatch = useSessionDispatch();
     const config = useConfigState();
     const setAlert = useAlerts();
     const setBusy = useThrobber();
@@ -195,7 +195,7 @@ const UserPrefs = (props) => {
             return true;
         })
         .then(() => {
-            authRefreshSession(dispatch);
+            sessionRefresh(dispatch);
         })
         .catch((e) => {
             setAlert({severity: 'error', message: 'Error while saving preferences'});

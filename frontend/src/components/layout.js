@@ -7,7 +7,7 @@ import clsx from 'clsx';
 import { useHistory, useLocation, Link, NavLink} from "react-router-dom";
 
 // Import authentication
-import { authLogin, authLogout, useAuthState, useAuthDispatch } from '../contexts/auth';
+import { sessionLogin, sessionLogout, useSessionState, useSessionDispatch } from '../contexts/session';
 
 // Import Material UI components for app bar and drawer
 import {makeStyles, useTheme} from '@material-ui/core/styles';
@@ -119,8 +119,8 @@ const Layout = (props) => {
   const location = useLocation();
 
   // Connect to Auth context
-  const dispatch = useAuthDispatch();
-  const { session, profile } = useAuthState();
+  const dispatch = useSessionDispatch();
+  const { session, profile } = useSessionState();
 
   // Event handlers
 
@@ -152,7 +152,7 @@ const Layout = (props) => {
 
   async function handleUserLogout(event) {
     handleCloseUserMenu(event);
-    let response = await authLogout(dispatch); 
+    let response = await sessionLogout(dispatch); 
     history.push('/user/login');
   }
 

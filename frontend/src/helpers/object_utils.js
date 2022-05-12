@@ -14,7 +14,7 @@ import { useAlerts } from '../contexts/alerts';
 import { useThrobber } from '../contexts/throbber';
 import { useErrorResponse } from '../contexts/error';
 import { StatusCodes } from 'http-status-codes';
-import { useAuthState, useAuthDispatch, authRefreshSession, isFavorite } from '../contexts/auth';
+import { useSessionState, useSessionDispatch, sessionRefresh, isFavorite } from '../contexts/session';
 import Button from '@material-ui/core/Button';
 import Tooltip from '@material-ui/core/Button';
 import ViewIcon from '@material-ui/icons/Visibility';
@@ -93,8 +93,8 @@ const ObjectFavoriteButton = (props) => {
     const object_type = props.objectType;
     const id = props.objectID;
     const setAlert = useAlerts();
-    const { favorites } = useAuthState(); // TODO: only need favorites
-    const dispatch = useAuthDispatch();
+    const { favorites } = useSessionState(); // TODO: only need favorites
+    const dispatch = useSessionDispatch();
 
     const is_fav = () => {
         return isFavorite(favorites, object_type, id);
@@ -118,7 +118,7 @@ const ObjectFavoriteButton = (props) => {
 
             } else {
 
-                authRefreshSession(dispatch);
+                sessionRefresh(dispatch);
                 setAlert({severity: 'success', message: is_fav() ? 'Removed from favorites' : 'Added to favorites' });
                 return true;
             

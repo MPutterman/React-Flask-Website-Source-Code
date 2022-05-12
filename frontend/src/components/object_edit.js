@@ -35,7 +35,7 @@
 import React from "react";
 import { callAPI } from '../helpers/api';
 import { withRouter } from "react-router";
-import { useAuthState, defaultUserPrefs, authRefreshSession } from '../contexts/auth';
+import { useSessionState, defaultUserPrefs, sessionRefresh } from '../contexts/session';
 import { useErrorResponse } from '../contexts/error';
 import { useConfigState } from '../contexts/config';
 import { StatusCodes } from 'http-status-codes';
@@ -98,7 +98,7 @@ return (props) => {
 
     // Contexts    
     const config = useConfigState();
-    const  { prefs } = useAuthState();
+    const  { prefs } = useSessionState();
     const setErrorResponse = useErrorResponse();
     const setAlert = useAlerts();
     const setBusy = useThrobber();
@@ -549,7 +549,7 @@ const WrappedUserRegistration = ({model, ...props}) => {
 // * Add request membership for an organization?
 // * Make a tabbed interface for user profile? E.g. if owner, add prefs tab, show roles info (admin, or org-admin)
 // * TODO: when save user data, need to update session in backend... but also need to force frontend to refresh**
-//      Use authRefreshSession(dispatch)???  May need a way to inject a callback
+//      Use sessionRefresh(dispatch)???  May need a way to inject a callback
 // * In backend, make sure to redo all validation checks (e.g. unique email, etc...)
 // * Divide into toplevel form (exported with withRouter), and a modal form?
 // * Figure out how to deal with users that use external (googleAuth or other) login

@@ -11,7 +11,6 @@
 //     (some ideas how to implement separate states with one reducer)
 
 // TODO:
-// * Rename to SessionContext etc. instead of AuthContext
 // * Still considering what is the best way to handle unexpected login or logout errors. 
 //   Maybe it is safer just to reload the session from backend server, rather than try to
 //   guess the actual state.  Doing so would greatly simplify the code here and have only minor
@@ -26,21 +25,21 @@ import { callAPI } from '../helpers/api';
 
 // Create contexts and hooks
 
-const AuthStateContext = React.createContext();
-const AuthDispatchContext = React.createContext();
+const sessionStateContext = React.createContext();
+const sessionDispatchContext = React.createContext();
 
-export function useAuthState() {
-  const context = React.useContext(AuthStateContext);
+export function useSessionState() {
+  const context = React.useContext(sessionStateContext);
   if (context === undefined) {
-    throw new Error("useAuthState must be used within a AuthStateContext");
+    throw new Error("useSessionState must be used within a sessionStateContext");
   }
   return context;
 }
  
-export function useAuthDispatch() {
-  const context = React.useContext(AuthDispatchContext);
+export function useSessionDispatch() {
+  const context = React.useContext(sessionDispatchContext);
   if (context === undefined) {
-    throw new Error("useAuthDispatch must be used within a AuthDispatchContext");
+    throw new Error("useSessionDispatch must be used within a sessionDispatchContext");
   }
   return context;
 }
@@ -50,11 +49,11 @@ export function useAuthDispatch() {
 // Provider component
 // Divide up state so we can independently refresh certain parts and avoid triggering
 // whole page refresh when we just update a portion
-export const AuthContext = ({ children }) => {
+export const SessionContext = ({ children }) => {
 
     const [{session, profile, roles, prefs, favorites}, dispatch]
         = useReducer(
-          AuthReducer,
+          SessionReducer,
           {
             session: initialSession,
             profile: initialProfile,
@@ -64,17 +63,17 @@ export const AuthContext = ({ children }) => {
           }
         );
 
-    // Initialize the auth state from the server
+    // Initialize the session state from the server
     useEffect(() => {
         loadSessionFromServer(dispatch); 
     }, []); 
 
     return (
-        <AuthStateContext.Provider value={{session: session, profile: profile, roles: roles, prefs: prefs, favorites: favorites}}>
-            <AuthDispatchContext.Provider value={dispatch}>
+        <sessionStateContext.Provider value={{session: session, profile: profile, roles: roles, prefs: prefs, favorites: favorites}}>
+            <sessionDispatchContext.Provider value={dispatch}>
                 {children}
-            </AuthDispatchContext.Provider>
-        </AuthStateContext.Provider>
+            </sessionDispatchContext.Provider>
+        </sessionStateContext.Provider>
     );
 };
 
@@ -151,7 +150,7 @@ const initialPrefs = defaultUserPrefs;
 const initialFavorites = defaultFavorites;
 
 
-export const AuthReducer = ({session: prevSession, profile: prevProfile, roles: prevRoles, prefs: prevPrefs, favorites: prevFavorites}, action) => {
+export const SessionReducer = ({session: prevSession, profile: prevProfile, roles: prevRoles, prefs: prevPrefs, favorites: prevFavorites}, action) => {
 
   let user = null;    
   let userPrefs = {};   // prefs from backend
@@ -258,7 +257,7 @@ export const AuthReducer = ({session: prevSession, profile: prevProfile, roles: 
 
 // Reducer actions
 
-async function loadSessionFromServer(dispatch) { // This one is not exported and only called internally by AuthContext
+async function loadSessionFromServer(dispatch) { // This one is not exported and only called internally by SessionContext
 
     dispatch({ type: 'REQUEST_SESSION' });
     return callAPI('GET', '/api/session/load')
@@ -279,11 +278,11 @@ async function loadSessionFromServer(dispatch) { // This one is not exported and
 //  the server. Or changing permissions/roles
 // TODO: session now split into multiple variables, though may be considered a single state update
 //   depending on useReducer function...
-export async function authRefreshSession(dispatch,data){
+export async function sessionRefresh(dispatch,data){
     return loadSessionFromServer(dispatch);
 }
 
-export async function authGoogleLogin(dispatch,data){
+export async function sessionGoogleLogin(dispatch,data){
   dispatch({ type: 'REQUEST_LOGIN' });
   // TODO: filter 'data' to contain only tokenId and remember
   data.remember = false;  
@@ -308,7 +307,7 @@ export async function authGoogleLogin(dispatch,data){
   });
 }
 
-export async function authLogin(dispatch, data) {
+export async function sessionLogin(dispatch, data) {
 
     dispatch({ type: 'REQUEST_LOGIN' });
 
@@ -337,7 +336,7 @@ export async function authLogin(dispatch, data) {
 }
 
 
-export async function authLogout(dispatch) {
+export async function sessionLogout(dispatch) {
 
     return callAPI('POST', '/api/user/logout', [])
     .then((response) => {
