@@ -120,7 +120,6 @@ def analysis_generate_working_images(analysis_id):
     # Compute background of this corrected image
     # TODO: what does this 'morphology' do?  Is it better than 'fix background'?
     background = morphology.opening(Cerenkov_ROI,selem=morphology.disk(25))
-    #mean = np.mean(background)  # Doesn't appear to be used anywhere
     Cerenkov_ROI -= background.copy()
 
     # This is a crude background subtraction. CAREFUL!!!! only works if > half image
@@ -487,7 +486,7 @@ def analysis_assign_rois_to_lanes(roi_list, lane_list):
     return None
 
 # Find centers of potential ROIs
-# TODO: How does this work?
+# TODO: How does this work?  Why these steps? Why these particular values?
 def findCenters(img):        
     img-= morphology.area_opening(img,area_threshold=3500)
     img = morphology.opening(img,morphology.rectangle(19,1))
@@ -521,7 +520,7 @@ def findCenters(img):
     
     # TODO: is this routine just 'recentering' the center after finding bounding box?
     # TODO: why is the bounding box info discarded (and then recalculated later)?
-    centers = find_RL_UD_multiple(img,centers)
+    #centers = find_RL_UD_multiple(img,centers)
 
     # Remove centers that are too close to one another
     i = 0

@@ -2,11 +2,8 @@
 // Currently just lists all favorites
 //
 // TODO:
-// * Add some controls for unfavoriting, and maybe links to view in a popup?
-//       Maybe that should go in the object_search form
 // * Link somehow to user preferences (e.g. default images, plates, and covers, etc.)
 // * Add options to clear some or all favorites in a particular category
-// * TODO: check if have view permission before popping up?
 
 import React from "react";
 import { withRouter } from "react-router";

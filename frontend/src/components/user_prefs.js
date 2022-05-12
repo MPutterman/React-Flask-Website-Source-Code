@@ -120,12 +120,12 @@ const UserPrefs = (props) => {
         },
         "analysis.default_bkgrd_algorithm": {
             label: 'Default background correction algorithm',
-            type: String, // TODO: change to selector
+            type: String, 
             allowedValues: config.analysis.bkgrd_algorithm_options,
         },
         "analysis.default_filter": {
             label: 'Default filter correction',
-            type: String, // TODO: change to selector
+            type: String, 
             allowedValues: config.analysis.filter_algorithm_options,
         },
         "analysis.default_radio_opacity": {
@@ -180,15 +180,13 @@ const UserPrefs = (props) => {
       saveUserPrefs(data);
     };
 
-    // Save the formdata back to the database (note it is already in nested dict format)
-    // TODO: currently doesn't pass a user_id... maybe something we want in the future for admins?
+    // Save the preferences back to the database for the currently logged in user.
+    // Storage uses same nested dict format.
     async function saveUserPrefs(data) {
-        console.log ('saveUserPrefs, incoming data', data);
         setBusy(true);
-        // Hack -- better option might be to set content-type to application/json
+        // TODO: Hack -- better option might be to set content-type to application/json
         // Backend needs to un-stringify this
         let newdata = {prefs: JSON.stringify(data)};
-        console.log ('saveUserPrefs, sanitized data', newdata);
 
         return callAPI('POST', '/api/prefs/save', newdata)
         .then((response) => {
