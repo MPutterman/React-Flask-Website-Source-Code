@@ -302,13 +302,18 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
     }
   }; 
 
-  // Clear all ROIs.  Just a frontend change until save to backend
-  // TODO: this should also empty roi_list of all lanes (and eliminate lanes if auto-defined?)
+  // Clear all ROIs.  Also empties the roi_list of all lanes. Leaves lanes intact, but user can clear them.
+  // Just a frontend change until the user saves the updates.
   const clearROIs = () => {
       if (laneState.roi_list.length > 0) {
           confirm ({/*title:<title>, description:<description>*/})
           .then(() => {
-              setLaneState(prev => ({...prev, roi_list: [], selectedROI: UNDEFINED,}));
+            return setLaneState(prev => {
+              // Remove roi_list from lanes since there are no ROIs
+              let new_lane_list = JSON.parse(JSON.stringify(prev.lane_list)); // Deep copy
+              new_lane_list.map((lane,i) => {lane.roi_list = []});
+              return {...prev, roi_list: [], lane_list: new_lane_list, selectedROI: UNDEFINED,};
+            });
           });
       } else {
           setLaneState(prev => ({...prev, roi_list: [], selectedROI: UNDEFINED,}));
@@ -326,6 +331,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
   };
 
   // Clear all origins. Just a frontend change until save to backend
+  // TODO: if there are lanes depending on the origins, we will need changes,
+  //   though this will occur if user saves the info to database
   const clearOrigins = () => {
       if (laneState.origins.length > 0) {
           confirm ({/*title:<title>, description:<description>*/})
@@ -762,15 +769,11 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
 
                 <p>Options for results table:</p>
                 <Box display="flex" flexDirection="row" alignItems='center'>
-                    {/* Compute RF values? Only enable if origins have been defined. 
-                        TODO: something not quite working with the checked/unchecked state
-                     */}
                     <FormGroup>
                     <FormControlLabel
                       control={<Checkbox
                         //color="primary"
                         //variant="contained"
-                        //disabled={!originsDefined()}
                         checked={laneState.show_Rf}
                         value={laneState.show_Rf ? 'on' : 'off'}
                         onChange={(event) => {
