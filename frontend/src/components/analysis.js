@@ -27,6 +27,7 @@ import FormLabel from "@material-ui/core/FormLabel";
 import FormGroup from "@material-ui/core/FormGroup";
 import TextField from "@material-ui/core/TextField";
 import Checkbox from "@material-ui/core/Checkbox";
+import ToggleButton from '@material-ui/lab/ToggleButton';
 import Accordion from '@material-ui/core/Accordion';
 import AccordionSummary from '@material-ui/core/AccordionSummary';
 import AccordionDetails from '@material-ui/core/AccordionDetails';
@@ -133,6 +134,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
     ])
     
     const [selectMode, setSelectMode] = React.useState("roi");
+    const [selectROI, setSelectROI] = React.useState(false);
+    const [selectOrigin, setSelectOrigin] = React.useState(false);
 
     const [laneState, setLaneState] = React.useState(initialLaneState);
     const [imageState, setImageState] = React.useState(initialImageState);
@@ -262,7 +265,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
 
   const onClickROI = (e, roi_id) => {  // event and roi_id
 
-    if (selectMode == "roi") {
+    //if (selectMode == "roi") {
+    if (selectROI) {
       if (roi_id === laneState.selectedROI) {  
         // Remove the specified ROI, and nullify selectedROI
         console.log ('onClickROI - a selectedROI is defined... deleting it');
@@ -277,7 +281,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
         setLaneState(prev => ({...prev, selectedROI: roi_id,}));
       }
 
-    } else if (selectMode == "origin") {
+    //} else if (selectMode == "origin") {
+    } else if (selectOrigin) {
       // These calculations translate the coordinates of the event from the ROI
       // canvas to the global coordinates to identify true location of origin.
       var x = e.nativeEvent.offsetX;
@@ -292,7 +297,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
       setLaneState(prev => {
         let newOrigins = [...prev.origins];
         newOrigins.push([parseInt(y),parseInt(x)]);
-        return {...prev, origins: newOrigins};
+        return {...prev, origins: newOrigins, };
       });
     }
   }; 
@@ -355,8 +360,10 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
   }
 
   async function autoselectROIs() {
+      setBusy(true);
       return callAPI('GET', `/api/analysis/rois_autoselect/${model.analysis_id}`, {})
       .then((response) => {
+          setBusy(false);
           if (response.error) {
               setAlert({severity: 'warning', message: `Error autoselecting ROIs: ${response.data.error}`},);
           } else {
@@ -409,15 +416,17 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
   }
 
   const onClickOrigin = (e, i) => {
-    if (selectMode == "origin") {
-      // Remove origin i
+    //if (selectMode == "origin") {
+    if (selectOrigin) {
+        // Remove origin i
       setLaneState(prev => {
         let new_origins = [...prev.origins];
         new_origins.splice(i,1);
         return {...prev, origins: new_origins, }
       });
 
-    } else if (selectMode == "roi") {
+    //} else if (selectMode == "roi") {
+    } else if (selectROI) {
       // Define an ROI
       console.log ('onClickOrigin - defining a new ROI by caling buildROI');
       var x = e.nativeEvent.offsetX;
@@ -478,17 +487,18 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
   // Handle clicks on the image canvas (not on origin or ROI)
   const onClickImage = (e) => {
 
-    if (selectMode == "origin") {
-      // Add a new origin point at the click location
+    //if (selectMode == "origin") {
+    if (selectOrigin) {
+        // Add a new origin point at the click location
       var new_origin = [parseInt(e.nativeEvent.offsetY), parseInt(e.nativeEvent.offsetX)];
       setLaneState(prev => {
         let newOrigins = [...prev.origins];
         newOrigins.push(new_origin);
-        let num_lanes = newOrigins.length-2;
-        return {...prev, origins: newOrigins, num_lanes: num_lanes, is_dirty: true,}; // is_dirty maybe to trigger state update
+        return {...prev, origins: newOrigins, is_dirty: true,}; // is_dirty maybe to trigger state update
       });
 
-    } else if (selectMode == "roi") {
+    //} else if (selectMode == "roi") {
+    } else if (selectROI) {
       // Build a new ROI at the click location
       console.log ('onClickImage - creating a new ROI via buildROI');
       var x = parseInt(e.nativeEvent.offsetX);
@@ -604,7 +614,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                         marginLeft: "" + 1 * x[1] - 5 + "px",
                         width: "10px",
                         height: "10px",
-                        zIndex: (selectMode == "roi") ? 10 : 11,
+                        zIndex: (selectOrigin) ? 11 : 10,
                       }}
                       onClick={(e) => {
                         e.preventDefault();
@@ -625,12 +635,12 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                     style={{
                       position: "absolute",
                       backgroundColor: "transparent",
-                      zIndex: (selectMode == "roi") ? 11 : 10,
+                      zIndex: (selectROI) ? 11 : 10,
                       borderRadius: "50%/50%",
                       border:
                         (roi_id === laneState.selectedROI)
                           ? "dashed 2px #0ff"
-                          : `dashed 2px #ffffff`,
+                          : "dashed 2px #ffffff",
                       width: "" + 2 * roi.shape_params.rx - 2 + "px",
                       height: "" + 2 * roi.shape_params.ry - 2 + "px",
                       marginTop: "" + roi.shape_params.y - 1 * roi.shape_params.ry + 1 - imageState.size_x + "px",
@@ -652,7 +662,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
 </div>
 
                 {/* Draw lanes if available. For TLC lanes, draw a vertical line at origin_x coordinate
-                    TODO: why do we need the -6 in here? Maybe from z-index and shadow feature? */}
+                    TODO: why do we need the -6 in here to get it aligned? Maybe from z-index and shadow feature? */}
 
                 {laneState.lane_list.length > 0 ? laneState.lane_list.map((lane, i) => {
                   return (
@@ -663,16 +673,16 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                       key={`lane-${i}`}
                       style={{
                         borderRadius: "50%/50%",
-                        backgroundColor: "#222222",
+                        border: "dashed 2px #333333",
+                        backgroundColor: "transparent",
                         position: "absolute",
                         marginTop: "" - 6 - imageState.size_y + "px",
                         marginLeft: "" + lane.lane_params.origin_x + "px",
-                        width: "1px",
+                        width: "0px",
                         height: "" + imageState.size_y + "px",
-                        //zIndex: (selectMode == "roi") ? 10 : 11,
-                        zIndex: 12, // put in the back
+                        zIndex: 9, // put in the back
                       }}
-                      //onClick={(e) => {
+                      //onClick={(e) => { # Currently not clickable
                       //  e.preventDefault();
                       //  onClickOrigin(e, i);
                       //}}
@@ -690,46 +700,91 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
               {/* ROI / lane selection controls */}
 
               <Grid item xs={8}>
-              <FormControl component="fieldset">
-                <RadioGroup name="select-mode"
-                  value={selectMode}
-                  onChange={(event) => {
-                      setSelectMode(event.target.value );
+                <p>Define ROIs:</p>
+                <Box display="flex" flexDirection="row" alignItems='center'>
+                  <Popup width='50%' button_label={<HelpIcon/>}>
+                        Click on a band to build a new ROI, or select an existing ROI to modify it. 
+                        While an ROI is selected, click on it to delete it, or use the following keys to update it:<br/> 
+                        [a / A] jog left (left / right side)<br/> 
+                        [w / W] jog up (top / bottom side)<br/> 
+                        [s / S] jog down (top / bottom side)<br/> 
+                        [d / D] jog right (left / right side)<br/>
+                  </Popup>
+                  <ToggleButton size='small' variant='outlined' value="roi" selected={selectROI}
+                    onChange={() => {
+                      setSelectROI(!selectROI);
+                      setSelectOrigin(false);
                     }}
-                  >
-                  <FormControlLabel value="roi" control={<Radio />} label={
-                      <Box display="flex" flexDirection="row" alignItems='center'>
-                          Select ROIs
-                          <Popup width='50%' button_label={<HelpIcon/>}>
-                                Click on a band to build a new ROI, or select an existing ROI to modify it. 
-                                While an ROI is selected, click on it to delete it, or use the following keys to update it:<br/> 
-                                [a / A] jog left (left / right side)<br/> 
-                                [w / W] jog up (top / bottom side)<br/> 
-                                [s / S] jog down (top / bottom side)<br/> 
-                                [d / D] jog right (left / right side)<br/>
-                          </Popup>
-                          <Button size='small' variant='outlined' onClick={autoselectROIsWrapper}> Autoselect ROIs </Button>
-                          <Button size='small' variant='outlined' onClick={clearROIs}> Clear ROIs </Button>
-                      </Box>}
-                  />
-                  <FormControlLabel value="origin" control={<Radio />} label={
-                      <Box display="flex" flexDirection="row" alignItems='center'>
-                          Select Origins
-                          <Popup width='50%' button_label={<HelpIcon/>}>
-                              Click on a desired point to set a new origin. Click on an existing one to delete it. 
-                              To fully define the origins, click at the spotting point on each lane. You must also define two
-                              points to define a solvent front line at the top of the TLC plate.
-                          </Popup>
-                          <Button size='small' variant='outlined' onClick={clearOrigins}> Clear origins </Button>
-                      </Box>}
-                  />
-                </RadioGroup>
-              </FormControl>
+                  > Click ROIs </ToggleButton>
+                  <Button size='small' variant='outlined' onClick={autoselectROIsWrapper}> Autoselect ROIs </Button>
+                  <Button size='small' variant='outlined' onClick={clearROIs} disabled={!Array.isArray(laneState.roi_list) || laneState.roi_list.length==0}> Clear ROIs </Button>
+                </Box>
 
-                <Button size='small' variant='outlined' onClick={autoselectLanesWrapper}> Create lanes </Button>
-                <Button size='small' variant='outlined' onClick={clearLanes}> Clear lanes </Button>
+                <p>Define Lanes based on Origins and Solvent Front:</p>
+                <Box display="flex" flexDirection="row" alignItems='center'>
+
+                  <Popup width='50%' button_label={<HelpIcon/>}>
+                      Click on a desired point to set a new origin. Click on an existing one to delete it. 
+                      To fully define the origins, click at the spotting point on each lane. You must also define two
+                      points to define a solvent front line at the top of the TLC plate.
+                  </Popup>
+                  <ToggleButton size='small' variant='outlined' value="origin" selected={selectOrigin}
+                    onChange={() => {
+                      setSelectOrigin(!selectOrigin);
+                      setSelectROI(false);
+                    }}
+                  > Click Origins </ToggleButton>
+                  <Button size='small' variant='outlined' onClick={clearOrigins} disabled={!originsDefined()}> Clear origins </Button>
+                  <Button size='small' variant='outlined' onClick={autoselectLanesWrapper} disabled={!originsDefined()}> Create/Update lanes </Button>
+                  <Button size='small' variant='outlined' onClick={clearLanes} disabled={!Array.isArray(laneState.lane_list) || laneState.lane_list.length == 0}> Clear lanes </Button>
+                </Box>
+
+                <p>Autoselect Lanes based on ROIs:</p>
+                <Box display="flex" flexDirection="row" alignItems='center'>
+                  <p>Number of lanes: {laneState.num_lanes}</p>
+                  <Slider
+                    color='secondary'
+                    name="num_lanes"
+                    valueLabelDisplay="auto"
+                    step={1}  
+                    marks={true}
+                    value={laneState.num_lanes}
+                    min={0}
+                    max={16}
+                    onChange={(e, value) => {
+                        setLaneState(prev=>({...prev, num_lanes: value}));
+                    }}
+                  />
+                  <Button size='small' variant='outlined' onClick={autoselectLanesWrapper} disabled={originsDefined() || (!Array.isArray(laneState.roi_list) || laneState.roi_list.length == 0)}> Create/Update lanes </Button>
+                  <Button size='small' variant='outlined' onClick={clearLanes} disabled={!Array.isArray(laneState.lane_list) || laneState.lane_list.length == 0}> Clear lanes </Button>
+ 
+                </Box>
+
+                <p>Options for results table:</p>
+                <Box display="flex" flexDirection="row" alignItems='center'>
+                    {/* Compute RF values? Only enable if origins have been defined. 
+                        TODO: something not quite working with the checked/unchecked state
+                     */}
+                    <FormGroup>
+                    <FormControlLabel
+                      control={<Checkbox
+                        //color="primary"
+                        //variant="contained"
+                        //disabled={!originsDefined()}
+                        checked={laneState.show_Rf}
+                        value={laneState.show_Rf ? 'on' : 'off'}
+                        onChange={(event) => {
+                          setLaneState(prev=>({...prev, show_Rf: event.target.checked,}));
+                        }}
+                        name="show_Rf"
+                      />}
+                      label="Show Rf values"
+                    />
+                    </FormGroup>
+                </Box>
+
+
             </Grid>
-
 
             {/* Image controls for radio and bright images */}
 
@@ -857,57 +912,13 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
 
                 <Button size='small' variant="outlined" onClick={resetImage}>Reset images</Button>
 
-            </Grid>  
+              </Grid>  
+            </Grid>
+
           </Grid>
-            <Grid container direction="row">
-                  <Grid item>
-                    {/* Compute RF values? Only enable if origins have been defined. 
-                        TODO: something not quite working with the checked/unchecked state
-                     */}
-                    <FormGroup>
-                    <FormControlLabel
-                      control={<Checkbox
-                        //color="primary"
-                        //variant="contained"
-                        //disabled={!originsDefined()}
-                        checked={laneState.show_Rf}
-                        value={laneState.show_Rf ? 'on' : 'off'}
-                        onChange={(event) => {
-                          setLaneState(prev=>({...prev, show_Rf: event.target.checked,}));
-                        }}
-                        name="show_Rf"
-                      />}
-                      label="Show Rf values"
-                    />
-                    </FormGroup>
-                  </Grid>
+          <Button color="primary" variant="contained" onClick={submitParams}> Save ROI info and Regenerate Results </Button>
 
-                  <Grid item>
-
-                    <p>Number of lanes: {laneState.num_lanes}</p>
-                    <input type = 'range'
-                      //disabled={originsDefined()}
-                      name = {'#Lanes'}
-                      step={1} 
-                      valueLabelDisplay="on"
-                      marks='true' //{true} Native HTML elements only accept strings
-                      value={laneState.num_lanes}
-                      min={0}
-                      max={16}
-                      onInput={(e) => {
-                        var num_lanes = e.target.value;
-                        setLaneState(prev => ({ ...prev, num_lanes: num_lanes }));
-                      }}
-                    />
-
-                  </Grid>
-
-                </Grid>
-            </Grid>
-                <Button color="primary" variant="contained" onClick={submitParams}> Save ROI info and Regenerate Results </Button>
-
-            </Grid>
-
+          </Grid>
 
           </AccordionDetails>
           </Accordion>
