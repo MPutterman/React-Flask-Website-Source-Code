@@ -869,7 +869,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                       control={<Checkbox
                         //color="primary"
                         //variant="contained"
-                        disabled={!originsDefined()}
+                        //disabled={!originsDefined()}
                         checked={laneState.show_Rf}
                         value={laneState.show_Rf ? 'on' : 'off'}
                         onChange={(event) => {

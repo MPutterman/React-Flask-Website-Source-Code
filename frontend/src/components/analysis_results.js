@@ -52,9 +52,12 @@ const AnalysisResults = (props) => {
                         return (
                           <>
                             <br/>
+                            {console.log("value of ROI in loop", roi)}
                             ROI {roi.roi_id} <br/>
-                            {(roi.signal_fraction * 100).toFixed(1)}%<br/>
-                            {props.show_Rf ? ("Rf = " + roi.Rf.toFixed(2) ) : (<></>)}
+                            {roi.signal_fraction !== undefined ? (
+                              <>{(roi.signal_fraction*100).toFixed(1)}%<br/></>
+                            ) : (<></>)}
+                            {props.show_Rf && roi.Rf !== undefined ? ("Rf = " + roi.Rf.toFixed(2) ) : (<></>)}
                           <br/>
                           </>
                         );
