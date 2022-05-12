@@ -97,6 +97,7 @@ const AppWrapped = (props) => {
           <ErrorHandler>
             <Switch>
 
+                <PrivateRoute path='/analysis/view/:id'><AnalysisView /></PrivateRoute>
                 <PrivateRoute path='/analysis/new'><AnalysisEdit new={true} /></PrivateRoute>
                 <PrivateRoute path='/analysis/edit/:id'><AnalysisEdit /></PrivateRoute>
                 <PrivateRoute path='/analysis/search'><AnalysisSearch /></PrivateRoute>
