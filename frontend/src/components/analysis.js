@@ -169,9 +169,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
     let roi_id = laneState.selectedROI;
     if (roi_id === UNDEFINED) return;
 
-    console.log ('in onKeyPress, roi_id=', roi_id);
-
-    // Does this do a copy?
     let roi = laneState.roi_list[roi_id]; // selected ROI
     console.log ('roi before', roi);
     switch (key) { //e.key) {
@@ -265,7 +262,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
 
   const onClickROI = (e, roi_id) => {  // event and roi_id
 
-    //if (selectMode == "roi") {
     if (selectROI) {
       if (roi_id === laneState.selectedROI) {  
         // Remove the specified ROI, and nullify selectedROI
@@ -281,7 +277,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
         setLaneState(prev => ({...prev, selectedROI: roi_id,}));
       }
 
-    //} else if (selectMode == "origin") {
     } else if (selectOrigin) {
       // These calculations translate the coordinates of the event from the ROI
       // canvas to the global coordinates to identify true location of origin.
@@ -423,7 +418,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
   }
 
   const onClickOrigin = (e, i) => {
-    //if (selectMode == "origin") {
     if (selectOrigin) {
         // Remove origin i
       setLaneState(prev => {
@@ -432,7 +426,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
         return {...prev, origins: new_origins, }
       });
 
-    //} else if (selectMode == "roi") {
     } else if (selectROI) {
       // Define an ROI
       console.log ('onClickOrigin - defining a new ROI by caling buildROI');
@@ -494,7 +487,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
   // Handle clicks on the image canvas (not on origin or ROI)
   const onClickImage = (e) => {
 
-    //if (selectMode == "origin") {
     if (selectOrigin) {
         // Add a new origin point at the click location
       var new_origin = [parseInt(e.nativeEvent.offsetY), parseInt(e.nativeEvent.offsetX)];
@@ -504,7 +496,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
         return {...prev, origins: newOrigins, is_dirty: true,}; // is_dirty maybe to trigger state update
       });
 
-    //} else if (selectMode == "roi") {
     } else if (selectROI) {
       // Build a new ROI at the click location
       console.log ('onClickImage - creating a new ROI via buildROI');
@@ -608,24 +599,24 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
 
                 {/* Draw origins if available */}
 
-                {laneState.origins.length > 0 ? laneState.origins.map((x, i) => {
+                {laneState.origins.length > 0 ? laneState.origins.map((origin, origin_id) => {
                   return (
                     <canvas
                       className="ROI"
-                      key={`origin-${i}`}
+                      key={`origin-${origin_id}`}
                       style={{
                         borderRadius: "50%/50%",
                         backgroundColor: "white",
                         position: "absolute",
-                        marginTop: "" + 1 * x[0] - 5 - imageState.size_y + "px",
-                        marginLeft: "" + 1 * x[1] - 5 + "px",
+                        marginTop: "" + 1 * origin[0] - 5 - imageState.size_y + "px",
+                        marginLeft: "" + 1 * origin[1] - 5 + "px",
                         width: "10px",
                         height: "10px",
                         zIndex: (selectOrigin) ? 11 : 10,
                       }}
                       onClick={(e) => {
                         e.preventDefault();
-                        onClickOrigin(e, i);
+                        onClickOrigin(e, origin_id);
                       }}
                     />
                   );
@@ -657,7 +648,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                       // e.preventDefault();
                       onClickROI(e,roi_id);
                     }}
-                    //onClick = { selectMode == 'roi'
+                    //onClick = { selectROI
                     //  ? (e) => { /*e.preventDefault();*/ onClickROI(e,roi_id); }
                     //  : undefined
                     //}}
@@ -671,13 +662,13 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                 {/* Draw lanes if available. For TLC lanes, draw a vertical line at origin_x coordinate
                     TODO: why do we need the -6 in here to get it aligned? Maybe from z-index and shadow feature? */}
 
-                {laneState.lane_list.length > 0 ? laneState.lane_list.map((lane, i) => {
+                {laneState.lane_list.length > 0 ? laneState.lane_list.map((lane, lane_id) => {
                   return (
                     <>
                     {lane.lane_params.origin_x !== null ? (
                     <canvas
                       className="lane"
-                      key={`lane-${i}`}
+                      key={`lane-${lane_id}`}
                       style={{
                         borderRadius: "50%/50%",
                         border: "dashed 2px #333333",
@@ -724,7 +715,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                     }}
                   > Click ROIs </ToggleButton>
                   <Button size='small' variant='outlined' onClick={autoselectROIsWrapper}> Autoselect ROIs </Button>
-                  <Button size='small' variant='outlined' onClick={clearROIs} disabled={!Array.isArray(laneState.roi_list) || laneState.roi_list.length==0}> Clear ROIs </Button>
+                  <Button size='small' variant='outlined' onClick={clearROIs} disabled={!Array.isArray(laneState.roi_list) || laneState.roi_list.length === 0}> Clear ROIs </Button>
                 </Box>
 
                 <p>Define Lanes based on Origins and Solvent Front:</p>
@@ -743,7 +734,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                   > Click Origins </ToggleButton>
                   <Button size='small' variant='outlined' onClick={clearOrigins} disabled={!originsDefined()}> Clear origins </Button>
                   <Button size='small' variant='outlined' onClick={autoselectLanesWrapper} disabled={!originsDefined()}> Create/Update lanes </Button>
-                  <Button size='small' variant='outlined' onClick={clearLanes} disabled={!Array.isArray(laneState.lane_list) || laneState.lane_list.length == 0}> Clear lanes </Button>
+                  <Button size='small' variant='outlined' onClick={clearLanes} disabled={!Array.isArray(laneState.lane_list) || laneState.lane_list.length === 0}> Clear lanes </Button>
                 </Box>
 
                 <p>Autoselect Lanes based on ROIs:</p>
@@ -762,8 +753,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                         setLaneState(prev=>({...prev, num_lanes: value}));
                     }}
                   />
-                  <Button size='small' variant='outlined' onClick={autoselectLanesWrapper} disabled={originsDefined() || (!Array.isArray(laneState.roi_list) || laneState.roi_list.length == 0)}> Create/Update lanes </Button>
-                  <Button size='small' variant='outlined' onClick={clearLanes} disabled={!Array.isArray(laneState.lane_list) || laneState.lane_list.length == 0}> Clear lanes </Button>
+                  <Button size='small' variant='outlined' onClick={autoselectLanesWrapper} disabled={originsDefined() || (!Array.isArray(laneState.roi_list) || laneState.roi_list.length === 0)}> Create/Update lanes </Button>
+                  <Button size='small' variant='outlined' onClick={clearLanes} disabled={!Array.isArray(laneState.lane_list) || laneState.lane_list.length === 0}> Clear lanes </Button>
  
                 </Box>
 

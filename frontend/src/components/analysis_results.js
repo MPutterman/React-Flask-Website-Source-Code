@@ -36,7 +36,7 @@ const AnalysisResults = (props) => {
               <TableRow>
                 {props.lane_list.map((lane, i) => {
                   return (
-                    <TableCell id="tc" key={`lane-${i}`} align="center">
+                    <TableCell id="tc" key={`result-header-lane-${i}`} align="center">
                       Lane {lane.lane_id != null ? lane.lane_id : i+1}
                     </TableCell>
                   );
@@ -47,7 +47,7 @@ const AnalysisResults = (props) => {
               <TableRow>
                 {props.lane_list.map((lane, i) => {
                   return (
-                    <TableCell id="tc" key={`lanedata-${i}`} align="center" style={{ verticalAlign: 'top' }}>
+                    <TableCell id="tc" key={`result-data-lane-${i}`} align="center" style={{ verticalAlign: 'top' }}>
                       {lane.roi_list.map((roi, j) => {
                         return (
                           <>
