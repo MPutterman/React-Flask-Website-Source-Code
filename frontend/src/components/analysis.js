@@ -19,8 +19,6 @@ import Button from "@material-ui/core/Button";
 import Slider from "@material-ui/core/Slider";
 import Grid from "@material-ui/core/Grid";
 import Box from "@material-ui/core/Box";
-import RadioGroup from "@material-ui/core/RadioGroup";
-import Radio from "@material-ui/core/Radio";
 import FormControl from "@material-ui/core/FormControl";
 import FormControlLabel from "@material-ui/core/FormControlLabel";
 import FormLabel from "@material-ui/core/FormLabel";
@@ -133,9 +131,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
         model.bright_opacity,
     ])
     
-    const [selectMode, setSelectMode] = React.useState("roi");
-    const [selectROI, setSelectROI] = React.useState(false);
-    const [selectOrigin, setSelectOrigin] = React.useState(false);
+    const [selectROI, setSelectROI] = React.useState(false); // Actively selecting ROIs
+    const [selectOrigin, setSelectOrigin] = React.useState(false); // Actively selecting origins
 
     const [laneState, setLaneState] = React.useState(initialLaneState);
     const [imageState, setImageState] = React.useState(initialImageState);

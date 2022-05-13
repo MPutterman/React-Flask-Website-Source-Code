@@ -889,9 +889,6 @@ def db_analysis_image_cache(analysis_id, url_radio, url_bright=None):
 # TODO: should this affect 'modified' flag?  Probably
 def db_analysis_rois_lanes_save(analysis_id, data):
     analysis = db_object_load('analysis', analysis_id)
-    # Only update fields provided
-    analysis.origins = data['origins']
-    analysis.show_Rf = data['show_Rf']
     analysis.radio_brightness = data['radio_brightness']
     analysis.radio_contrast = data['radio_contrast']
     analysis.radio_opacity = data['radio_opacity']
@@ -900,6 +897,8 @@ def db_analysis_rois_lanes_save(analysis_id, data):
     analysis.bright_opacity = data['bright_opacity']
     analysis.roi_list = data['roi_list']
     analysis.lane_list = data['lane_list']
+    analysis.origins = data['origins']
+    analysis.show_Rf = data['show_Rf']
     db_session.commit()
     return True
 

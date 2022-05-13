@@ -7,14 +7,12 @@
 */
 
 import React from "react"; 
-import { withRouter } from "react-router";
 
 // Imports for form display components
-import Grid from '@material-ui/core/Grid';
 import Box from '@material-ui/core/Box';
 
 // Imports for automatic form generation
-import {AutoField, ErrorField, SubmitField, LongTextField } from 'uniforms-material';
+import {AutoField, ErrorField, LongTextField } from 'uniforms-material';
 import IDInputField from './idfield';
 
 //const WrappedAnalysisData = ({model, ...props}) => {

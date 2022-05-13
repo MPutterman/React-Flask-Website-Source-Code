@@ -1,13 +1,15 @@
 # TODO:
 # * Make sure to properly implement cache dirty-ing
 # * Use more uniform naming in this module
-# * REMOVE ALL TODOS from the files into feature document
 # * A few functions in here need some study to understand fully
+# * Click a point, and autoselect all ROIs, gives slightly different ROI shapes and positions
+#    -- These should be unified so they use the exact same algorithm, and same computational
+#    -- basis for finding the final ROI
 #
 # Resources:
-# - Using KMeans and KneeLocator to estimate number of lanes:
+# - Using KMeans and KneeLocator to estimate number of clusters (lanes):
 #   https://practicaldatascience.co.uk/machine-learning/how-to-use-knee-point-detection-in-k-means-clustering
-
+#
 # NOTE: The analysis aspects make extensive use of caching to improve performance, and
 # changes to the image, analysis parameters, ROIs or lanes can cause cached information
 # to become dirty and requires re-calculation as follows:
@@ -24,7 +26,7 @@
 #   - Regenerate signal fraction for all ROIs in lane
 
 import scipy
-from scipy.cluster.vq import kmeans,whiten
+from scipy.cluster.vq import kmeans
 from skimage import morphology, filters, transform, measure
 import matplotlib
 import matplotlib.pyplot as plt
@@ -120,7 +122,7 @@ def analysis_generate_working_images(analysis_id):
     # Compute background of this corrected image
     # TODO: what does this 'morphology' do?  Is it better than 'fix background'?
     background = morphology.opening(Cerenkov_ROI,selem=morphology.disk(25))
-    Cerenkov_ROI -= background.copy()
+    Cerenkov_ROI -= background
 
     # This is a crude background subtraction. CAREFUL!!!! only works if > half image
     # has background intensity. TODO: any way to make a more robust/general method?
@@ -258,7 +260,7 @@ def compute_lane_data(lane, all_ROIs):
             roi_info['Rf'] = (all_ROIs[roi_info['roi_id']]['com_y'] - origin_y) / (solvent_y - origin_y)
     return None
 
-# Compute roi and lane data based on image
+# Compute ROI and lane data based on image
 def analysis_compute(analysis_id, roi_list, lane_list):
     # Load relevant image for computations
     from filestorage import analysis_compute_path
@@ -391,15 +393,12 @@ def analysis_rois_find(analysis_id):
     # Find ROI centers
     points = findCenters(img)
     # Find ROIs based on centers
-    ROIs = []
-    for i in range(len(points)):
-        res = findRadius(img,points[i][1],points[i][0],1)
-        ROIs.append([points[i][0],points[i][1],res['rowRadius'],res['colRadius']])
-
-    # Generate new format ROIs:
+    # TODO: Code used to use points[i][0] and points[i][1] as y and x values, respectively
+    #  rather than the updated center returned by findRadius
     roi_list = []
-    for ROI in ROIs:
-        roi_list.append(create_ellipse_ROI(ROI[1],ROI[0],ROI[3],ROI[2]))
+    for i in range(len(points)):
+        roi = findRadius(img,points[i][1],points[i][0],1)
+        roi_list.append(create_ellipse_ROI(roi['col'], roi['row'], roi['colRadius'], roi['rowRadius']));
     return roi_list
 
 # Create lanes from origins. Assumes two highest further points are for

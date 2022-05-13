@@ -15,13 +15,12 @@
 #      There is a way to disconnect from database (make_transient)
 # * Incorporate Flask Mail to do email verification. Maybe also subscriptions? https://pythonhosted.org/Flask-Mail/
 # * Re-insert the @flask_login.login_required now that permissions are somewhat sorted out
-# * A few sites have recommended using '/api' at the beginning of all backend to help better separate frontend and backend
 # * A lot of flask_session files get created per request (for Mike). Does this happen for others too?
 # * Need to look up how to split initialization activities between (if __name__ == '__main__':) section and @app.before_first_request
 # * Need to prevent saving of empty password to user profile (e.g. when create account from google login, or when update account
 #   after Google login).  Backend should be careful of which fields are sent to database.
 # * Need to look at difference between DB session versus connection... maybe not using correctly
-# * Need to test whether session timeout is working properly, and remember-me feature
+# * Need to test remember-me feature
 # * Make API more consistent. Some failed calls return status 500. Some return { error: message }
 # * Add caching of images to the session, to avoid re-loading files when doing multiple back-to-back requests
 
@@ -543,6 +542,7 @@ def image_save():
     else:
         return { 'id': record.image_id }
 
+# Process user login
 @app.route('/api/user/login/<login_method>', methods=['POST'])
 @cross_origin(supports_credentials=True)
 def user_login(login_method):
@@ -607,6 +607,7 @@ def user_login(login_method):
     else:
         return prepare_session_response(None, False, 'Invalid login type')
 
+# Process user logout
 @app.route('/api/user/logout', methods=['POST'])
 #@flask_login.login_required
 @cross_origin(supports_credentials=True)
@@ -627,6 +628,7 @@ def analysis_rois_autoselect(analysis_id):
 
 # Automatically define TLC lanes based on ROIs (geometric aspects only)
 # NOTE: Analysis in database is not updated. User must separately save the lanes.
+# NOTE: ROIs are not automatically assigned to lanes. That happens when the lanes are saved.
 # TODO: check various combinations of num_lanes and num_ROIs and check error handling
 @app.route('/api/analysis/lanes_autoselect/<analysis_id>', methods=['POST'])
 @cross_origin(supports_credentials=True)
@@ -680,8 +682,7 @@ def analysis_rois_lanes_save(analysis_id):
     analysis_compute(analysis_id, roi_list, lane_list)
 
     show_Rf = data.get('show_Rf') if data.get('show_Rf') is not None else False
-    # TODO: should we use these origins?  Currently we expect user to 
-    #  hit "generate lanes" before saving
+    # TODO: should we use these origins?  Currently we expect user to hit "generate lanes" before saving
     origins = json.loads(data.get('origins')) if data.get('origins') is not None else []
 
     newdata = {}
@@ -727,6 +728,7 @@ def analysis_save():
         # Compare previous and newly saved analysis to see if any fields changed that affect
         # display images or computation images ('compute'/'calc' and 'radii')
         # TODO: this could be a bit streamlined. E.g. dirty bright_image_id or uv_image_id doesn't affect much
+        # TODO: have multiple different dirty flags, bright, uv, and radio?
         if (data.get('radio_image_id') != prev_analysis.radio_image_id): cache_dirty = True
         if (data.get('dark_image_id') != prev_analysis.dark_image_id): cache_dirty = True
         if (data.get('flat_image_id') != prev_analysis.flat_image_id): cache_dirty = True
@@ -743,8 +745,6 @@ def analysis_save():
     from database import db_object_save
     analysis = db_object_save('analysis', data)
 
-    # NOTE: analysis_generate_working_images may update the analysis object
-    #   but it won't change the analysis_id
     if (cache_dirty):
         print ("/api/analysis/save: Change in parameters detected; image cache is dirty")
         # TODO: implement error checking for the following
@@ -756,7 +756,7 @@ def analysis_save():
 # Build an ROI from a clicked point
 # TODO: what does 'shift' do exactly?
 # NOTE: ROI is not added to the database (user must do so explicitly)
-@app.route('/api/analysis/roi_build/<analysis_id>/<x>/<y>/<shift>',methods = ['POST', 'GET'])
+@app.route('/api/analysis/roi_build/<analysis_id>/<x>/<y>/<shift>',methods = ['GET'])
 @cross_origin(supports_credentials=True)
 def analysis_roi_build(analysis_id,x,y,shift):
     from analysis import analysis_roi_create_from_point

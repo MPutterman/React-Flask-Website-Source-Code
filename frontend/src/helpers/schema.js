@@ -422,18 +422,32 @@ const schema = new SimpleSchema ({
         type: String,
         required: false,
     },
-    ROIs: {
-        label: 'ROIs',
+    roi_list: { // TODO: update with new structre of info (array of dict)
+        label: 'ROI list',
         type: Array,
         required: false,
     },
-    'ROIs.$': {
+    'roi_list.$': {
         type: Array,
     },
-    'ROIs.$.$': {
+    'roi_list.$.$': {
         type: Array,
     },
-    'ROIs.$.$.$': {
+    'roi_list.$.$.$': {
+        type: Number, // Coordinate or radius (integers), or ______
+    },
+    lane_list: { // TODO: update with new structre of info (array of dict)
+        label: 'Lane list',
+        type: Array,
+        required: false,
+    },
+    'lane_list.$': {
+        type: Array,
+    },
+    'lane_list.$.$': {
+        type: Array,
+    },
+    'lane_list.$.$.$': {
         type: Number, // Coordinate or radius (integers), or ______
     },
     origins: {
@@ -447,21 +461,6 @@ const schema = new SimpleSchema ({
     'origins.$.$': {
         type: SimpleSchema.Integer, // Coordinates
     },
-    results: {
-        label: 'Results',
-        type: Array,
-        required: false,
-    },
-    'results.$': {
-        type: Array,
-    },
-    'results.$.$': {
-        type: Array,
-    },
-    'results.$.$.$': {
-        type: Number,
-    },
-
 });
 schema.extend(metaSchema);
 schema.extend(nameSchema);
