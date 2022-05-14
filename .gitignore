@@ -1,8 +1,6 @@
 backend/.env
-!backend/UPLOADS
-backend/UPLOADS/*
-!backend/CACHE
-backend/CACHE/*
+!backend/FILES
+backend/FILES/*
 backend/flask_session
 backend/__pycache__
 !backend/sqlite
