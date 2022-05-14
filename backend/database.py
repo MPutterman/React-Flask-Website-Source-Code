@@ -284,8 +284,8 @@ class Analysis(Base):
     flat_image_id = Column(Integer, ForeignKey('image.image_id'))
     bright_image_id = Column(Integer, ForeignKey('image.image_id'))
     uv_image_id = Column(Integer, ForeignKey('image.image_id'))
-    bkgrd_algorithm = Column(String(128))
-    filter_algorithm = Column(String(128))
+    bkgrd_algorithm = Column(String(128)) # TODO: limit values
+    filter_algorithm = Column(String(128)) # TODO: limit values
     correct_dark = Column(Boolean)
     correct_flat = Column(Boolean)
     correct_bkgrd = Column(Boolean)

@@ -59,8 +59,8 @@ export const initialState = {
         default_pagesize: 10,
     },
     analysis: {
-        bkgrd_algorithm_options: ['None', '1st order', '2nd order', '3rd order',],
-        filter_algorithm_options: ['None', 'median 3x3',],
+        bkgrd_algorithm_options: ['none', 'median_subtract', 'mputterman_1',],
+        filter_algorithm_options: ['none', 'median_3x3',],
         default_radio_opacity: 80,
         default_bright_opacity: 20,
         brightness_min: -100, // What should this be?

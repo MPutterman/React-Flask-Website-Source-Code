@@ -724,6 +724,15 @@ def analysis_save():
 
     # Data to be saved
     data = json.loads(request.form.get('JSON_data'))
+    # Set a few flags based on responses
+    if data.get('filter_algorithm') and data.get('filter_algorithm') != 'none':
+        data['correct_filter'] = True
+    if data.get('bkgrd_algorithm') and data.get('bkgrd_algorithm') != 'none':
+        data['correct_bkgrd'] = True
+    if data.get('dark_image_id') and data.get('dark_image_id') is not None:
+        data['correct_dark'] = True
+    if data.get('flat_image_id') and data.get('flat_image_id') is not None:
+        data['correct_flat'] = True
 
     # Load current version of analysis (if it exists) and look for changes that affect image_cache
     cache_dirty = False
@@ -759,7 +768,7 @@ def analysis_save():
         print ("/api/analysis/save: Change in parameters detected; image cache is dirty")
         # TODO: implement error checking for the following
         from analysis import analysis_generate_working_images
-        analysis_generate_working_images(analysis.analysis_id)
+        analysis_generate_working_images(analysis.analysis_id, )
     
     return { 'id': analysis.analysis_id }
 

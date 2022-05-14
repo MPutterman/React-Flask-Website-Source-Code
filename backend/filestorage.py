@@ -117,7 +117,7 @@ def analysis_compute_path(analysis_id):
     return os.path.join(file_path_config['ANALYSIS_WORKING_PATH'], str(analysis_id), 'compute.npy')
     # path/<analysis_id>/compute.npy
 
-def analysis_radii_path(analysis_id):
+def analysis_roi_path(analysis_id):
     check_if_initialized()
     return os.path.join(file_path_config['ANALYSIS_WORKING_PATH'], str(analysis_id), 'radii.npy')
     # path/<analysis_id>/radii.npy
@@ -153,7 +153,7 @@ def get_pathname(object_type, file_type, object_id):
     elif (object_type == 'analysis' and file_type == 'compute'):
         pathname = analysis_compute_path(object_id)
     elif (object_type == 'analysis' and file_type == 'radii'): # TODO: rename this? what is it for exactly?
-        pathname = analysis_radii_path(object_id)
+        pathname = analysis_roi_path(object_id)
     else:
         pathname = None
     return pathname

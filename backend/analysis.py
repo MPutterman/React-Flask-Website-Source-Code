@@ -39,44 +39,43 @@ from sklearn.preprocessing import StandardScaler
 # Helper function to load a full set of image files associated with an analysis.
 # Returns a dictionary of files
 # NOTE: The files have different formats currently. In the future, these will be unified.
-def analysis_load_image_files(analysis_id):
+def analysis_load_image_files(radio_id, dark_id, flat_id, bright_id, uv_id):
 
-    from database import db_object_load
-    analysis = db_object_load('analysis', analysis_id)
     from filestorage import image_file_upload_path
+    from database import db_object_load
 
     # Load radio image
     radio_image_array = None
-    if (analysis.radio_image_id is not None):
-        radio_image = db_object_load('image', analysis.radio_image_id)
+    if (radio_id is not None):
+        radio_image = db_object_load('image', radio_id)
         radio_image_path = image_file_upload_path(radio_image.image_id, radio_image.filename)
         radio_image_array = np.loadtxt(radio_image_path) 
 
     # Load dark image
     dark_image_array = None
-    if (analysis.dark_image_id is not None):
-        dark_image = db_object_load('image', analysis.dark_image_id)
+    if (dark_id is not None):
+        dark_image = db_object_load('image', dark_id)
         dark_image_path = image_file_upload_path(dark_image.image_id, dark_image.filename)
         dark_image_array = np.asarray(PIL.Image.open(dark_image_path))
 
     # Load flat image
     flat_image_array = None
-    if (analysis.flat_image_id is not None):
-        flat_image = db_object_load('image', analysis.flat_image_id)
+    if (flat_id is not None):
+        flat_image = db_object_load('image', flat_id)
         flat_image_path = image_file_upload_path(flat_image.image_id, flat_image.filename)
         flat_image_array = np.asarray(PIL.Image.open(flat_image_path))
 
     # Load bright image
     bright_image_array = None
-    if (analysis.bright_image_id is not None):
-        bright_image = db_object_load('image', analysis.bright_image_id)
+    if (bright_id is not None):
+        bright_image = db_object_load('image', bright_id)
         bright_image_path = image_file_upload_path(bright_image.image_id, bright_image.filename)
         bright_image_array = np.loadtxt(bright_image_path)
 
     # Load uv image
     uv_image_array = None
-    if (analysis.uv_image_id is not None):
-        uv_image = db_object_load('image', analysis.uv_image_id)
+    if (uv_id is not None):
+        uv_image = db_object_load('image', uv_id)
         uv_image_path = image_file_upload_path(uv_image.image_id, uv_image.filename)
         uv_image_array = np.loadtext(uv_image_path)
 
@@ -89,11 +88,21 @@ def analysis_load_image_files(analysis_id):
     }
 
 # Helper function to create cached images 
+# TODO: Speed optimization: find a way to specify which image(s) need loading / updating
 # TODO: make sure we are capture full bpp data received from various image formats (16-bit, not 8-bit)
 def analysis_generate_working_images(analysis_id):
 
-    # Retrieve files
-    files = analysis_load_image_files(analysis_id)
+    # Retrieve analysis object to get parameters
+    from database import db_object_load
+    analysis = db_object_load('analysis', analysis_id)
+
+    # Retrieve analysis files
+    files = analysis_load_image_files(
+        analysis.radio_image_id,
+        analysis.dark_image_id,
+        analysis.flat_image_id,
+        analysis.bright_image_id,
+        analysis.uv_image_id)
     Cerenkov = files['radio']
     Dark = files['dark']
     Flat = files['flat']
@@ -103,41 +112,49 @@ def analysis_generate_working_images(analysis_id):
     if (Bright is None):
         Bright = UV
 
-    # Apply image corrections and transformations
-    # TODO: need to actually look at the analysis parameters (i.e. corrections to apply)
-    # TODO: maybe allow user to apply a rotation to whole set of images????
+    # Apply image corrections and transformations to the 'radio' image
 
-    # Computed the corrected radio image
-    if (Dark is not None): # if correct_dark
-        Cerenkov = Cerenkov-Dark
-    if (Flat is not None): # if correct_flat
-        Cerenkov = Cerenkov/Flat
-    # if correct_filter (also TODO: choose algorithm)
-    Cerenkov = filters.median(Cerenkov)  # TODO: what is the default size here?
+    # Dark image correction
+    if analysis.correct_dark and (Dark is not None):
+        Cerenkov -= Dark
+    # Flat field correction
+    if analysis.correct_flat and (Flat is not None):
+        Cerenkov /= Flat
+    # Additional filters
+    if analysis.correct_filter:
+        if analysis.filter_algorithm == 'median_3x3':
+            Cerenkov = analysis_filter_median_3x3(Cerenkov)
+        else:
+            print (f"Unknown filter algorithm ({analysis.filter_algorithm}): ignoring")
+    # Rotate image
+    # TODO: fix original images so don't need rotation
     Cerenkov = transform.rotate(Cerenkov,270)
     
+    # Create an extra image to assist with ROI autoselection
     Cerenkov_ROI = Cerenkov.copy()
+    Cerenkov_ROI -= morphology.opening(Cerenkov_ROI,selem=morphology.disk(25))
 
-    # TODO: this background should be computed before some corrections (e.g. flat)
-    # Compute background of this corrected image
-    # TODO: what does this 'morphology' do?  Is it better than 'fix background'?
-    background = morphology.opening(Cerenkov_ROI,selem=morphology.disk(25))
-    Cerenkov_ROI -= background
+    # Background subtraction for 'radio' image
+    if analysis.correct_bkgrd:
+        if analysis.bkgrd_algorithm == 'median_subtract':
+            Cerenkov = analysis_bkgrd_median_subtract(Cerenkov)
+        elif analysis.bkgrd_algorithm == 'mputterman_1':
+            Cerenkov = analysis_bkgrd_mputterman_1(Cerenkov)
+        else:
+            print (f"Unknown bkgrd algorithm ({analysis.bkgrd_algorithm}): ignoring")
 
-    # This is a crude background subtraction. CAREFUL!!!! only works if > half image
-    # has background intensity. TODO: any way to make a more robust/general method?
-    Cerenkov-=np.median(Cerenkov)
+    # Background subtraction for ROI image
     Cerenkov_ROI-=np.median(Cerenkov_ROI)
 
-    # Save the radio image for doing calculations... ('compute'/'calc')
+    # Save the radio image, i.e. for doing calculations (TODO: formerly called 'compute'/'calc')
     from filestorage import analysis_compute_path, save_array
     save_array(Cerenkov, analysis_compute_path(analysis_id))
 
-    # Save the radio image for finding ROIs... ('radii')
-    from filestorage import analysis_radii_path, save_array
-    save_array(Cerenkov_ROI, analysis_radii_path(analysis_id))
+    # Save the ROI image, i.e. for finding ROIS (TODO: formerly called 'radii')
+    from filestorage import analysis_roi_path, save_array
+    save_array(Cerenkov_ROI, analysis_roi_path(analysis_id))
 
-    # Generate display image (radiation)
+    # Generate display image for radio image
     Display_Radio = Cerenkov.copy()
     # Rescale to use full range 0 to 1
     Display_Radio -= np.min(Display_Radio)
@@ -147,9 +164,9 @@ def analysis_generate_working_images(analysis_id):
     from filestorage import analysis_display_radio_path, save_file
     save_file(Display_Radio, analysis_display_radio_path(analysis_id))
 
-    # Create display image (brightfield)
+    # Create display image for brightfield
     if Bright is not None:
-        if (Flat is not None): # TODO: only if correct_flat
+        if analysis.correct_flat and (Flat is not None): 
             Bright /= Flat
         Bright = transform.rotate(Bright,270)
         # Rescale to use full range 0 to 1
@@ -160,8 +177,7 @@ def analysis_generate_working_images(analysis_id):
         from filestorage import analysis_display_bright_path, save_file
         save_file(Bright, analysis_display_bright_path(analysis_id))
 
-    # Update in database where the display image is, and when cache was updated
-
+    # Update in database where the display image is, and (TODO:) when cache was updated
     from database import db_analysis_image_cache
     db_analysis_image_cache(
         analysis_id,
@@ -171,6 +187,46 @@ def analysis_generate_working_images(analysis_id):
 
     return True
 
+# Functions to implement image correction filters
+
+def analysis_filter_median_3x3 (image):
+    return filters.median(image) # Default is 3x3
+
+# Functions to implement image background correction
+
+def analysis_bkgrd_median_subtract (image):
+    return image - np.median(image)
+
+# TODO: Figure out what this does in detail
+def analysis_bkgrd_mputterman_1(image): # TODO: FORMERLY called fix_background
+    img-=np.min(image)
+    img+=.001
+    ideal_r = 25
+    b4=morphology.opening(img,morphology.disk(ideal_r-10))
+    b0 = morphology.closing(img,morphology.disk(ideal_r))
+    b1 = morphology.opening(img,morphology.disk(ideal_r+5))
+    b2 = morphology.opening(img,morphology.disk(ideal_r))
+    b3 = morphology.opening(img,morphology.disk(ideal_r-5))
+    b = b1.copy()
+    c = ideal_r*2
+    arr = np.array([[-1*ideal_r,1],[ideal_r-10,1],[0,1],[ideal_r-5,1],[ideal_r,1],[ideal_r+5,1]])
+    arr = np.linalg.pinv(arr)
+    for i in range(len(b)):
+        
+        for j in range(len(b[i])):
+            if abs(b3[i][j]-b1[i][j])>20:
+                arr2=arr @ np.log(np.array([b0[i][j],b4[i][j],img[i][j],b3[i][j], b2[i][j], b1[i][j]]))
+                x = arr2[0]
+                y=arr2[1]
+                b[i][j] = np.exp(y)*np.exp(x*c)
+    # TODO: is this to get rid of faint artifacts along edges of chips/plates?
+    b=filters.median(b,selem=morphology.rectangle(40,2))
+    b=filters.median(b,selem=morphology.rectangle(2,40))
+    img-=b
+    img-=np.median(img)
+    return img
+
+# Functions to create ROIs
 def create_ellipse_ROI(x, y, rx, ry):
     return {'shape': 'ellipse', 'shape_params': {'x': x, 'y': y, 'rx': rx, 'ry': ry, }}
 
@@ -274,8 +330,8 @@ def analysis_compute(analysis_id, roi_list, lane_list):
 
 # Build an ROI from a click on a point
 def analysis_roi_create_from_point(analysis_id, x, y, shift, shape='ellipse'):
-    from filestorage import analysis_radii_path
-    img = np.load(analysis_radii_path(analysis_id))
+    from filestorage import analysis_roi_path
+    img = np.load(analysis_roi_path(analysis_id))
 
     # TODO: may need different algorithm for different shape ROI
     results = findRadius(img,x,y,shift)
@@ -388,9 +444,9 @@ def find_RL_UD(img,center):
 def analysis_rois_find(analysis_id, shape='ellipse'):
     # Retrieve files needed for analysis
     # TODO: check if they exist? and generate if not?
-    from filestorage import analysis_compute_path, analysis_radii_path
+    from filestorage import analysis_compute_path, analysis_roi_path
     img = np.load(analysis_compute_path(analysis_id))
-    imgR = np.load(analysis_radii_path(analysis_id))
+    imgR = np.load(analysis_roi_path(analysis_id))
 
     # Find ROI centers
     points = findCenters(img)
@@ -579,51 +635,3 @@ def analysis_lanes_autocount(roi_list):
     from kneed import KneeLocator
     elbow = KneeLocator(x=list(errors.keys()), y=list(errors.values()), curve='convex', direction='decreasing').elbow
     return elbow
-
-# Perform background correction of image (acts on 'compute' and 'display' radio
-# images but not the 'radii' image.)
-# TODO: Figure out what this does in detail
-def fix_background(analysis_id):
-    from filestorage import analysis_radii_path
-    img = np.load(analysis_radii_path(analysis_id))
-    val = img.copy()
-    img-=np.min(img)
-    img+=.001
-    ideal_r = 25
-    b4=morphology.opening(img,morphology.disk(ideal_r-10))
-    b0 = morphology.closing(img,morphology.disk(ideal_r))
-    b1 = morphology.opening(img,morphology.disk(ideal_r+5))
-    b2 = morphology.opening(img,morphology.disk(ideal_r))
-    b3 = morphology.opening(img,morphology.disk(ideal_r-5))
-    b = b1.copy()
-    c = ideal_r*2
-    arr = np.array([[-1*ideal_r,1],[ideal_r-10,1],[0,1],[ideal_r-5,1],[ideal_r,1],[ideal_r+5,1]])
-    arr = np.linalg.pinv(arr)
-    for i in range(len(b)):
-        
-        for j in range(len(b[i])):
-            if abs(b3[i][j]-b1[i][j])>20:
-                arr2=arr @ np.log(np.array([b0[i][j],b4[i][j],img[i][j],b3[i][j], b2[i][j], b1[i][j]]))
-                x = arr2[0]
-                y=arr2[1]
-                b[i][j] = np.exp(y)*np.exp(x*c)
-    # TODO: is this to get rid of faint artifacts along edges of chips/plates?
-    b=filters.median(b,selem=morphology.rectangle(40,2))
-    b=filters.median(b,selem=morphology.rectangle(2,40))
-    img-=b
-    img-=np.median(img)
-    from filestorage import analysis_compute_path, save_array
-    save_array(img, analysis_compute_path(analysis_id)) # retrieve_image_path('cerenkovcalc',analysis_id)
-    #os.remove(path)
-    #np.save(path,img)
-    img-=np.min(img)
-    img/=np.max(img)   
-    ## TODO: these images should be 16-bit... this might be truncating
-    ## them...
-    img = PIL.Image.fromarray((np.uint8(plt.get_cmap('hot')(img)*255)))
-    from filestorage import analysis_display_radio_path, save_file
-    save_file(img, analysis_display_radio_path(analysis_id))
-
-    from database import db_analysis_image_cache
-    db_analysis_image_cache(analysis_id, f"/api/file/analysis/display-radio/{analysis_id}")
-    return None
