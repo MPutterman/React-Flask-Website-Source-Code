@@ -172,16 +172,11 @@ def analysis_generate_working_images(analysis_id):
     return True
 
 def create_ellipse_ROI(x, y, rx, ry):
-    ROI = {
-        'shape': 'ellipse',
-        'shape_params': {
-            'x': x,
-            'y': y,
-            'rx': rx,
-            'ry': ry,
-        }
-    }
-    return ROI
+    return {'shape': 'ellipse', 'shape_params': {'x': x, 'y': y, 'rx': rx, 'ry': ry, }}
+
+def create_rectangle_ROI(x, y, rx, ry):
+    return {'shape': 'rectangle', 'shape_params': {'x': x, 'y': y, 'rx': rx, 'ry': ry, }}
+
 
 # 'roi_list' is a list of dict, each with roi_id, signal_fraction, Rf
 def create_tlc_lane (origin_x, origin_y, solvent_x, solvent_y):
@@ -202,7 +197,7 @@ def create_tlc_lane (origin_x, origin_y, solvent_x, solvent_y):
 # Should be called when an ROI is created, when geometry changes, or when image/analysis changes.
 # NOTE: Mutates ROI in place.
 def compute_ROI_data(ROI, image):
-    if ROI['shape'] != 'ellipse':
+    if ROI['shape'] != 'ellipse' and ROI['shape'] != 'rectangle':
         print ("ERROR in compute_ROI_data: undefined ROI shape ({})\n" . format(ROI['shape']))
         print (ROI)
         return None
@@ -211,17 +206,20 @@ def compute_ROI_data(ROI, image):
     signal = 0
     mass_x = 0
     mass_y = 0
-    # Iterate through image rows from bottom to top of ellipse
+    # Iterate through image rows from bottom to top of ROI
     for row in range(max(ROI['shape_params']['y'] - ROI['shape_params']['ry'], 0), \
         min(ROI['shape_params']['y'] + ROI['shape_params']['ry'], image_rows-1)):
 
-        # Iterate through image columns from left to right of ellipse
+        # Iterate through image columns from left to right of ROI
         for col in range(max(ROI['shape_params']['x'] - ROI['shape_params']['rx'], 0), \
             min(ROI['shape_params']['x'] + ROI['shape_params']['rx'], image_cols-1)):
 
-            # Determine if point is actually inside ellipse
-            if (row - ROI['shape_params']['y'])**2 / ROI['shape_params']['ry']**2 + \
-                (col - ROI['shape_params']['x'])**2 / ROI['shape_params']['rx']**2 < 1.0:
+            # Determine if point is actually inside ROI
+            # For rectangle, all points of the iterated range are within the ROI.
+            # For ellipse, we use the ellipse formula to determine which points are inside.
+            if (ROI['shape'] == 'rectangle') or ((ROI['shape'] == 'ellipse') and \
+               ((row - ROI['shape_params']['y'])**2 / ROI['shape_params']['ry']**2 + \
+                (col - ROI['shape_params']['x'])**2 / ROI['shape_params']['rx']**2 < 1.0)):
 
                 pixels += 1
                 signal += image[row][col]  # add the pixel
@@ -275,17 +273,21 @@ def analysis_compute(analysis_id, roi_list, lane_list):
     }
 
 # Build an ROI from a click on a point
-def analysis_roi_create_from_point(analysis_id, x, y, shift):
+def analysis_roi_create_from_point(analysis_id, x, y, shift, shape='ellipse'):
     from filestorage import analysis_radii_path
     img = np.load(analysis_radii_path(analysis_id))
 
+    # TODO: may need different algorithm for different shape ROI
     results = findRadius(img,x,y,shift)
     col = results['col']
     row = results['row']
     colRadius=results['colRadius']
     rowRadius=results['rowRadius']
 
-    return create_ellipse_ROI(col, row, colRadius, rowRadius)
+    if (shape == 'ellipse'):
+        return create_ellipse_ROI(col, row, colRadius, rowRadius)
+    elif (shape == 'rectangle'):
+        return create_rectangle_ROI(col, row, colRadius, rowRadius)
 
 # Finds size of ellipse ROI from a starting point
 # TODO: figure out how this works in detail
@@ -383,7 +385,7 @@ def find_RL_UD(img,center):
     return(round(center[0]+(UR-DR)/2),round(center[1]+(RR-LR)/2))
 
 # Auto-select ROIs from image
-def analysis_rois_find(analysis_id):
+def analysis_rois_find(analysis_id, shape='ellipse'):
     # Retrieve files needed for analysis
     # TODO: check if they exist? and generate if not?
     from filestorage import analysis_compute_path, analysis_radii_path
@@ -398,7 +400,10 @@ def analysis_rois_find(analysis_id):
     roi_list = []
     for i in range(len(points)):
         roi = findRadius(img,points[i][1],points[i][0],1)
-        roi_list.append(create_ellipse_ROI(roi['col'], roi['row'], roi['colRadius'], roi['rowRadius']));
+        if shape == 'ellipse':
+            roi_list.append(create_ellipse_ROI(roi['col'], roi['row'], roi['colRadius'], roi['rowRadius']))
+        elif shape == 'rectangle':
+            roi_list.append(create_rectangle_ROI(roi['col'], roi['row'], roi['colRadius'], roi['rowRadius']))
     return roi_list
 
 # Create lanes from origins. Assumes two highest further points are for

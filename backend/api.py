@@ -760,11 +760,11 @@ def analysis_save():
 # Build an ROI from a clicked point
 # TODO: what does 'shift' do exactly?
 # NOTE: ROI is not added to the database (user must do so explicitly)
-@app.route('/api/analysis/roi_build/<analysis_id>/<x>/<y>/<shift>',methods = ['GET'])
+@app.route('/api/analysis/roi_build/<analysis_id>/<x>/<y>/<shift>/<shape>',methods = ['GET'])
 @cross_origin(supports_credentials=True)
-def analysis_roi_build(analysis_id,x,y,shift):
+def analysis_roi_build(analysis_id,x,y,shift, shape):
     from analysis import analysis_roi_create_from_point
-    return { 'roi': analysis_roi_create_from_point(analysis_id, x, y, shift), }
+    return { 'roi': analysis_roi_create_from_point(analysis_id, x, y, shift, shape), }
     
 # Retrieve a file
 # TODO: add permission checks

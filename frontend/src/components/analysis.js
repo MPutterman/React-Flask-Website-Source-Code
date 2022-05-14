@@ -155,8 +155,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
   // Build an ROI around the specified x,y point. The ROI will not be assigned to
   // any lane until the ROIs and lanes are saved.
   // QUESTION: what does 'shift' do? (seems related to whether shift key is pressed??)
-  async function buildROI(x,y,shift) {
-    callAPI('GET', `/api/analysis/roi_build/${model.analysis_id}/${x}/${y}/${shift}`, {})
+  async function buildROI(x,y,shift, shape) {
+    callAPI('GET', `/api/analysis/roi_build/${model.analysis_id}/${x}/${y}/${shift}/${shape}`, {})
       .then((res) => {
         return setLaneState(prev => {
           const new_roi = res.data.roi;
@@ -455,7 +455,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
       var x = laneState.origins[i][1] - ORIGIN_R + unscaleX(e.nativeEvent.offsetX);
       var y = laneState.origins[i][0] - ORIGIN_R + unscaleY(e.nativeEvent.offsetY);
       var shift = e.shiftKey ? 1 : 0;
-      buildROI(x,y,shift); 
+      var shape = e.ctrlKey ? 'rectangle' : 'ellipse';
+      buildROI(x,y,shift,shape); 
     }
   }
 
@@ -518,7 +519,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
       var x = unscaleX(e.nativeEvent.offsetX);
       var y = unscaleY(e.nativeEvent.offsetY);
       var shift = e.shiftKey ? 1 : 0;
-      buildROI(x,y,shift);
+      var shape = e.ctrlKey ? 'rectangle' : 'ellipse';
+      buildROI(x,y,shift, shape);
     }
   }
   
@@ -653,7 +655,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                       position: "absolute",
                       backgroundColor: "transparent",
                       zIndex: (selectROI) ? 11 : 10,
-                      borderRadius: "50%/50%",
+                      borderRadius: roi.shape === 'ellipse' ? "50%/50%" : undefined, // rectangle
                       border:
                         (roi_id === laneState.selectedROI)
                           ? "dashed 1px #0ff"
@@ -722,6 +724,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                 <Box display="flex" flexDirection="row" alignItems='center'>
                   <Popup width='50%' button_label={<HelpIcon/>}>
                         Click on a band to build a new ROI, or select an existing ROI to modify it. 
+                        Hold CTRL while clicking to create a rectangular ROI. (Default shape is ellipse.)
                         While an ROI is selected, click on it to delete it, or use the following keys to update it:<br/> 
                         [a / A] jog left (left / right side)<br/> 
                         [w / W] jog up (top / bottom side)<br/> 
