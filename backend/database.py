@@ -48,31 +48,51 @@ import werkzeug
 
 # TODO: how to do this setup and instantiation once and register with FLASK globals?
 
-# Main database setup
-
-# Load environment variables (DB setup parameters)
-load_dotenv()
-
-# Initialize database connection
-#db_uri = "mysql+mysqlconnector://{}:{}@{}:{}/{}".format(
-#       os.getenv('DB_USER'),
-#        quote(os.getenv('DB_PASS')),
-#        os.getenv('DB_HOST'),
-#        os.getenv('DB_PORT'),
-#        os.getenv('DB_NAME')     
-#)
-db_uri = "sqlite:///sqlite/{}".format(os.getenv('DB_NAME'))
-db_engine = create_engine(db_uri, future=True)
-
-# Create Session class
-# Other docs used the following (is there a difference?)
-#    Session = sessionmaker(bind=engine)
-#    session = Session(future=True)
-db_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=db_engine))
-
+# Global variables (for convenience)
+# Database session (TODO: add exception handling if any func tries to use before initialized)
+db_session = None
 # Create ORM Base class
 Base = declarative_base()
-Base.query = db_session.query_property()
+
+# Main database setup
+def db_initialize(db_name, reset=False):
+
+    print (f"Initializing database (db_name={db_name})...")
+
+    #db_uri = "mysql+mysqlconnector://{}:{}@{}:{}/{}".format(
+    #        os.getenv('DB_USER'),
+    #        quote(os.getenv('DB_PASS')),
+    #        os.getenv('DB_HOST'),
+    #        os.getenv('DB_PORT'),
+    #        db_name, # Retrieved in api.py (since needed for file storage as well)
+    #)
+    db_uri = f"sqlite:///sqlite/{db_name}"
+
+    db_engine = create_engine(db_uri, future=True)
+
+    # Create Session class
+    # TODO: Other docs used the following (is there a difference?)
+    #    Session = sessionmaker(bind=engine)
+    #    session = Session(future=True)
+    global db_session
+    db_session = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=db_engine))
+
+    # Update base class with current session
+    Base.query = db_session.query_property()
+
+    if reset:
+        print ('  Reset option selected')        
+        print ('  Dropping existing database...')
+        sqlalchemy_utils.functions.drop_database(db_uri)
+        print ('  Creating database...')
+        sqlalchemy_utils.functions.create_database(db_uri)
+        print ('  Creating all tables...')
+        Base.metadata.create_all(db_engine)
+        db_session.commit()
+
+        # TODO: there should be an option where this data should come from
+        print ('  Populating database with test data...')
+        db_add_test_data()
 
 # Cleanup
 def db_cleanup():
@@ -108,6 +128,8 @@ class TZDateTime(TypeDecorator):
         if value is not None:
             value = value.replace(tzinfo=timezone.utc)
         return value
+
+# Create object classes and association tables
 
 # Define association tables
 
@@ -371,22 +393,7 @@ class Cover(Base):
         }
 
 
-def db_create_tables():
-    # Careful, this deletes ALL data in database
-    print ('Initializing database...')
-    print ('Dropping existing database')
-    sqlalchemy_utils.functions.drop_database(db_uri)
-    print ('Creating database')
-    sqlalchemy_utils.functions.create_database(db_uri)
-    print ('Creating all tables')
-    Base.metadata.create_all(db_engine)
-    db_session.commit()
-
-
 def db_add_test_data():
-    print ('Populating database with test data')
-    # Some simple tests to show usage of creating a few objects (and automatically setting up the links between different types)
-    tim = time.time()
     db_session.begin()
     plate1 = Plate(name = 'JT Baker 12345: silica, 250 um, aluminum back, F254 60',plate_id = 1)
     plate2 = Plate(name = 'JT Baker 23456: silica, 250 um, glass back, F254 60, concentration zone',plate_id=2)

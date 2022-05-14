@@ -30,7 +30,7 @@ import json
 from flask import Flask, request,Response,send_file,send_from_directory,make_response,Response,session
 from flask_session import Session
 import PIL
-import os
+import sys, os
 from flask_cors import CORS,cross_origin
 import flask_login
 from flask_login import LoginManager
@@ -41,7 +41,7 @@ import datetime
 from dateutil import parser
 
 # Include database layer
-from database import db_create_tables, db_add_test_data, db_cleanup, object_type_valid
+from database import object_type_valid
 
 # Include permission handling
 from permissions import check_permission, has_permission, list_permissions
@@ -151,14 +151,22 @@ app.json_decode=CustomJSONDecoder
 # and database when the app is more mature
 @app.before_first_request
 def initialize():
-    # Prepare and clear folders for images
-    from filestorage import create_file_storage
-    create_file_storage()
-    # Prepare and clear database tables
-    db_create_tables() 
-    # Add initial testing data
-    db_add_test_data() 
+    print ("Starting backend application...")
+    # This option comes from command line (whether to create new database)
+    reset = False
+    if app.config.get('CREATE_DATABASE'):
+        db_name = app.config.get('CREATE_DATABASE')
+        reset = True
+    else:
+        db_name = os.getenv('DB_NAME')
 
+    # Prepare file storage system
+    from filestorage import initialize_file_storage
+    initialize_file_storage(db_name, reset)
+
+    # Prepare database
+    from database import db_initialize
+    db_initialize(db_name, reset)
 
 #@app.before_request
 #def initialize_request():
@@ -166,9 +174,8 @@ def initialize():
 
 @app.teardown_request
 def teardown(exception):
+    from database import db_cleanup
     db_cleanup()
-
-
 
 # -------------------------
 # Permission related routes
@@ -190,7 +197,6 @@ def api_check_permission(object_type, permission, object_id=None):
 @cross_origin(supports_credentials=True)
 def api_list_permissions(object_type, object_id=None):
     return { 'authorized': list_permissions(object_type, object_id) }
-
 
 # -------------------
 # User-related routes
@@ -786,4 +792,16 @@ def get_file(object_type, file_type, object_id):
 if __name__ == '__main__':
     # TODO: consider what should go here, in 'before_app_first_request' or at the top of this file
     # (This is only run when it is the main app, not included in another file)
+
+    # Process command line arguments
+    args = {}
+    for arg in sys.argv[1:]:
+        if '=' in arg:
+            sep = arg.find('=')
+            key, value = arg[:sep], arg[sep + 1:]
+            args[key] = value
+    if args:
+        print("Received command line arguments:")
+        print(args)
+    app.config['CREATE_DATABASE'] = args.get('create_db') # create_db=<DB_NAME> (otherwise use .env)
     app.run(host='0.0.0.0',debug=False,port=5000)
