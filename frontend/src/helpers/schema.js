@@ -478,7 +478,8 @@ const schema = new SimpleSchema ({
         label: 'Image zoom (y-direction)',
         type: Number,
         defaultValue: 1.0,
-        min: 0.0,
+        min: config.analysis.image_scale_min,
+        max: config.analysis.image_scale_max,
         required: false
     },
 });

@@ -72,6 +72,9 @@ export const initialState = {
         opacity_min: 0,
         opacity_max: 100,
         opacity_step: 1,
+        image_scale_min: 0.05,
+        image_scale_max: 1.00,
+        image_scale_step: 0.05,
     },
 }
 

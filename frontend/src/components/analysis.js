@@ -231,6 +231,14 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
         roi = incHorz(roi);
         roi = backHorz(roi);
         break;
+      case "r":
+      case "R":
+        roi.shape = 'rectangle';
+        break;
+      case "e":
+      case "E":
+        roi.shape = 'ellipse';
+        break;
       default:
         // do nothing
     }
@@ -553,22 +561,183 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
             </AccordionSummary>
             <AccordionDetails>
 
-          <Grid container direction='column' spacing={1}>
+            <Grid container direction="column" spacing={1}>
 
-            <Grid container direction="row" spacing={1}>
+              {/* Image controls for zooming image size and reset button */}
 
-              <Box  // Show image-sized placeholder while waiting for images
+              <Box display="flex" flexDirection="row" width='100%'>
+
+                  <Box display="flex" flexDirection="row" width='50%' pr={1}>
+                      <Box width='40%' pr={1}>Zoom: {imageState.scale_x.toFixed(2)}</Box>
+                      <Box width='60%' pl={1}>
+                          <Slider
+                              color="secondary"
+                              name="image_zoom"
+                              //valueLabelDisplay="auto"
+                              step={config.analysis.image_scale_step}
+                              marks={true}
+                              value={imageState.scale_x}
+                              min={config.analysis.image_scale_min}
+                              max={config.analysis.image_scale_max}
+                              onChange={(e, value) => {
+                                  setImageState(prev=>({...prev, scale_x: value, scale_y: value,}));
+                              }}
+                          /> 
+                      </Box>
+                  </Box>
+                  <Box width='50%' pl={1}>
+                      <Button size='small' variant="outlined" onClick={resetImage}>Reset images</Button>
+                  </Box>
+              </Box>
+
+              {/* Image controls (contrast, brightness, opacity) for radio and bright images */}
+
+              <Box display="flex" flexDirection="row" width='100%'>
+
+                  <Box width='50%' pr={1}>
+
+                      {model.display_radio_url ? (
+                      <>
+                      Radio image controls:
+                      <Box display="flex" flexDirection="row" width='100%'>
+                          <Box width='40%' pr={1}>Brightness: {imageState.radio_brightness}</Box>
+                          <Box width='60%' pl={1}>
+                              <Slider
+                                  color='secondary'
+                                  name="radio_brightness"
+                                  //valueLabelDisplay="auto"
+                                  step={config.analysis.brightness_step}
+                                  marks={true}
+                                  value={imageState.radio_brightness}
+                                  min={config.analysis.brightness_min}
+                                  max={config.analysis.brightness_max}
+                                  onChange={(e, value) => {
+                                      setImageState(prev=>({...prev, radio_brightness: value}));
+                                  }}
+                              />
+                          </Box>
+                      </Box>
+                      <Box display="flex" flexDirection="row" width='100%'>
+                          <Box width='40%' pr={1}>Contrast: {imageState.radio_contrast}</Box>
+                          <Box width='60%' pl={1}>
+                              <Slider
+                                  color="secondary"
+                                  name="radio_contrast"
+                                  //valueLabelDisplay="auto"
+                                  step={config.analysis.contrast_step}
+                                  marks={true}
+                                  value={imageState.radio_contrast}
+                                  min={config.analysis.contrast_min}
+                                  max={config.analysis.contrast_max}
+                                  onChange={(e, value) => {
+                                      setImageState(prev=>({...prev, radio_contrast: value}));
+                                  }}
+                              /> 
+                          </Box>
+                      </Box> 
+                      <Box display="flex" flexDirection="row" width='100%'>
+                          <Box width='40%' pr={1}>Opacity: {imageState.radio_opacity}</Box>
+                          <Box width='60%' pl={1}>
+                              <Slider
+                                  color="secondary"
+                                  name="radio_opacity"
+                                  //valueLabelDisplay="auto"
+                                  step={config.analysis.opacity_step}
+                                  marks={true}
+                                  value={imageState.radio_opacity}
+                                  min={config.analysis.opacity_min}
+                                  max={config.analysis.opacity_max}
+                                  onChange={(e, value) => {
+                                      setImageState(prev=>({...prev, radio_opacity: value}));
+                                  }}
+                              /> 
+                          </Box>
+                      </Box>
+                      </>
+                      ) : ( <></> )}
+
+                  </Box>
+                  <Box width='50%' pl={1}>
+
+                      {model.display_bright_url ? (
+                      <>
+                      Brightfield image controls:
+                      <Box display="flex" flexDirection="row">
+                          <Box width='40%' pr={1}>Brightness: {imageState.bright_brightness}</Box>
+                          <Box width='60%' pl={1}>
+                              <Slider
+                                  color='secondary'
+                                  name="bright_brightness"
+                                  //valueLabelDisplay="auto"
+                                  step={config.analysis.brightness_step}
+                                  marks={true}
+                                  value={imageState.bright_brightness}
+                                  min={config.analysis.brightness_min}
+                                  max={config.analysis.brightness_max}
+                                  onChange={(e, value) => {
+                                      setImageState(prev=>({...prev, bright_brightness: value}));
+                                  }}
+                              />
+                          </Box>
+                      </Box>
+                      <Box display="flex" flexDirection="row" width='100%'>
+                          <Box width='40%' pr={1}>Contrast: {imageState.bright_contrast}</Box>
+                          <Box width='60%' pl={1}>
+                              <Slider
+                                  color="secondary"
+                                  name="bright_contrast"
+                                  //valueLabelDisplay="auto"
+                                  step={config.analysis.contrast_step}
+                                  marks={true}
+                                  value={imageState.bright_contrast}
+                                  min={config.analysis.contrast_min}
+                                  max={config.analysis.contrast_max}
+                                  onChange={(e, value) => {
+                                      setImageState(prev=>({...prev, bright_contrast: value}));
+                                  }}
+                              /> 
+                          </Box>
+                      </Box> 
+                      <Box display="flex" flexDirection="row" width='100%'>
+                          <Box width='40%' pr={1}>Opacity: {imageState.bright_opacity}</Box>
+                          <Box width='60%' pl={1}>
+                              <Slider
+                                  color="secondary"
+                                  name="bright_opacity"
+                                  //valueLabelDisplay="auto"
+                                  step={config.analysis.opacity_step}
+                                  marks={true}
+                                  value={imageState.bright_opacity}
+                                  min={config.analysis.opacity_min}
+                                  max={config.analysis.opacity_max}
+                                  onChange={(e, value) => {
+                                      setImageState(prev=>({...prev, bright_opacity: value}));
+                                  }}
+                              /> 
+                          </Box>
+                      </Box>
+                      </>
+                      ) : ( <></> )}
+
+                  </Box>
+              </Box>
+
+              {/* Images and overlays (ROIS, origins, lanes) */}
+
+              <Box display="flex" flexDirection="row" width='100%'>
+
+              <Box   // Show image-sized placeholder while waiting for images
                 width={scaleX(imageState.size_x) + "px"}
                 height={scaleY(imageState.size_y) + "px"}
                 style={{
-                  //border: "1px solid #000000",
                   backgroundColor: "#222222",
-                }}                
+                  //position: "absolute",
+                  //marginTop: "0",
+                  //marginLeft: "0",
+                }} 
               >
-              
-        
 
-                {/* Show main image(s) and set up listener for mouse click */}
+              {/* Show main image(s) and set up listener for mouse click */}
 
                 {model.display_bright_url ? (
                 <ServerImage
@@ -600,7 +769,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                   width={scaleX(imageState.size_x)}
                   height={scaleY(imageState.size_y)}
                   style={{
-                    position: "relative",
+                    position: "absolute",
                     marginTop: "0",
                     marginLeft: "0",
                     filter:
@@ -614,12 +783,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                   alt=''
                 />
 
-<div>
-
                 { /* NOTE: NEED THE DIV TO GET THESE TO ALIGN ON THE IMAGE */ }
-
                 {/* Draw origins if available */}
-
                 {laneState.origins.length > 0 ? laneState.origins.map((origin, origin_id) => {
                   return (
                     <canvas
@@ -629,7 +794,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                         borderRadius: "50%/50%",
                         backgroundColor: "white",
                         position: "absolute",
-                        marginTop: "" + scaleY(origin[0] - imageState.size_y) - ORIGIN_R + "px",
+                        marginTop: "" + scaleY(origin[0]) - ORIGIN_R + "px",
                         marginLeft: "" + scaleX(origin[1]) - ORIGIN_R + "px",
                         width: "" + 2*ORIGIN_R + "px",
                         height: "" + 2*ORIGIN_R + "px",
@@ -644,11 +809,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                 }) : ( <></> )}
 
                 {/* Draw ROIs if available */}
-
                 {laneState.roi_list.length > 0 ? laneState.roi_list.map((roi,roi_id)=>{
-
                 return(
-                  
                     <canvas
                     key={`roi-${roi_id}`}
                     style={{
@@ -662,7 +824,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                           : "dashed 1px #ffffff",
                       width: "" + scaleX(2 * roi.shape_params.rx - 2) + "px", // Subtract borders
                       height: "" + scaleY(2 * roi.shape_params.ry - 2) + "px", // Subtract borders
-                      marginTop: "" + scaleY(roi.shape_params.y - roi.shape_params.ry - 1 - imageState.size_x) + "px",
+                      marginTop: "" + scaleY(roi.shape_params.y - roi.shape_params.ry - 1) + "px",
                       marginLeft: "" + scaleX(roi.shape_params.x - roi.shape_params.rx - 1) + "px",
                     }}
                     onClick={(e) => {
@@ -678,10 +840,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
 
                 }) : (<></>)}
 
-</div>
-
                 {/* Draw lanes if available. For TLC lanes, draw a vertical line at origin_x coordinate*/}
-                {/* TODO: why are the lines a little shifted with respect to image? */}
                 {laneState.lane_list.length > 0 ? laneState.lane_list.map((lane, lane_id) => {
                   return (
                     <>
@@ -690,13 +849,10 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                       className="lane"
                       key={`lane-${lane_id}`}
                       style={{
-                        //borderRadius: "50%/50%",
-                        //border: "dashed 2px #333333",
                         border: "none",
-                        //backgroundColor: "transparent",
                         backgroundColor: "#333333",
                         position: "absolute",
-                        marginTop: "" + scaleY(- imageState.size_y) + "px",
+                        marginTop: "0px",
                         marginLeft: "" + scaleX(lane.lane_params.origin_x) + "px",
                         width: "" + 1 + "px",
                         height: "" + scaleY(imageState.size_y) + "px",
@@ -714,14 +870,13 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                 }) : ( <></> )}
 
             </Box>
-
-            <Grid container direction="row" fullWidth>
+            </Box>
 
               {/* ROI / lane selection controls */}
 
-              <Grid item xs={8}>
+            <Box width='100%'>
                 <p>Define ROIs:</p>
-                <Box display="flex" flexDirection="row" alignItems='center'>
+                <Box display="flex" flexDirection="row" width='100%' alignItems='center'>
                   <Popup width='50%' button_label={<HelpIcon/>}>
                         Click on a band to build a new ROI, or select an existing ROI to modify it. 
                         Hold CTRL while clicking to create a rectangular ROI. (Default shape is ellipse.)
@@ -730,6 +885,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                         [w / W] jog up (top / bottom side)<br/> 
                         [s / S] jog down (top / bottom side)<br/> 
                         [d / D] jog right (left / right side)<br/>
+                        [e / E] change shape to ellipse<br/>
+                        [r / R] change shape to rectangle<br/>
                   </Popup>
                   <ToggleButton size='small' variant='outlined' value="roi" selected={selectROI}
                     onChange={() => {
@@ -742,7 +899,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                 </Box>
 
                 <p>Define Lanes based on Origins and Solvent Front:</p>
-                <Box display="flex" flexDirection="row" alignItems='center'>
+                <Box display="flex" flexDirection="row" width='100%' alignItems='center'>
 
                   <Popup width='50%' button_label={<HelpIcon/>}>
                       Click on a desired point to set a new origin. Click on an existing one to delete it. 
@@ -761,7 +918,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                 </Box>
 
                 <p>Autoselect Lanes based on ROIs:</p>
-                <Box display="flex" flexDirection="row" alignItems='center'>
+                <Box display="flex" flexDirection="row" width='100%' alignItems='center'>
                   <p>Number of lanes: {laneState.num_lanes}</p>
                   <Slider
                     color='secondary'
@@ -782,7 +939,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                 </Box>
 
                 <p>Options for results table:</p>
-                <Box display="flex" flexDirection="row" alignItems='center'>
+                <Box display="flex" flexDirection="row" width='100%' alignItems='center'>
                     <FormGroup>
                     <FormControlLabel
                       control={<Checkbox
@@ -801,165 +958,10 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                 </Box>
 
 
-            </Grid>
 
-            {/* Image controls for radio and bright images */}
 
-            <Grid item xs={4}>
-
-                <Box display="flex" flexDirection="row" width='100%'>
-                    <Box width='20%'>Image zoom factor: {imageState.scale_x.toFixed(2)}</Box>
-                    <Box width='10%'></Box>
-                    <Box width='70%'>
-                        <Slider
-                            color="secondary"
-                            name="image_zoom"
-                            valueLabelDisplay="auto"
-                            step={0.05}
-                            marks={true}
-                            value={imageState.scale_x}
-                            min={0.0}
-                            max={2.0}
-                            onChange={(e, value) => {
-                                setImageState(prev=>({...prev, scale_x: value, scale_y: value,}));
-                            }}
-                        /> 
-                    </Box>
-                </Box> 
-
-                {model.display_radio_url ? (
-                <>
-                Radio image controls:
-                <Box display="flex" flexDirection="row">
-                    <Box width='20%'>Brightness:</Box>
-                    <Box width='10%'></Box>
-                    <Box width='70%'>
-                        <Slider
-                            color='secondary'
-                            name="radio_brightness"
-                            valueLabelDisplay="auto"
-                            step={config.analysis.brightness_step}
-                            marks={true}
-                            value={imageState.radio_brightness}
-                            min={config.analysis.brightness_min}
-                            max={config.analysis.brightness_max}
-                            onChange={(e, value) => {
-                                setImageState(prev=>({...prev, radio_brightness: value}));
-                            }}
-                        />
-                    </Box>
-                </Box>
-                <Box display="flex" flexDirection="row" width='100%'>
-                    <Box width='20%'>Contrast:</Box>
-                    <Box width='10%'></Box>
-                    <Box width='70%'>
-                        <Slider
-                            color="secondary"
-                            name="radio_contrast"
-                            valueLabelDisplay="auto"
-                            step={config.analysis.contrast_step}
-                            marks={true}
-                            value={imageState.radio_contrast}
-                            min={config.analysis.contrast_min}
-                            max={config.analysis.contrast_max}
-                            onChange={(e, value) => {
-                                setImageState(prev=>({...prev, radio_contrast: value}));
-                            }}
-                        /> 
-                    </Box>
-                </Box> 
-                <Box display="flex" flexDirection="row" width='100%'>
-                    <Box width='20%'>Opacity:</Box>
-                    <Box width='10%'></Box>
-                    <Box width='70%'>
-                        <Slider
-                            color="secondary"
-                            name="radio_opacity"
-                            valueLabelDisplay="auto"
-                            step={config.analysis.opacity_step}
-                            marks={true}
-                            value={imageState.radio_opacity}
-                            min={config.analysis.opacity_min}
-                            max={config.analysis.opacity_max}
-                            onChange={(e, value) => {
-                                setImageState(prev=>({...prev, radio_opacity: value}));
-                            }}
-                        /> 
-                    </Box>
-                </Box>
-                </>
-                ) : ( <></> )}
-
-                {model.display_bright_url ? (
-                <>
-                Brightfield image controls:
-                <Box display="flex" flexDirection="row">
-                    <Box width='20%'>Brightness:</Box>
-                    <Box width='10%'></Box>
-                    <Box width='70%'>
-                        <Slider
-                            color='secondary'
-                            name="bright_brightness"
-                            valueLabelDisplay="auto"
-                            step={config.analysis.brightness_step}
-                            marks={true}
-                            value={imageState.bright_brightness}
-                            min={config.analysis.brightness_min}
-                            max={config.analysis.brightness_max}
-                            onChange={(e, value) => {
-                                setImageState(prev=>({...prev, bright_brightness: value}));
-                            }}
-                        />
-                    </Box>
-                </Box>
-                <Box display="flex" flexDirection="row" width='100%'>
-                    <Box width='20%'>Contrast:</Box>
-                    <Box width='10%'></Box>
-                    <Box width='70%'>
-                        <Slider
-                            color="secondary"
-                            name="bright_contrast"
-                            valueLabelDisplay="auto"
-                            step={config.analysis.contrast_step}
-                            marks={true}
-                            value={imageState.bright_contrast}
-                            min={config.analysis.contrast_min}
-                            max={config.analysis.contrast_max}
-                            onChange={(e, value) => {
-                                setImageState(prev=>({...prev, bright_contrast: value}));
-                            }}
-                        /> 
-                    </Box>
-                </Box> 
-                <Box display="flex" flexDirection="row" width='100%'>
-                    <Box width='20%'>Opacity:</Box>
-                    <Box width='10%'></Box>
-                    <Box width='70%'>
-                        <Slider
-                            color="secondary"
-                            name="bright_opacity"
-                            valueLabelDisplay="auto"
-                            step={config.analysis.opacity_step}
-                            marks={true}
-                            value={imageState.bright_opacity}
-                            min={config.analysis.opacity_min}
-                            max={config.analysis.opacity_max}
-                            onChange={(e, value) => {
-                                setImageState(prev=>({...prev, bright_opacity: value}));
-                            }}
-                        /> 
-                    </Box>
-                </Box>
-                </>
-                ) : ( <></> )}
-
-                <Button size='small' variant="outlined" onClick={resetImage}>Reset images</Button>
-
-              </Grid>  
-            </Grid>
-
-          </Grid>
           <Button color="primary" variant="contained" onClick={submitParams}> Save ROI info and Regenerate Results </Button>
+          </Box>
 
           </Grid>
 
