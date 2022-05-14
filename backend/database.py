@@ -281,6 +281,8 @@ class Analysis(Base):
     bright_brightness = Column(Integer)
     bright_opacity = Column(Integer)
     show_Rf = Column(Boolean)
+    image_scale_x = Column(Float) 
+    image_scale_y = Column(Float) 
     origins = Column(PickleType, default=[], nullable=False)
     roi_list = Column(PickleType, default=[], nullable=False)
     lane_list = Column(PickleType, default=[], nullable=False)
@@ -899,6 +901,8 @@ def db_analysis_rois_lanes_save(analysis_id, data):
     analysis.lane_list = data['lane_list']
     analysis.origins = data['origins']
     analysis.show_Rf = data['show_Rf']
+    analysis.image_scale_x = data['image_scale_x']
+    analysis.image_scale_y = data['image_scale_y']
     db_session.commit()
     return True
 

@@ -56,12 +56,16 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
     const confirm = useConfirm();
     const config = useConfigState();
 
-    // Define step sizes (in pixels) to increment position or radius (via keypresses)
-    const STEP_X = 4;
-    const STEP_Y = 4;
-    const STEP_RX = 4;
-    const STEP_RY = 4;
-    const UNDEFINED = -1;
+    // Define constants for ROI and origin manipulation via keypresses
+    const STEP_X = 2; // Step size to adjust ROIs
+    const STEP_Y = 2; // Step size to adjust ROIs
+    const STEP_RX = 2; // Step size to adjust ROIs
+    const STEP_RY = 2; // Step size to adjust ROIs
+    const MIN_RX = 4; // Min radius(x)
+    const MIN_RY = 4; // Min radius(y)
+    const ORIGIN_R = 3; // Radius (pixels) of origin dots
+    const LANE_W = 1; // Width (pixels) of lane markings
+    const UNDEFINED = -1; // no ROI currently selected
 
     // TODO: some of this is already in the model. We replicate it here since it is editable
     // and can be separately saved back to the model. Is there a better way to organize to
@@ -77,11 +81,11 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
     };
 
     React.useEffect(() => {
-        if (model.origins !== null && model.origins !== undefined) {
-           setLaneState((prev) => ({ ...prev, origins: model.origins, }));
-        }
         if (model.show_Rf !== null && model.show_Rf !== undefined) {
           setLaneState((prev) => ({ ...prev, show_Rf: model.show_Rf, }));
+        }
+        if (model.origins !== null && model.origins !== undefined) {
+          setLaneState((prev) => ({ ...prev, origins: model.origins, }));
         }
         if (model.roi_list !== null && model.roi_list !== undefined) {
           setLaneState((prev) => ({ ...prev, roi_list: model.roi_list, }));
@@ -100,6 +104,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
         bright_opacity: 20,
         size_x: 682, // TODO: get these from the Image of the 'display image' record
         size_y: 682, // TODO: get these from the Image of the 'display image' record
+        scale_x: 1.0,
+        scale_y: 1.0,
     }
 
     // TODO: later convert these to a dict from the backend
@@ -122,6 +128,13 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
         if (model.bright_opacity !== null && model.bright_opacity !== undefined) {
             setImageState((prev) => ({...prev, contrast: model.bright_opacity}));
         }
+        if (model.image_scale_x !== null && model.image_scale_x !== undefined) {
+          setImageState((prev) => ({ ...prev, scale_x: model.image_scale_x, }));
+        }
+        if (model.image_scale_y !== null && model.image_scale_y !== undefined) {
+          setImageState((prev) => ({ ...prev, scale_y: model.image_scale_y, }));
+        }
+
     }, [
         model.radio_brightness,
         model.radio_contrast,
@@ -129,6 +142,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
         model.bright_brightness,
         model.bright_contrast,
         model.bright_opacity,
+        model.image_scale_x,
+        model.image_scale_y,
     ])
     
     const [selectROI, setSelectROI] = React.useState(false); // Actively selecting ROIs
@@ -154,6 +169,21 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
         });
       });
   }
+
+  // Scale the main images
+  const scaleX = (value) => {
+    return parseInt(value*imageState.scale_x);
+  }
+  const scaleY = (value) => {
+    return parseInt(value*imageState.scale_y);
+  }
+  const unscaleX = (value) => {
+    return parseInt(value/imageState.scale_x);
+  }
+  const unscaleY = (value) => {
+    return parseInt(value/imageState.scale_y);
+  }
+
 
   // Interpret keypresses (currently only for ROI adjustments)
 
@@ -246,14 +276,12 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
   };
 
   const decHorz = (roi) => {
-    // TODO: what is special about the value 14?
-    if (roi.shape_params.rx > 14) roi.shape_params.rx -= STEP_RX;
+    if (roi.shape_params.rx >= MIN_RX + STEP_RX) roi.shape_params.rx -= STEP_RX;
     return roi;
   };
 
   const decVert = (roi) => {
-    // TODO: what is special about the value 14?
-    if (roi.shape_params.ry > 14) roi.shape_params.ry -= STEP_RY; 
+    if (roi.shape_params.ry >= MIN_RX + STEP_RX) roi.shape_params.ry -= STEP_RY; 
     return roi;
   };
 
@@ -275,20 +303,17 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
       }
 
     } else if (selectOrigin) {
-      // These calculations translate the coordinates of the event from the ROI
-      // canvas to the global coordinates to identify true location of origin.
-      var x = e.nativeEvent.offsetX;
-      var y = e.nativeEvent.offsetY;
-      var radx = laneState.roi_list[roi_id].shape_params.rx;
-      var rady = laneState.roi_list[roi_id].shape_params.ry;
-      var px = laneState.roi_list[roi_id].shape_params.x;
-      var py = laneState.roi_list[roi_id].shape_params.y;
-      // TODO: what is the significance of 3 here?
-      x = px - radx + x + 3; 
-      y = py - rady + y + 3; 
+      // Create an origin at the selected point
+      // Translate the coordinates of the event from the ROI canvas to global coordinates
+      var rx = laneState.roi_list[roi_id].shape_params.rx; // ROI size
+      var ry = laneState.roi_list[roi_id].shape_params.ry; // ROI size
+      var px = laneState.roi_list[roi_id].shape_params.x; // ROI global position
+      var py = laneState.roi_list[roi_id].shape_params.y; // ROI global position
+      var x = px - rx + unscaleX(e.nativeEvent.offsetX); 
+      var y = py - ry + unscaleY(e.nativeEvent.offsetY); 
       setLaneState(prev => {
         let newOrigins = [...prev.origins];
-        newOrigins.push([parseInt(y),parseInt(x)]);
+        newOrigins.push([y,x]);
         return {...prev, origins: newOrigins, };
       });
     }
@@ -416,7 +441,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
 
   const onClickOrigin = (e, i) => {
     if (selectOrigin) {
-        // Remove origin i
+      // Remove origin i
       setLaneState(prev => {
         let new_origins = [...prev.origins];
         new_origins.splice(i,1);
@@ -425,20 +450,12 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
 
     } else if (selectROI) {
       // Define an ROI
+      // Translate the coordinates of the event from the origin canvas to global coordinates
       console.log ('onClickOrigin - defining a new ROI by caling buildROI');
-      var x = e.nativeEvent.offsetX;
-      var y = e.nativeEvent.offsetY;
-      var radx = 5;
-      var rady = 5;
-      var px = laneState.origins[i][1];
-      var py = laneState.origins[i][0];
-      x = px - radx + x;
-      y = py - rady + y;
-      x = parseInt(x);
-      y = parseInt(y);
+      var x = laneState.origins[i][1] - ORIGIN_R + unscaleX(e.nativeEvent.offsetX);
+      var y = laneState.origins[i][0] - ORIGIN_R + unscaleY(e.nativeEvent.offsetY);
       var shift = e.shiftKey ? 1 : 0;
-      console.log(shift);
-      buildROI(x,y,shift); // TODO: how does this work, what is return value?
+      buildROI(x,y,shift); 
     }
   }
 
@@ -459,6 +476,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
       lane_list: JSON.stringify(laneState.lane_list),
       origins: JSON.stringify(laneState.origins),
       show_Rf: laneState.show_Rf, 
+      image_scale_x: imageState.scale_x,
+      image_scale_y: imageState.scale_y,
       radio_brightness: imageState.radio_brightness,
       radio_contrast: imageState.radio_contrast,
       radio_opacity: imageState.radio_opacity,
@@ -485,8 +504,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
   const onClickImage = (e) => {
 
     if (selectOrigin) {
-        // Add a new origin point at the click location
-      var new_origin = [parseInt(e.nativeEvent.offsetY), parseInt(e.nativeEvent.offsetX)];
+      // Add a new origin point at the click location
+      var new_origin = [unscaleY(e.nativeEvent.offsetY), unscaleX(e.nativeEvent.offsetX)];
       setLaneState(prev => {
         let newOrigins = [...prev.origins];
         newOrigins.push(new_origin);
@@ -496,10 +515,9 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
     } else if (selectROI) {
       // Build a new ROI at the click location
       console.log ('onClickImage - creating a new ROI via buildROI');
-      var x = parseInt(e.nativeEvent.offsetX);
-      var y = parseInt(e.nativeEvent.offsetY);
+      var x = unscaleX(e.nativeEvent.offsetX);
+      var y = unscaleY(e.nativeEvent.offsetY);
       var shift = e.shiftKey ? 1 : 0;
-      console.log(shift);
       buildROI(x,y,shift);
     }
   }
@@ -538,8 +556,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
             <Grid container direction="row" spacing={1}>
 
               <Box  // Show image-sized placeholder while waiting for images
-                width={imageState.size_x + "px"}
-                height={imageState.size_y + "px"}
+                width={scaleX(imageState.size_x) + "px"}
+                height={scaleY(imageState.size_y) + "px"}
                 style={{
                   //border: "1px solid #000000",
                   backgroundColor: "#222222",
@@ -555,6 +573,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                   url={model.display_bright_url}
 		              className = 'noselect'    
                   id="img-bright"
+                  width={scaleX(imageState.size_x)}
+                  height={scaleY(imageState.size_y)}
                   style={{
                     position: "absolute",
                     marginTop: "0",
@@ -575,6 +595,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                   url={model.display_radio_url}
 		              className = 'noselect'    
                   id="img-radio"
+                  width={scaleX(imageState.size_x)}
+                  height={scaleY(imageState.size_y)}
                   style={{
                     position: "relative",
                     marginTop: "0",
@@ -605,10 +627,10 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                         borderRadius: "50%/50%",
                         backgroundColor: "white",
                         position: "absolute",
-                        marginTop: "" + 1 * origin[0] - 5 - imageState.size_y + "px",
-                        marginLeft: "" + 1 * origin[1] - 5 + "px",
-                        width: "10px",
-                        height: "10px",
+                        marginTop: "" + scaleY(origin[0] - imageState.size_y) - ORIGIN_R + "px",
+                        marginLeft: "" + scaleX(origin[1]) - ORIGIN_R + "px",
+                        width: "" + 2*ORIGIN_R + "px",
+                        height: "" + 2*ORIGIN_R + "px",
                         zIndex: (selectOrigin) ? 11 : 10,
                       }}
                       onClick={(e) => {
@@ -634,12 +656,12 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                       borderRadius: "50%/50%",
                       border:
                         (roi_id === laneState.selectedROI)
-                          ? "dashed 2px #0ff"
-                          : "dashed 2px #ffffff",
-                      width: "" + 2 * roi.shape_params.rx - 2 + "px",
-                      height: "" + 2 * roi.shape_params.ry - 2 + "px",
-                      marginTop: "" + roi.shape_params.y - 1 * roi.shape_params.ry + 1 - imageState.size_x + "px",
-                      marginLeft: "" + roi.shape_params.x - 1 * roi.shape_params.rx + 1 + "px",
+                          ? "dashed 1px #0ff"
+                          : "dashed 1px #ffffff",
+                      width: "" + scaleX(2 * roi.shape_params.rx - 2) + "px", // Subtract borders
+                      height: "" + scaleY(2 * roi.shape_params.ry - 2) + "px", // Subtract borders
+                      marginTop: "" + scaleY(roi.shape_params.y - roi.shape_params.ry - 1 - imageState.size_x) + "px",
+                      marginLeft: "" + scaleX(roi.shape_params.x - roi.shape_params.rx - 1) + "px",
                     }}
                     onClick={(e) => {
                       // e.preventDefault();
@@ -656,9 +678,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
 
 </div>
 
-                {/* Draw lanes if available. For TLC lanes, draw a vertical line at origin_x coordinate
-                    TODO: why do we need the -6 in here to get it aligned? Maybe from z-index and shadow feature? */}
-
+                {/* Draw lanes if available. For TLC lanes, draw a vertical line at origin_x coordinate*/}
+                {/* TODO: why are the lines a little shifted with respect to image? */}
                 {laneState.lane_list.length > 0 ? laneState.lane_list.map((lane, lane_id) => {
                   return (
                     <>
@@ -667,14 +688,16 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                       className="lane"
                       key={`lane-${lane_id}`}
                       style={{
-                        borderRadius: "50%/50%",
-                        border: "dashed 2px #333333",
-                        backgroundColor: "transparent",
+                        //borderRadius: "50%/50%",
+                        //border: "dashed 2px #333333",
+                        border: "none",
+                        //backgroundColor: "transparent",
+                        backgroundColor: "#333333",
                         position: "absolute",
-                        marginTop: "" - 6 - imageState.size_y + "px",
-                        marginLeft: "" + lane.lane_params.origin_x + "px",
-                        width: "0px",
-                        height: "" + imageState.size_y + "px",
+                        marginTop: "" + scaleY(- imageState.size_y) + "px",
+                        marginLeft: "" + scaleX(lane.lane_params.origin_x) + "px",
+                        width: "" + 1 + "px",
+                        height: "" + scaleY(imageState.size_y) + "px",
                         zIndex: 9, // put in the back
                       }}
                       //onClick={(e) => { # Currently not clickable
@@ -781,12 +804,33 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
 
             <Grid item xs={4}>
 
+                <Box display="flex" flexDirection="row" width='100%'>
+                    <Box width='20%'>Image zoom factor: {imageState.scale_x.toFixed(2)}</Box>
+                    <Box width='10%'></Box>
+                    <Box width='70%'>
+                        <Slider
+                            color="secondary"
+                            name="image_zoom"
+                            valueLabelDisplay="auto"
+                            step={0.05}
+                            marks={true}
+                            value={imageState.scale_x}
+                            min={0.0}
+                            max={2.0}
+                            onChange={(e, value) => {
+                                setImageState(prev=>({...prev, scale_x: value, scale_y: value,}));
+                            }}
+                        /> 
+                    </Box>
+                </Box> 
+
                 {model.display_radio_url ? (
                 <>
                 Radio image controls:
                 <Box display="flex" flexDirection="row">
                     <Box width='20%'>Brightness:</Box>
-                    <Box width='80%'>
+                    <Box width='10%'></Box>
+                    <Box width='70%'>
                         <Slider
                             color='secondary'
                             name="radio_brightness"
@@ -804,7 +848,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                 </Box>
                 <Box display="flex" flexDirection="row" width='100%'>
                     <Box width='20%'>Contrast:</Box>
-                    <Box width='80%'>
+                    <Box width='10%'></Box>
+                    <Box width='70%'>
                         <Slider
                             color="secondary"
                             name="radio_contrast"
@@ -822,7 +867,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                 </Box> 
                 <Box display="flex" flexDirection="row" width='100%'>
                     <Box width='20%'>Opacity:</Box>
-                    <Box width='80%'>
+                    <Box width='10%'></Box>
+                    <Box width='70%'>
                         <Slider
                             color="secondary"
                             name="radio_opacity"
@@ -846,7 +892,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                 Brightfield image controls:
                 <Box display="flex" flexDirection="row">
                     <Box width='20%'>Brightness:</Box>
-                    <Box width='80%'>
+                    <Box width='10%'></Box>
+                    <Box width='70%'>
                         <Slider
                             color='secondary'
                             name="bright_brightness"
@@ -864,7 +911,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                 </Box>
                 <Box display="flex" flexDirection="row" width='100%'>
                     <Box width='20%'>Contrast:</Box>
-                    <Box width='80%'>
+                    <Box width='10%'></Box>
+                    <Box width='70%'>
                         <Slider
                             color="secondary"
                             name="bright_contrast"
@@ -882,7 +930,8 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                 </Box> 
                 <Box display="flex" flexDirection="row" width='100%'>
                     <Box width='20%'>Opacity:</Box>
-                    <Box width='80%'>
+                    <Box width='10%'></Box>
+                    <Box width='70%'>
                         <Slider
                             color="secondary"
                             name="bright_opacity"

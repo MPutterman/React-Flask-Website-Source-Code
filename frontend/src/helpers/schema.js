@@ -461,6 +461,26 @@ const schema = new SimpleSchema ({
     'origins.$.$': {
         type: SimpleSchema.Integer, // Coordinates
     },
+    show_Rf: {
+        label: 'Show Rf values?',
+        type: Boolean,
+        defaultValue: false,
+        required: false,
+    },
+    image_scale_x: {
+        label: 'Image zoom (x-direction)',
+        type: Number,
+        defaultValue: 1.0,
+        min: 0.0,
+        required: false
+    },
+    image_scale_y: {
+        label: 'Image zoom (y-direction)',
+        type: Number,
+        defaultValue: 1.0,
+        min: 0.0,
+        required: false
+    },
 });
 schema.extend(metaSchema);
 schema.extend(nameSchema);

@@ -682,12 +682,16 @@ def analysis_rois_lanes_save(analysis_id):
     analysis_compute(analysis_id, roi_list, lane_list)
 
     show_Rf = data.get('show_Rf') if data.get('show_Rf') is not None else False
+    image_scale_x = data.get('image_scale_x') if data.get('image_scale_x') is not None else 1.0
+    image_scale_y = data.get('image_scale_y') if data.get('image_scale_y') is not None else 1.0
     # TODO: should we use these origins?  Currently we expect user to hit "generate lanes" before saving
     origins = json.loads(data.get('origins')) if data.get('origins') is not None else []
 
     newdata = {}
-    newdata['origins'] = origins
     newdata['show_Rf'] = show_Rf
+    newdata['image_scale_x'] = image_scale_x
+    newdata['image_scale_y'] = image_scale_y
+    newdata['origins'] = origins
     newdata['roi_list'] = roi_list
     newdata['lane_list'] = lane_list
     newdata['radio_brightness'] = data.get('radio_brightness')
