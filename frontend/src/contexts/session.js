@@ -101,9 +101,9 @@ export const defaultUserPrefs = {
         default_use_dark_correction: false,
         default_dark_image: null,                  // image_id
         default_use_bkgrd_correction: false,
-        default_bkgrd_algorithm: 'None',         
+        default_bkgrd_algorithm: 'none',         
         default_use_filter_correction: false,
-        default_filter: 'None',              
+        default_filter: 'none',              
     },
 }
 
