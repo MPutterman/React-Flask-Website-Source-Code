@@ -180,7 +180,6 @@ return (props) => {
 
                 {/* Metadata */}
                 <Box pt={1}>
-                    {model.is_deleted ? (<Box>THIS RECORD HAS BEEN DELETED</Box>) : (<></>)}
                     <Box display="flex" flexDirection="row">
                         <Box width='9%' pr={1}>
                             <TextViewField icon={FingerprintIcon} label='ID' value={model[`${object_type}_id`] || ''} />
@@ -195,6 +194,9 @@ return (props) => {
                             <IDViewField label="Owner" objectType='user' objectID={model.owner_id} />
                         </Box>
                     </Box>
+                    {model.is_deleted ? (
+                        <Box width='100%' bgcolor='#FF0000' py={1} align="center">THIS RECORD HAS BEEN DELETED</Box>
+                    ) : (<></>)}
                 </Box>
 
             </CardContent>
