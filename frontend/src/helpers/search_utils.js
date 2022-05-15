@@ -15,8 +15,9 @@ export function createFilterModel(filters) {
         linkOperator: GridLinkOperator.And,
     };
     if (filters) {
-        filters.forEach(element => {
+        filters.map((element,i) => {
             filterModel.items.push({
+                id: i,
                 columnField: element.field,
                 operatorValue: element.operator ? element.operator : 'equals',
                 value: element.value,
