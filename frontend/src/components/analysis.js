@@ -197,7 +197,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
     if (roi_id === UNDEFINED) return;
 
     let roi = laneState.roi_list[roi_id]; // selected ROI
-    console.log ('roi before', roi);
     switch (key) { //e.key) {
       case "w":
         roi = incVert(roi);
@@ -242,7 +241,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
       default:
         // do nothing
     }
-    console.log('roi after', roi);
     setLaneState(prev => {
       let new_roi_list = JSON.parse(JSON.stringify(prev.roi_list)); // Deep copy
       new_roi_list[roi_id] = roi;
@@ -289,7 +287,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
   };
 
   const decVert = (roi) => {
-    if (roi.shape_params.ry >= MIN_RX + STEP_RX) roi.shape_params.ry -= STEP_RY; 
+    if (roi.shape_params.ry >= MIN_RY + STEP_RY) roi.shape_params.ry -= STEP_RY; 
     return roi;
   };
 
@@ -298,7 +296,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
     if (selectROI) {
       if (roi_id === laneState.selectedROI) {  
         // Remove the specified ROI, and nullify selectedROI
-        console.log ('onClickROI - a selectedROI is defined... deleting it');
         setLaneState(prev => {
           let new_roi_list = JSON.parse(JSON.stringify(prev.roi_list)); // Deep copy
           new_roi_list.splice(roi_id,1);
@@ -306,7 +303,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
         });
       } else {
         // Select the specified ROI
-        console.log ('onClickROI - a selectedROI is not defined... selecting one');
         setLaneState(prev => ({...prev, selectedROI: roi_id,}));
       }
 
@@ -399,7 +395,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
           if (response.error) {
               setAlert({severity: 'warning', message: `Error autoselecting ROIs: ${response.data.error}`},);
           } else {
-              console.log('Received from rois_autoselect:', response.data.roi_list);
               setLaneState(prev => ({...prev,
                   roi_list: response.data.roi_list, // Overwrites the previous ROIs
                   selectedROI: UNDEFINED,
@@ -437,7 +432,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
         if (response.error) {
             setAlert({severity: 'warning', message: `Error autoselecting lanes: ${response.data.error}`});
         } else {
-            console.log("Received data after autoselecting lanes:", response.data);
             setLaneState(prev => ({...prev,
                 origins: response.data.origins, // Overwrites the previous origins
                 lane_list: response.data.lane_list, // Overwrites the previous lanes
@@ -447,21 +441,20 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
     })
   }
 
-  const onClickOrigin = (e, i) => {
+  const onClickOrigin = (e, origin_id) => { // event and origin_id
     if (selectOrigin) {
       // Remove origin i
       setLaneState(prev => {
         let new_origins = [...prev.origins];
-        new_origins.splice(i,1);
+        new_origins.splice(origin_id,1);
         return {...prev, origins: new_origins, }
       });
 
     } else if (selectROI) {
       // Define an ROI
       // Translate the coordinates of the event from the origin canvas to global coordinates
-      console.log ('onClickOrigin - defining a new ROI by caling buildROI');
-      var x = laneState.origins[i][1] - ORIGIN_R + unscaleX(e.nativeEvent.offsetX);
-      var y = laneState.origins[i][0] - ORIGIN_R + unscaleY(e.nativeEvent.offsetY);
+      var x = laneState.origins[origin_id][1] - ORIGIN_R + unscaleX(e.nativeEvent.offsetX);
+      var y = laneState.origins[origin_id][0] - ORIGIN_R + unscaleY(e.nativeEvent.offsetY);
       var shift = e.shiftKey ? 1 : 0;
       var shape = e.ctrlKey ? 'rectangle' : 'ellipse';
       buildROI(x,y,shift,shape); 
@@ -476,10 +469,10 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
 
   // TODO: combine these API calls into one?
   async function submitParams() {
-    console.log(laneState.origins);
     setBusy(true);
-    console.log('roi_list', laneState.roi_list);
-    console.log('lane_list', laneState.lane_list);
+    //console.log('origins', laneState.origins);
+    //console.log('roi_list', laneState.roi_list);
+    //console.log('lane_list', laneState.lane_list);
     const data = {
       roi_list: JSON.stringify(laneState.roi_list),
       lane_list: JSON.stringify(laneState.lane_list),
@@ -503,7 +496,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
           roi_list: res.data.roi_list,
           lane_list: res.data.lane_list,
         }));
-        console.log("After ROI saved, received the following data", res.data);
         setBusy(false);
         setAlert({severity: 'success', message: `Successfully saved ROIs and lanes`});
       }).catch('An Error Occurred');
@@ -523,7 +515,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
 
     } else if (selectROI) {
       // Build a new ROI at the click location
-      console.log ('onClickImage - creating a new ROI via buildROI');
       var x = unscaleX(e.nativeEvent.offsetX);
       var y = unscaleY(e.nativeEvent.offsetY);
       var shift = e.shiftKey ? 1 : 0;
@@ -854,7 +845,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                         position: "absolute",
                         marginTop: "0px",
                         marginLeft: "" + scaleX(lane.lane_params.origin_x) + "px",
-                        width: "" + 1 + "px",
+                        width: "" + LANE_W + "px",
                         height: "" + scaleY(imageState.size_y) + "px",
                         zIndex: 9, // put in the back
                       }}

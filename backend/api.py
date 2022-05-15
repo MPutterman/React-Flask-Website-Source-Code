@@ -16,14 +16,13 @@
 # * Incorporate Flask Mail to do email verification. Maybe also subscriptions? https://pythonhosted.org/Flask-Mail/
 # * Re-insert the @flask_login.login_required now that permissions are somewhat sorted out
 # * A lot of flask_session files get created per request (for Mike). Does this happen for others too?
-# * Need to look up how to split initialization activities between (if __name__ == '__main__':) section and @app.before_first_request
+# * Need to look up how to split initialization activities between (if __name__ == '__main__':) section and @app.before_first_request and global
 # * Need to prevent saving of empty password to user profile (e.g. when create account from google login, or when update account
 #   after Google login).  Backend should be careful of which fields are sent to database.
 # * Need to look at difference between DB session versus connection... maybe not using correctly
 # * Need to test remember-me feature
 # * Make API more consistent. Some failed calls return status 500. Some return { error: message }
-# * Add caching of images to the session, to avoid re-loading files when doing multiple back-to-back requests
-
+# * Add caching to session (e.g. analysis images?)
 
 import time
 import json
@@ -654,9 +653,6 @@ def analysis_lanes_autoselect(analysis_id):
     if num_lanes == 0 or num_lanes is None:
         from analysis import analysis_lanes_autocount
         auto_num_lanes = analysis_lanes_autocount(roi_list)
-        print ('autonumlanes and num_lanes')
-        print(auto_num_lanes)
-        print(num_lanes)
         if auto_num_lanes is None:
             return api_error_response(HTTPStatus['INTERNAL_SERVER_ERROR'],'Number of lanes must be specified. Attempt to guess failed.')
 
@@ -812,5 +808,9 @@ if __name__ == '__main__':
     if args:
         print("Received command line arguments:")
         print(args)
-    app.config['CREATE_DATABASE'] = args.get('create_db') # create_db=<DB_NAME> (otherwise use .env)
+    # create_db=<DB_NAME>: trigger creation of new database (and filestorage) with specified name
+    #   (ignores DB_NAME setting in .env)
+    app.config['CREATE_DATABASE'] = args.get('create_db') 
+
+    # Launch application
     app.run(host='0.0.0.0',debug=False,port=5000)

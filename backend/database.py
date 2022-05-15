@@ -397,7 +397,7 @@ def db_add_test_data():
     db_session.begin()
     plate1 = Plate(name = 'JT Baker 12345: silica, 250 um, aluminum back, F254 60',plate_id = 1)
     plate2 = Plate(name = 'JT Baker 23456: silica, 250 um, glass back, F254 60, concentration zone',plate_id=2)
-    cover = Cover(cover_id = 1, name = 'Dont know what to call this')
+    cover = Cover(cover_id = 1, name = 'Glass microscope slide (1 mm thick)')
    
     db_session.add(plate1)
     db_session.add(plate2)
