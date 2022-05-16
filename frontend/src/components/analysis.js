@@ -393,7 +393,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
       .then((response) => {
           setBusy(false);
           if (response.error) {
-              setAlert({severity: 'warning', message: `Error autoselecting ROIs: ${response.data.error}`},);
+              setAlert({severity: 'warning', message: `Error autoselecting ROIs: ${response.data}`},);
           } else {
               setLaneState(prev => ({...prev,
                   roi_list: response.data.roi_list, // Overwrites the previous ROIs
@@ -430,9 +430,10 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
     return callAPI('POST', `/api/analysis/lanes_autoselect/${model.analysis_id}`, data)
     .then((response) => {
         if (response.error) {
-            setAlert({severity: 'warning', message: `Error autoselecting lanes: ${response.data.error}`});
+            setAlert({severity: 'warning', message: `Error autoselecting lanes: ${response.data}`});
         } else {
-            setLaneState(prev => ({...prev,
+          setAlert({severity: 'success', message: 'Lane creation complete'});
+          setLaneState(prev => ({...prev,
                 origins: response.data.origins, // Overwrites the previous origins
                 lane_list: response.data.lane_list, // Overwrites the previous lanes
                 num_lanes: Array.isArray(response.data.lane_list) ? response.data.lane_list.length : 0,

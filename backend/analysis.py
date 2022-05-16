@@ -611,9 +611,6 @@ def analysis_lanes_autocount(roi_list):
     if len(roi_list) == 1:
         return 1
 
-    # Bypass the rest until we get it working
-    return None
-
     # Extract X-values from ROIs
     x_rois = [] 
     for roi in roi_list:
@@ -630,8 +627,21 @@ def analysis_lanes_autocount(roi_list):
     # Perform Kmeans with number of clusters up to number of unique x-coordinates
     errors = {}
     for i in range(len(x_rois)):
-        errors[i+1] = KMeans(n_clusters=i+1, random_state=1).fit(x_rois).inertia_
+        errors[i+1] = KMeans(n_clusters=i+1, random_state=1).fit(x_rois).inertia_*100 + 2
     # Use Kneedle algorithm to find optimal number of clusters (i.e. lanes)
-    from kneed import KneeLocator
-    elbow = KneeLocator(x=list(errors.keys()), y=list(errors.values()), curve='convex', direction='decreasing').elbow
-    return elbow
+    #from kneed import KneeLocator
+    #elbow = KneeLocator(x=list(errors.keys()), y=list(errors.values()), curve='convex', direction='decreasing').elbow
+    #return elbow
+    # TODO: temporary hack:
+    # Kneedle finds too low a number of clusters/lanes.  Instead, manually search errors until
+    # the ratio between a point and successive one becomes less than a threshold.  The threshold
+    # is arbitrary.  Also another hack is that we need to set the errors on KMeans as value * 100 + 2... in order to 
+    # get this to work...  TODO: check for division by zero errors (the cluster with N_rois clusters has
+    # zero error).
+    threshold = 1.5
+    for i in range(len(x_rois)-1):
+        print(f"Errors: {errors[i+1]} / {errors[i+2]} = {errors[i+1]/errors[i+2]}")
+        if errors[i+1]/errors[i+2] < threshold:
+            return i+1
+    return len(x_rois)
+

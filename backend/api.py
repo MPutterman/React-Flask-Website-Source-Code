@@ -83,8 +83,10 @@ app.config['IMAGE_THUMBNAIL_MAX_SIZE'] = (200, 200)
 
 
 
+# Sends a response to frontend, with response.error = True, and response.data equal to the
+# message.
 def api_error_response(code, details=''):
-    return Response({'error': details}, code, mimetype='application/json')
+    return Response(details, code, mimetype='application/json')
 
 def login_view():
     return api_error_response(HTTPStatus['UNAUTHORIZED'])
@@ -640,7 +642,6 @@ def analysis_rois_autoselect(analysis_id):
 def analysis_lanes_autoselect(analysis_id):
 
     data = json.loads(request.form.get('JSON_data'))
-    #ROIs = json.loads(data.get('ROIs')) if data.get('ROIs') is not None else []
     roi_list = json.loads(data.get('roi_list')) if data.get('roi_list') is not None else []
     origins = json.loads(data.get('origins')) if data.get('origins') is not None else []
 
@@ -652,9 +653,9 @@ def analysis_lanes_autoselect(analysis_id):
     # If num_lanes is missing, try to estimate number of lanes
     if num_lanes == 0 or num_lanes is None:
         from analysis import analysis_lanes_autocount
-        auto_num_lanes = analysis_lanes_autocount(roi_list)
-        if auto_num_lanes is None:
-            return api_error_response(HTTPStatus['INTERNAL_SERVER_ERROR'],'Number of lanes must be specified. Attempt to guess failed.')
+        num_lanes = analysis_lanes_autocount(roi_list)
+        if num_lanes is None:
+            return api_error_response(HTTPStatus['INTERNAL_SERVER_ERROR'],'Attempt to guess number of lanes failed. Try manually specifying number of lanes.')
 
     from analysis import analysis_lanes_find
     lanes = analysis_lanes_find(roi_list, num_lanes)
