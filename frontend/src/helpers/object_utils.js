@@ -112,7 +112,7 @@ const ObjectFavoriteButton = (props) => {
                 // Display the returned error
                 setAlert({
                     severity: 'error',
-                    message: `Operation failed. Error ${response.status}: ${response.data.error}`
+                    message: `Operation failed. Error ${response.status}: ${response.data}`
                 });
                 return false;
 
@@ -224,7 +224,7 @@ const ObjectDeleteButton = (props) => {
                     // Display the returned error
                     setAlert({
                         severity: 'error',
-                        message: `Delete failed. Error ${response.status}: ${response.data.error}`
+                        message: `Delete failed. Error ${response.status}: ${response.data}`
                     });
                     setBusy(false);
                     return false;
@@ -356,7 +356,7 @@ const ObjectPurgeButton = (props) => {
                     // Display the returned error
                     setAlert({
                         severity: 'error',
-                        message: `Purge failed. Error ${response.status}: ${response.data.error}`
+                        message: `Purge failed. Error ${response.status}: ${response.data}`
                     });
                     setBusy(false);
                     return false;

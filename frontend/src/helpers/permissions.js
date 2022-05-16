@@ -29,7 +29,7 @@ async function hasPermission(action, object_type, id) {
     return callAPI('GET', `/api/check_permission/${object_type}/${action}/${id}`)
     .then((response) => {
         if (response.error) {
-            console.warn(`Error ${response.status} from /api/check_permission call: ${response.data.error}`);
+            console.warn(`Error ${response.status} from /api/check_permission call: ${response.data}`);
             return false; // Return false if any error
         } else {
             return response.data.authorized === true;
@@ -69,7 +69,7 @@ async function listPermissions(object_type, id) {
                 return callAPI('GET', `/api/list_permissions/${object_type}/${id}`)
                 .then((response) => {
                     if (response.error) {
-                        console.warn(`Error ${response.status} from /api/list_permissions call: ${response.data.error}`);
+                        console.warn(`Error ${response.status} from /api/list_permissions call: ${response.data}`);
                         return []; // Return empty list if any errors
                     } else {
                         return response.data.authorized;

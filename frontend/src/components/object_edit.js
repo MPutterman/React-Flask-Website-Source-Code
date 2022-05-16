@@ -231,7 +231,7 @@ return (props) => {
             if (response.error) {
 
                 // TODO: handle some kinds of errors (e.g. unauthorized?)
-                setAlert({severity: 'error', message: `Error: Received status ${response.status} from backend (${response.data.error})`});
+                setAlert({severity: 'error', message: `Error: Received status ${response.status} from backend (${response})`});
                 setBusy(false);
                 return false;
 
