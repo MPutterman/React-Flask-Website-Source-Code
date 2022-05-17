@@ -539,7 +539,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                 <Box display="flex" flexDirection="column" width='100%'>
                   <AnalysisData model={model} /*dataState={dataState} setDataState={setDataState} */ {...props} />
                   <SubmitField size='small' >Save</SubmitField>
-                  (This button will discard any ROI/origin info)
                 </Box>
 
             </AccordionDetails>
