@@ -29,9 +29,9 @@ import scipy
 from scipy.cluster.vq import kmeans
 from skimage import morphology, filters, transform, measure
 from skimage.restoration import inpaint
+from skimage.measure import label
 import matplotlib
 import matplotlib.pyplot as plt
-from skimage.measure import label
 import PIL
 import numpy as np
 from sklearn.cluster import KMeans
@@ -141,12 +141,14 @@ def analysis_generate_working_images(analysis_id):
 
     # Background subtraction for 'radio' image
     if analysis.correct_bkgrd:
-        if analysis.bkgrd_algorithm == 'median_subtract':
-            Cerenkov = analysis_bkgrd_median_subtract(Cerenkov)
+        if analysis.bkgrd_algorithm == 'median':
+            Cerenkov = analysis_bkgrd_median(Cerenkov)
         elif analysis.bkgrd_algorithm == 'mputterman_1':
             Cerenkov = analysis_bkgrd_mputterman_1(Cerenkov)
-        elif analysis.bkgrd_algorithm == 'roi_removal':
-            Cerenkov = analysis_bkgrd_roi_removal(Cerenkov, analysis.roi_list)
+        elif analysis.bkgrd_algorithm == 'roi_inpaint_Telea':
+            Cerenkov = analysis_bkgrd_inpaint(Cerenkov, analysis.roi_list, 'telea')
+        elif analysis.bkgrd_algorithm == 'roi_inpaint_NavierStokes':
+            Cerenkov = analysis_bkgrd_inpaint(Cerenkov, analysis.roi_list, 'navierstokes')
         else:
             print (f"Unknown bkgrd algorithm ({analysis.bkgrd_algorithm}): ignoring")
 
@@ -201,7 +203,7 @@ def analysis_filter_median_3x3 (image):
 
 # Functions to implement image background correction
 
-def analysis_bkgrd_median_subtract (image):
+def analysis_bkgrd_median (image):
     return image - np.median(image)
 
 # TODO: This algorithm explores morphological opening with various different sizes
@@ -234,34 +236,44 @@ def analysis_bkgrd_mputterman_1(image): # TODO: FORMERLY called fix_background
     img-=np.median(img)
     return img
 
-# Background subtraction based on ROIs. The concept is to subtract the ROIs from the image,
-# then fill in those regions based on the surrounding background. The result is then used
-# as the background and subtracted from the original image. All areas outside the ROIs
-# will have zero intensity, and pixels within the ROI will be corrected by subtracting
-# a background based on the image in vicinity of ROI.
-# NOTE: inpaint.biharmonic is very slow!
-# TODO: need to look into detail in some examples. Certain images cause very poor inpaint,
-#   e.g. perhaps with boundary of ROI selected such that it crosses into the real ROI.
-def analysis_bkgrd_roi_removal(image, roi_list):
+# Background subtraction based on ROIs. The concept is to create a mask corresponding to
+# selected ROIs and then "infill" those ROIs based on the surrounding image.  Uses cv2.inpaint
+# module.
+# TODO: need to fine tune radius, effects of image edges, and blurring after (sometimes infill is poor)
+def analysis_bkgrd_inpaint(image, roi_list, inpaint_algorithm='telea'):
 
+    image = image.astype(np.float32)
     # Prepare mask for filling in ROIs
     (image_rows, image_cols) = image.shape # Image size
-    mask = np.zeros(image.shape, dtype=bool)
+    mask = np.zeros_like(image, np.uint8)
 
     # Define function for setting pixels within the map
     def mask_color_pixel(row, col):
         nonlocal mask
         mask[row][col] = 1
     
-    # For each ROI
+    # Create mask by iterating through ROIs and traversing pixels in each ROI
     for roi in roi_list:
         # Traverse pixels in ROI
         traverse_pixels_in_ROI(roi, mask_color_pixel, image_rows, image_cols)
 
-    background = inpaint.inpaint_biharmonic(image, mask)
-    image -= background
-    image -= np.min(image)
-    return image
+    # Create background by inpainting ROIs
+    import cv2 as cv
+    inpaint_radius=2.0
+    if inpaint_algorithm == 'telea':
+        inpaint_algorithm = cv.INPAINT_TELEA
+    elif inpaint_algorithm == 'navierstokes':
+        inpaint_algorithm = cv.INPAINT_NS
+    else:
+        print(f"WARNING: invalid inpaint algorithm ({inpaint_algorithm}) in analysis_bkgrd_inpaint. Ignoring.")
+        return image
+        
+    background = cv.inpaint(image,mask,inpaint_radius,inpaint_algorithm)
+
+    # Blur the background via median filtering
+    background = filters.median(background, morphology.rectangle(5,5))
+
+    return image - background
 
 # Function to traverse pixels in an ROI and call user-supplied function <func(row,col)>
 # for each pixel within the ROI.  The size of the image must be specified to avoid

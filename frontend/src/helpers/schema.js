@@ -347,7 +347,7 @@ const schema = new SimpleSchema ({
         defaultValue: prefs ? prefs.analysis.default_flat_image : null,
     },
     bkgrd_algorithm: {
-        label: 'Background correction method',
+        label: 'Background correction algorithm',
         type: String,
         allowedValues: config.analysis.bkgrd_algorithm_options,
         required: false,
