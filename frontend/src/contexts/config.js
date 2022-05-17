@@ -59,7 +59,7 @@ export const initialState = {
         default_pagesize: 10,
     },
     analysis: {
-        bkgrd_algorithm_options: ['none', 'median_subtract', 'mputterman_1',],
+        bkgrd_algorithm_options: ['none', 'median_subtract', 'mputterman_1', 'roi_removal',],
         filter_algorithm_options: ['none', 'median_3x3',],
         default_radio_opacity: 80,
         default_bright_opacity: 20,

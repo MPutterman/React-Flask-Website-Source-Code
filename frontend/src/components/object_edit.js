@@ -267,6 +267,9 @@ return (props) => {
                 } else {
                     setId(new_id);
                     objectLoad(id);
+                    // TODO: This forces a reload. Needed in case the object contains images etc that changed.
+                    //   Is there a better way in case of objects that don't contain images etc. that may be cached in the browser?
+                    window.location.reload(); 
                 }
 
             }

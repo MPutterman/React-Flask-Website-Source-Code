@@ -28,6 +28,7 @@
 import scipy
 from scipy.cluster.vq import kmeans
 from skimage import morphology, filters, transform, measure
+from skimage.restoration import inpaint
 import matplotlib
 import matplotlib.pyplot as plt
 from skimage.measure import label
@@ -130,9 +131,13 @@ def analysis_generate_working_images(analysis_id):
     # TODO: fix original images so don't need rotation
     Cerenkov = transform.rotate(Cerenkov,270)
     
-    # Create an extra image to assist with ROI autoselection
+    # Create an extra image to assist with ROI size autoselection
+    # TODO: this opening helps remove gradient... otherwise an ROI on gradient image could extend all the
+    #   way to boundary of image
     Cerenkov_ROI = Cerenkov.copy()
     Cerenkov_ROI -= morphology.opening(Cerenkov_ROI,selem=morphology.disk(25))
+
+    # TODO: Create an extra image to assist with ROI center autoselection
 
     # Background subtraction for 'radio' image
     if analysis.correct_bkgrd:
@@ -140,10 +145,12 @@ def analysis_generate_working_images(analysis_id):
             Cerenkov = analysis_bkgrd_median_subtract(Cerenkov)
         elif analysis.bkgrd_algorithm == 'mputterman_1':
             Cerenkov = analysis_bkgrd_mputterman_1(Cerenkov)
+        elif analysis.bkgrd_algorithm == 'roi_removal':
+            Cerenkov = analysis_bkgrd_roi_removal(Cerenkov, analysis.roi_list)
         else:
             print (f"Unknown bkgrd algorithm ({analysis.bkgrd_algorithm}): ignoring")
 
-    # Background subtraction for ROI image
+    # Background subtraction for ROI image (TODO: should this be done prior to creating the Cerenkov_ROI image?)
     Cerenkov_ROI-=np.median(Cerenkov_ROI)
 
     # Save the radio image, i.e. for doing calculations (TODO: formerly called 'compute'/'calc')
@@ -197,9 +204,10 @@ def analysis_filter_median_3x3 (image):
 def analysis_bkgrd_median_subtract (image):
     return image - np.median(image)
 
-# TODO: Figure out what this does in detail
+# TODO: This algorithm explores morphological opening with various different sizes
+#   and then find the combination that minimizes _____
 def analysis_bkgrd_mputterman_1(image): # TODO: FORMERLY called fix_background
-    img-=np.min(image)
+    img = image -np.min(image)
     img+=.001
     ideal_r = 25
     b4=morphology.opening(img,morphology.disk(ideal_r-10))
@@ -219,12 +227,69 @@ def analysis_bkgrd_mputterman_1(image): # TODO: FORMERLY called fix_background
                 x = arr2[0]
                 y=arr2[1]
                 b[i][j] = np.exp(y)*np.exp(x*c)
-    # TODO: is this to get rid of faint artifacts along edges of chips/plates?
+    # TODO: is this to get rid of faint artifacts along edges of chips/plates?  Or to remove gradient in background?
     b=filters.median(b,selem=morphology.rectangle(40,2))
     b=filters.median(b,selem=morphology.rectangle(2,40))
     img-=b
     img-=np.median(img)
     return img
+
+# Background subtraction based on ROIs. The concept is to subtract the ROIs from the image,
+# then fill in those regions based on the surrounding background. The result is then used
+# as the background and subtracted from the original image. All areas outside the ROIs
+# will have zero intensity, and pixels within the ROI will be corrected by subtracting
+# a background based on the image in vicinity of ROI.
+# NOTE: inpaint.biharmonic is very slow!
+# TODO: need to look into detail in some examples. Certain images cause very poor inpaint,
+#   e.g. perhaps with boundary of ROI selected such that it crosses into the real ROI.
+def analysis_bkgrd_roi_removal(image, roi_list):
+
+    # Prepare mask for filling in ROIs
+    (image_rows, image_cols) = image.shape # Image size
+    mask = np.zeros(image.shape, dtype=bool)
+
+    # Define function for setting pixels within the map
+    def mask_color_pixel(row, col):
+        nonlocal mask
+        mask[row][col] = 1
+    
+    # For each ROI
+    for roi in roi_list:
+        # Traverse pixels in ROI
+        traverse_pixels_in_ROI(roi, mask_color_pixel, image_rows, image_cols)
+
+    background = inpaint.inpaint_biharmonic(image, mask)
+    image -= background
+    image -= np.min(image)
+    return image
+
+# Function to traverse pixels in an ROI and call user-supplied function <func(row,col)>
+# for each pixel within the ROI.  The size of the image must be specified to avoid
+# traversing points outside the image.
+def traverse_pixels_in_ROI(roi, func, image_rows, image_cols): 
+    # Check if traversal method exists for the ROI type
+    if roi['shape'] != 'ellipse' and roi['shape'] != 'rectangle':
+        print (f"WARNING: undefined ROI shape ({ROI['shape']}) detected in compute_ROI_data. Ignoring.")
+        return None
+    # Iterate through image rows from top to bottom of ROI
+    for row in range(max(roi['shape_params']['y'] - roi['shape_params']['ry'], 0), \
+        min(roi['shape_params']['y'] + roi['shape_params']['ry'], image_rows-1)):
+
+        # Iterate through image columns from left to right of ROI
+        for col in range(max(roi['shape_params']['x'] - roi['shape_params']['rx'], 0), \
+            min(roi['shape_params']['x'] + roi['shape_params']['rx'], image_cols-1)):    
+
+            # Determine if point is actually inside ROI
+            # For rectangle, all points of the iterated range are within the ROI.
+            # For ellipse, we use the ellipse formula to determine which points are inside.
+            if (roi['shape'] == 'rectangle') or ((roi['shape'] == 'ellipse') and \
+               ((row - roi['shape_params']['y'])**2 / roi['shape_params']['ry']**2 + \
+                (col - roi['shape_params']['x'])**2 / roi['shape_params']['rx']**2 < 1.0)):
+
+                # Call function
+                func(row,col)
+
+    return None
 
 # Functions to create ROIs
 def create_ellipse_ROI(x, y, rx, ry):
@@ -254,33 +319,22 @@ def create_tlc_lane (origin_x, origin_y, solvent_x, solvent_y):
 # NOTE: Mutates ROI in place.
 def compute_ROI_data(ROI, image):
     if ROI['shape'] != 'ellipse' and ROI['shape'] != 'rectangle':
-        print ("ERROR in compute_ROI_data: undefined ROI shape ({})\n" . format(ROI['shape']))
-        print (ROI)
+        print (f"WARNING: undefined ROI shape ({ROI['shape']}) detected in compute_ROI_data")
         return None
     (image_rows, image_cols) = image.shape # Image size
     pixels = 0
     signal = 0
     mass_x = 0
     mass_y = 0
-    # Iterate through image rows from bottom to top of ROI
-    for row in range(max(ROI['shape_params']['y'] - ROI['shape_params']['ry'], 0), \
-        min(ROI['shape_params']['y'] + ROI['shape_params']['ry'], image_rows-1)):
 
-        # Iterate through image columns from left to right of ROI
-        for col in range(max(ROI['shape_params']['x'] - ROI['shape_params']['rx'], 0), \
-            min(ROI['shape_params']['x'] + ROI['shape_params']['rx'], image_cols-1)):
+    def update_pixel_data(row,col):
+        nonlocal pixels, signal, mass_x, mass_y
+        pixels += 1
+        signal += image[row][col] # add the pixel to total signal
+        mass_x += col * image[row][col]  # add the pixel, weighted by y
+        mass_y += row * image[row][col]  # add the pixel, weighted by x
 
-            # Determine if point is actually inside ROI
-            # For rectangle, all points of the iterated range are within the ROI.
-            # For ellipse, we use the ellipse formula to determine which points are inside.
-            if (ROI['shape'] == 'rectangle') or ((ROI['shape'] == 'ellipse') and \
-               ((row - ROI['shape_params']['y'])**2 / ROI['shape_params']['ry']**2 + \
-                (col - ROI['shape_params']['x'])**2 / ROI['shape_params']['rx']**2 < 1.0)):
-
-                pixels += 1
-                signal += image[row][col]  # add the pixel
-                mass_x += col * image[row][col]  # add the pixel, weighted by y
-                mass_y += row * image[row][col]  # add the pixel, weighted by x
+    traverse_pixels_in_ROI(ROI, update_pixel_data, image_rows, image_cols)
 
     ROI['signal'] = signal
     ROI['num_pixels'] = pixels
@@ -348,6 +402,7 @@ def analysis_roi_create_from_point(analysis_id, x, y, shift, shape='ellipse'):
 # Finds size of ellipse ROI from a starting point
 # TODO: figure out how this works in detail
 def findRadius(img,x,y,shift):
+    THRESHOLD = 1.35
     rowRadius = 0
     colRadius = 0
     num_zeros = 0
@@ -362,7 +417,7 @@ def findRadius(img,x,y,shift):
             col=center[1]
     # TODO the following seems to be somewhat redundant of what find_RL_UD is already doing...
     # One is finding center and one finding radius afterwards?  Can we combine these?
-    val =1.35*(np.mean(img[:,150:len(img[0])-150]))
+    val =THRESHOLD*(np.mean(img[:,150:len(img[0])-150]))
     max_zeros = 25
     thickness = 8
     while num_zeros<max_zeros and row+rowRadius<len(img) and row-rowRadius>0:
@@ -403,10 +458,11 @@ def find_RL_UD(img,center):
     UR=0
     DR=0
     num_zeros = 0
+    THRESHOLD = 1.35 # Formerly 2.1
 
     row = int(y)
     col = int(x)
-    val = 2.1*np.mean(img)  # TODO: is this a threshold?  Is it just growing the ROI in each direction until it falls below threshold?
+    val = THRESHOLD * np.mean(img)  # TODO: is this a threshold?  Is it just growing the ROI in each direction until it falls below threshold?
     max_zeros = 10 # TODO: is this the number of sub-threshold pixels before concluding the end of ROI? Seems to be... but 
         # appears to be looking in a line of -3 to +3 pixels (7 pixels) for each step one pixel step in the desired direction...
     # TODO: what is the significance of 40 and 10 in the routines below?
@@ -637,7 +693,7 @@ def analysis_lanes_autocount(roi_list):
     # the ratio between a point and successive one becomes less than a threshold.  The threshold
     # is arbitrary.  Also another hack is that we need to set the errors on KMeans as value * 100 + 2... in order to 
     # get this to work...  TODO: check for division by zero errors (the cluster with N_rois clusters has
-    # zero error).
+    # zero error).  TODO: probably the threshold should depend on the image size and number of lanes expected...
     threshold = 1.5
     for i in range(len(x_rois)-1):
         print(f"Errors: {errors[i+1]} / {errors[i+2]} = {errors[i+1]/errors[i+2]}")

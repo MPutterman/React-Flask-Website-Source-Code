@@ -84,7 +84,7 @@ app.config['IMAGE_THUMBNAIL_MAX_SIZE'] = (200, 200)
 
 
 # Sends a response to frontend, with response.error = True, and response.data equal to the
-# message.
+# message. NOTE: The first argument can only be string, not dict.
 def api_error_response(code, details=''):
     return Response(details, code, mimetype='application/json')
 
@@ -757,6 +757,23 @@ def analysis_save():
         if (data.get('bkgrd_algorithm') != prev_analysis.bkgrd_algorithm): cache_dirty = True
         if (data.get('filter_algorithm') != prev_analysis.filter_algorithm): cache_dirty = True
 
+    # TODO: temporary. Curently front-end relies on generic methods so ALL fields are sent to backend.
+    #   But since the frontend component that calls this routine doesn't know about ROIs, lanes, etc. in
+    #   frontend UI, these end up getting deleted in the database.
+    #   Thus, we remove here any of the keys from 'data' that deal with ROIs and lanes.
+    data.pop('radio_contrast', None)
+    data.pop('radio_brightness', None)
+    data.pop('radio_opacity', None)
+    data.pop('bright_contrast', None)
+    data.pop('bright_brightness', None)
+    data.pop('bright_opacity', None)
+    data.pop('show_Rf', None)
+    data.pop('image_scale_x', None)
+    data.pop('image_scale_y', None)
+    data.pop('roi_list', None)
+    data.pop('origins', None)
+    data.pop('lane_list', None)
+
     # Save analysis in database
     from database import db_object_save
     analysis = db_object_save('analysis', data)
@@ -789,7 +806,7 @@ def get_file(object_type, file_type, object_id):
         return { 'error': 'Invalid file request' }, HTTPStatus['NOT_FOUND']
     # Return file
     # TODO: temp prevent cache for now... later set appropriate caching parameters for each type
-    response = make_response(send_file(filename, cache_timeout=0))
+    response = make_response(send_file(filename, max_age=0))
     response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     response.headers['Pragma'] = 'no-cache'
     return response
