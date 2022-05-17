@@ -102,12 +102,12 @@ const AnalysisData = ({model, ...props}) => {
 
             <Box display="flex" flexDirection="row">
                 <Box width='50%' pr={1}>
-                    <AutoField name="bkgrd_algorithm" />
-                    <ErrorField name="bkgrd_algorithm" />
-                </Box>
-                <Box width='50%' pl={1}>
                     <AutoField name="filter_algorithm" />
                     <ErrorField name="filter_algorithm" />
+                </Box>
+                <Box width='50%' pl={1}>
+                    <AutoField name="bkgrd_algorithm" />
+                    <ErrorField name="bkgrd_algorithm" />
                 </Box>
             </Box>
 
