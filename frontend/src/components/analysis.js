@@ -8,7 +8,6 @@
 //     that may allow use to do interesting things like live line plots, lasso-based ROI selection, etc...
 //     Also more react-specific stuff here: https://stackshare.io/bokeh/alternatives
 // * Disable more image control functions before the image_url are populated
-// * Allow variable step-size for ROI jogging?
 
 import React from "react";
 import { withRouter } from "react-router";
