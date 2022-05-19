@@ -295,16 +295,17 @@ class Analysis(Base):
     display_bright_url = Column(String(2048))
     image_cache_modified = Column(TZDateTime)
     lanes_modified = Column(TZDateTime) # TODO: implement
-    # user adjustable
+    # User-adjustable parameters about image display and ROI calculations
     radio_contrast = Column(Integer)
     radio_brightness = Column(Integer)
     radio_opacity = Column(Integer)
     bright_contrast = Column(Integer)
     bright_brightness = Column(Integer)
     bright_opacity = Column(Integer)
-    show_Rf = Column(Boolean)
     image_scale_x = Column(Float) 
     image_scale_y = Column(Float) 
+    analysis_type - Column(String(128)) # TODO: limit values
+    show_Rf = Column(Boolean)
     origins = Column(PickleType, default=[], nullable=False)
     roi_list = Column(PickleType, default=[], nullable=False)
     lane_list = Column(PickleType, default=[], nullable=False)
@@ -910,6 +911,7 @@ def db_analysis_rois_lanes_save(analysis_id, data):
     analysis.show_Rf = data['show_Rf']
     analysis.image_scale_x = data['image_scale_x']
     analysis.image_scale_y = data['image_scale_y']
+    analysis.analysis_type = data['analysis_type']
     db_session.commit()
     return True
 

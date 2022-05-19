@@ -19,6 +19,8 @@ import Button from "@material-ui/core/Button";
 import Slider from "@material-ui/core/Slider";
 import Grid from "@material-ui/core/Grid";
 import Box from "@material-ui/core/Box";
+import RadioGroup from "@material-ui/core/RadioGroup";
+import Radio from "@material-ui/core/Radio";
 import FormControl from "@material-ui/core/FormControl";
 import FormControlLabel from "@material-ui/core/FormControlLabel";
 import FormLabel from "@material-ui/core/FormLabel";
@@ -78,6 +80,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
         lane_list: [],
         show_Rf: false,
         is_dirty: false,
+        analysis_type: 'tlc', // TODO: set as default value
     };
 
     React.useEffect(() => {
@@ -93,7 +96,10 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
         if (model.lane_list !== null && model.lane_list !== undefined) {
           setLaneState((prev) => ({ ...prev, lane_list: model.lane_list, num_lanes: Array.isArray(model.lane_list) ? model.lane_list.length : 0 }));
         }
-   }, [model.show_Rf, model.origins, model.roi_list, model.lane_list])
+        if (model.analysis_type !== null && model.analysis_type !== undefined) {
+          setLaneState((prev) => ({ ...prev, analysis_type: model.analysis_type, }));
+        }
+   }, [model.show_Rf, model.origins, model.roi_list, model.lane_list, model.analysis_type])
 
     const initialImageState = {
         radio_brightness: 0,
@@ -291,7 +297,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
     return roi;
   };
 
-  const onClickROI = (e, roi_id) => {  // event and roi_id
+  const onClickROI = (event, roi_id) => { 
 
     if (selectROI) {
       if (roi_id === laneState.selectedROI) {  
@@ -306,15 +312,11 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
         setLaneState(prev => ({...prev, selectedROI: roi_id,}));
       }
 
-    } else if (selectOrigin) {
-      // Create an origin at the selected point
+    } else if (selectOrigin) { // Create an origin at the selected point
       // Translate the coordinates of the event from the ROI canvas to global coordinates
-      var rx = laneState.roi_list[roi_id].shape_params.rx; // ROI size
-      var ry = laneState.roi_list[roi_id].shape_params.ry; // ROI size
-      var px = laneState.roi_list[roi_id].shape_params.x; // ROI global position
-      var py = laneState.roi_list[roi_id].shape_params.y; // ROI global position
-      var x = px - rx + unscaleX(e.nativeEvent.offsetX); 
-      var y = py - ry + unscaleY(e.nativeEvent.offsetY); 
+      var shape_params = laneState.roi_list[roi_id].shape_params;
+      var x = shape_params.x - shape_params.rx + unscaleX(event.nativeEvent.offsetX); 
+      var y = shape_params.y - shape_params.ry + unscaleY(event.nativeEvent.offsetY); 
       setLaneState(prev => {
         let newOrigins = [...prev.origins];
         newOrigins.push([y,x]);
@@ -369,6 +371,11 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
   const resetImage = () => {
       setImageState(prev => (initialImageState));
   };
+
+  // Switch analysis type
+  const setAnalysisType = (val) => {
+      setLaneState(prev => ({...prev, analysis_type: val}));
+  }
 
   // Autoselect the ROIs. Just a frontend change until save to backend
   async function autoselectROIsWrapper() {
@@ -442,22 +449,19 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
     })
   }
 
-  const onClickOrigin = (e, origin_id) => { // event and origin_id
-    if (selectOrigin) {
-      // Remove origin i
+  const onClickOrigin = (event, origin_id) => {
+    if (selectOrigin) { // Remove origin i
       setLaneState(prev => {
         let new_origins = [...prev.origins];
         new_origins.splice(origin_id,1);
         return {...prev, origins: new_origins, }
       });
-
-    } else if (selectROI) {
-      // Define an ROI
+    } else if (selectROI) { // Define a new ROI
       // Translate the coordinates of the event from the origin canvas to global coordinates
-      var x = laneState.origins[origin_id][1] - ORIGIN_R + unscaleX(e.nativeEvent.offsetX);
-      var y = laneState.origins[origin_id][0] - ORIGIN_R + unscaleY(e.nativeEvent.offsetY);
-      var shift = e.shiftKey ? 1 : 0;
-      var shape = e.ctrlKey ? 'rectangle' : 'ellipse';
+      var x = laneState.origins[origin_id][1] - ORIGIN_R + unscaleX(event.nativeEvent.offsetX);
+      var y = laneState.origins[origin_id][0] - ORIGIN_R + unscaleY(event.nativeEvent.offsetY);
+      var shift = event.shiftKey ? 1 : 0;
+      var shape = event.ctrlKey ? 'rectangle' : 'ellipse';
       buildROI(x,y,shift,shape); 
     }
   }
@@ -503,23 +507,46 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
   }
 
   // Handle clicks on the image canvas (not on origin or ROI)
-  const onClickImage = (e) => {
-
-    if (selectOrigin) {
-      // Add a new origin point at the click location
-      var new_origin = [unscaleY(e.nativeEvent.offsetY), unscaleX(e.nativeEvent.offsetX)];
+  const onClickImage = (event) => {
+    if (selectOrigin) { // Add a new origin point at the click location
+      var new_origin = [unscaleY(event.nativeEvent.offsetY), unscaleX(event.nativeEvent.offsetX)];
       setLaneState(prev => {
         let newOrigins = [...prev.origins];
         newOrigins.push(new_origin);
         return {...prev, origins: newOrigins, is_dirty: true,}; // is_dirty maybe to trigger state update
       });
+    } else if (selectROI) { // Build a new ROI at the click location
+      var x = unscaleX(event.nativeEvent.offsetX);
+      var y = unscaleY(event.nativeEvent.offsetY);
+      var shift = event.shiftKey ? 1 : 0;
+      var shape = event.ctrlKey ? 'rectangle' : 'ellipse';
+      buildROI(x,y,shift, shape);
+    }
+  }
 
-    } else if (selectROI) {
-      // Build a new ROI at the click location
-      var x = unscaleX(e.nativeEvent.offsetX);
-      var y = unscaleY(e.nativeEvent.offsetY);
-      var shift = e.shiftKey ? 1 : 0;
-      var shape = e.ctrlKey ? 'rectangle' : 'ellipse';
+  // Handle clicks on lane (group) canvases
+  const onClickLane = (event,lane_id) => {
+    var x;
+    var y;
+    var lane_params = laneState.lane_list[lane_id].lane_params;
+    if (laneState.lane_list[lane_id].lane_type == 'tlc') {
+      x = lane_params.origin_x - LANE_W + unscaleX(event.nativeEvent.offsetX);
+      y = 0 + unscaleY(event.nativeEvent.offsetY);
+    } else if (laneState.lane_list[lane_id].lane_type == 'group') {
+      lane_params = laneState.lane_list[lane_id].lane_params;
+      x = lane_params.x - lane_params.rx + unscaleX(event.nativeEvent.offsetX);
+      x = lane_params.y - lane_params.ry + unscaleX(event.nativeEvent.offsetY);
+    }
+    if (selectOrigin) { // Add a new origin point at the click location
+      var new_origin = [y,x];
+      setLaneState(prev => {
+        let newOrigins = [...prev.origins];
+        newOrigins.push(new_origin);
+        return {...prev, origins: newOrigins, is_dirty: true,}; // is_dirty maybe to trigger state update
+      });
+    } else if (selectROI) { // Build a new ROI at the click location
+      var shift = event.shiftKey ? 1 : 0;
+      var shape = event.ctrlKey ? 'rectangle' : 'ellipse';
       buildROI(x,y,shift, shape);
     }
   }
@@ -849,11 +876,11 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                         height: "" + scaleY(imageState.size_y) + "px",
                         zIndex: 9, // put in the back
                       }}
-                      //onClick={(e) => { # Currently not clickable
-                      //  e.preventDefault();
-                      //  onClickOrigin(e, i);
-                      //}}
-                    />
+                      onClick={(e) => {
+                        // e.preventDefault();
+                        onClickLane(e,lane_id);
+                      }}
+                      />
                     ) : ( <> </> ) }
                     </>
 
@@ -866,6 +893,18 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
               {/* ROI / lane selection controls */}
 
             <Box width='100%'>
+                <p>Type of analysis:</p>
+                <FormControl component="fieldset">
+                  <RadioGroup name="analysis-type"
+                    value={laneState.analysis_type}
+                    onChange={(event) => {
+                        setAnalysisType(event.target.value );
+                      }}
+                    >
+                    <FormControlLabel value="tlc" control={<Radio />} label="TLC lanes"/>
+                    <FormControlLabel value="origin" control={<Radio />} label="Groups"/>
+                  </RadioGroup>
+                </FormControl>
                 <p>Define ROIs:</p>
                 <Box display="flex" flexDirection="row" width='100%' alignItems='center'>
                   <Popup width='50%' button_label={<HelpIcon/>}>

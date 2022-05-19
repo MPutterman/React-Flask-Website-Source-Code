@@ -324,7 +324,18 @@ def create_tlc_lane (origin_x, origin_y, solvent_x, solvent_y):
         'roi_list': [],
     }
     return lane
-        
+
+def create_roi_group(center_x, center_y, size_x, size_y):
+    lane = {
+        'lane_type': 'group',
+        'lane_params': {
+            'center_x': center_x,
+            'center_y': center_y,
+            'size_x': size_x,
+            'size_y': size_y,
+        }
+    }
+
 # Computes parameters for an ROI, i.e. integrated signal for band percentages in a lane,
 # and center of 'mass' (e.g. for RF value calculations).
 # Should be called when an ROI is created, when geometry changes, or when image/analysis changes.

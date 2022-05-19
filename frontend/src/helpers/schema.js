@@ -422,6 +422,26 @@ const schema = new SimpleSchema ({
         type: String,
         required: false,
     },
+    image_scale_x: {
+        label: 'Image zoom (x-direction)',
+        type: Number,
+        defaultValue: 1.0,
+        min: 0.0,
+        required: false
+    },
+    image_scale_y: {
+        label: 'Image zoom (y-direction)',
+        type: Number,
+        defaultValue: 1.0,
+        min: config.analysis.image_scale_min,
+        max: config.analysis.image_scale_max,
+        required: false
+    },
+    analysis_type: {
+        label: 'Type of analysis (TLC vs group)',
+        type: String,
+        required: false,
+    },
     roi_list: { // TODO: update with new structre of info (array of dict)
         label: 'ROI list',
         type: Array,
@@ -466,21 +486,6 @@ const schema = new SimpleSchema ({
         type: Boolean,
         defaultValue: false,
         required: false,
-    },
-    image_scale_x: {
-        label: 'Image zoom (x-direction)',
-        type: Number,
-        defaultValue: 1.0,
-        min: 0.0,
-        required: false
-    },
-    image_scale_y: {
-        label: 'Image zoom (y-direction)',
-        type: Number,
-        defaultValue: 1.0,
-        min: config.analysis.image_scale_min,
-        max: config.analysis.image_scale_max,
-        required: false
     },
 });
 schema.extend(metaSchema);
