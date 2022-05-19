@@ -304,7 +304,7 @@ class Analysis(Base):
     bright_opacity = Column(Integer)
     image_scale_x = Column(Float) 
     image_scale_y = Column(Float) 
-    analysis_type - Column(String(128)) # TODO: limit values
+    analysis_type = Column(String(128)) # TODO: limit values
     show_Rf = Column(Boolean)
     origins = Column(PickleType, default=[], nullable=False)
     roi_list = Column(PickleType, default=[], nullable=False)
