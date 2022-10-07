@@ -4,7 +4,7 @@
 # * A few functions in here need some study to understand fully
 # * Click a point, and autoselect all ROIs, gives slightly different ROI shapes and positions
 #    -- These should be unified so they use the exact same algorithm, and same computational
-#    -- basis for finding the final ROI
+#    -- basis for finding the final ROI, e.g. if click is near a 'center'?
 #
 # Resources:
 # - Using KMeans and KneeLocator to estimate number of clusters (lanes):
@@ -622,6 +622,30 @@ def analysis_assign_rois_to_lanes(roi_list, lane_list):
         # to return the Y coordinate of the particular ROI
         lane['roi_list'].sort(reverse=False, key=lambda roi: roi_list[roi['roi_id']]['shape_params']['y'])
 
+    return None
+
+# Assign ROIs to groups based on whether ROI position is within boundary of the group.
+# Mutates the lanes, i.e. deletes and updates roi_list for all lanes.
+# TODO: should we do any sorting?
+# TODO: do we need to be aware of image boundaries?
+# TODO: need to check the shape of the group (rectangle versus other?)
+def analysis_assign_rois_to_groups(roi_list, lane_list):
+    # Return if no lanes
+    if len(lane_list) == 0:
+        return None
+    # For each lane, iterate through all ROIs to see which are inside the lane
+    for lane in lane_list:
+        lane.roi_list = []
+        roi_index = 0
+        for roi in roi_list:
+            # Check if roi is inside the lane
+            min_x = lane.lane_params.x - lane.lane_params.rx
+            max_x = lane.lane_params.x + lane.lane_params.rx
+            min_y = lane.lane_params.y - lane.lane_params.ry
+            max_y = lane.lane_params.y + lane.lane_params.ry
+            if roi.shape_params.x >= min_x and roi.shape_params.x <= max_x and roi.shape_params.y >= min_y and roi.shape_params.y <= max_y:
+                lane.roi_list.append({'roi_id': roi_index,})
+            roi_index += 1
     return None
 
 # Find centers of potential ROIs

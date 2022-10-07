@@ -676,6 +676,7 @@ def analysis_rois_lanes_save(analysis_id):
     lane_list = json.loads(data.get('lane_list')) if data.get('lane_list') is not None else []
 
     # Automatically assign ROIs to lanes
+    # TODO: check analysis type and assign to lanes or to groups as appropriate...
     from analysis import analysis_assign_rois_to_lanes
     analysis_assign_rois_to_lanes(roi_list, lane_list)
 
@@ -783,7 +784,7 @@ def analysis_save():
         # TODO: implement error checking for the following
         from analysis import analysis_generate_working_images
         analysis_generate_working_images(analysis.analysis_id, )
-    
+
     return { 'id': analysis.analysis_id }
 
 # Build an ROI from a clicked point
