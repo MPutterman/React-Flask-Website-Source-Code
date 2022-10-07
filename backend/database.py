@@ -165,7 +165,18 @@ org_cover_map = Table('org_cover_map', Base.metadata,
 
 # Define data classes
 
-class User(UserMixin, Base):
+# Define a Mixin to add an 'as_dict' method
+class TupleMixin():
+    def as_dict(self):
+        # Returns full represenation of model.
+        columns = class_mapper(self.__class__).mapped_table.c
+        return {
+            col.name: getattr(self, col.name)
+                for col in columns
+        }
+
+
+class User(TupleMixin, UserMixin, Base):
     __tablename__ = 'user'
     user_id = Column(Integer, primary_key=True)
     first_name = Column(String(64))
@@ -210,15 +221,7 @@ class User(UserMixin, Base):
         else:
             return None
 
-    def as_dict(self):
-        # Returns full represenation of model.
-        columns = class_mapper(self.__class__).mapped_table.c
-        return {
-            col.name: getattr(self, col.name)
-                for col in columns
-        }
-
-class Organization(Base):
+class Organization(TupleMixin, Base):
     __tablename__ = 'organization'
     org_id = Column(Integer, primary_key=True)
     name = Column(String(128), nullable=False)
@@ -231,16 +234,7 @@ class Organization(Base):
     modified = Column(TZDateTime)
     is_deleted = Column(Boolean, default=False, nullable=False)
 
-    ## TODO: can this be defined as a mixin??
-    def as_dict(self):
-        # Returns full represenation of model.
-        columns = class_mapper(self.__class__).mapped_table.c
-        return {
-            col.name: getattr(self, col.name)
-                for col in columns
-        }
-
-class Equipment(Base):
+class Equipment(TupleMixin, Base):
     __tablename__ = 'equipment'
     equip_id = Column(Integer, primary_key=True)
     name = Column(String(128), nullable=False)
@@ -261,15 +255,7 @@ class Equipment(Base):
     modified = Column(TZDateTime)
     is_deleted = Column(Boolean, default=False, nullable=False)
 
-    def as_dict(self):
-        # Returns full represenation of model.
-        columns = class_mapper(self.__class__).mapped_table.c
-        return {
-            col.name: getattr(self, col.name)
-                for col in columns
-        }
-
-class Analysis(Base):
+class Analysis(TupleMixin, Base):
     # TODO: Add created, modified fields (handled internally)
     __tablename__ = 'analysis'
     analysis_id = Column(Integer, primary_key=True)
@@ -315,16 +301,7 @@ class Analysis(Base):
     modified = Column(TZDateTime)
     is_deleted = Column(Boolean, default=False, nullable=False)
 
-    def as_dict(self):
-        # Returns full represenation of model.
-        columns = class_mapper(self.__class__).mapped_table.c
-        return {
-            col.name: getattr(self, col.name)
-                for col in columns
-        }
-
-
-class Image(Base):
+class Image(TupleMixin, Base):
     __tablename__ = 'image'
     #analysis_list = relationship('Analysis',secondary=analysis_image_map)
     image_id = Column(Integer, primary_key=True)
@@ -344,16 +321,7 @@ class Image(Base):
     download_url = Column(String(2048))
     # TODO add methods to return images and paths?
 
-    def as_dict(self):
-        # Returns full represenation of model.
-        columns = class_mapper(self.__class__).mapped_table.c
-        return {
-            col.name: getattr(self, col.name)
-                for col in columns
-        }
-
-
-class Plate(Base):
+class Plate(TupleMixin, Base):
     __tablename__ = 'plate'
     plate_id = Column(Integer, primary_key=True)
     name = Column(String(128), nullable=False)
@@ -365,15 +333,7 @@ class Plate(Base):
     modified = Column(TZDateTime)
     is_deleted = Column(Boolean, default=False, nullable=False)
 
-    def as_dict(self):
-        # Returns full represenation of model.
-        columns = class_mapper(self.__class__).mapped_table.c
-        return {
-            col.name: getattr(self, col.name)
-                for col in columns
-        }
-
-class Cover(Base):
+class Cover(TupleMixin, Base):
     __tablename__ = 'cover'
     cover_id = Column(Integer, primary_key=True)
     name = Column(String(128), nullable=False)
@@ -384,14 +344,6 @@ class Cover(Base):
     created = Column(TZDateTime) 
     modified = Column(TZDateTime)
     is_deleted = Column(Boolean, default=False, nullable=False)
-
-    def as_dict(self):
-        # Returns full represenation of model.
-        columns = class_mapper(self.__class__).mapped_table.c
-        return {
-            col.name: getattr(self, col.name)
-                for col in columns
-        }
 
 
 def db_add_test_data():
