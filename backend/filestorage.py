@@ -38,7 +38,7 @@ def initialize_file_storage(db_name, reset=False):
         except FileNotFoundError:
             pass
 
-        print ("  Creating UPLOAD and CACHE hierarchies...")
+        print ("  Creating UPLOAD and CACHE paths...")
         path_list = [
             'USER_PHOTO_UPLOAD_PATH',
             'USER_THUMBNAIL_PATH',

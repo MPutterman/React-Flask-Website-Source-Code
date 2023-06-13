@@ -1,5 +1,7 @@
 # TODO:
+# * Add an option to selectively remove, archive, download, restore a particular named database (and file storage)?
 # * Enforce adding of extension to upload files?
+# * Switching to classes for database objects instead of dicts may simplify a lot of methods and reduce code duplication
 # * Auto-create a thumbnail of uploaded Image files...
 # * Check saving methods to make sure immune to SQL injection. (SQLAlchemy handles a lot automatically with the ORM)
 # * Add some convenience methods, e.g. get_id(), get_name()?
@@ -82,8 +84,11 @@ def db_initialize(db_name, reset=False):
 
     if reset:
         print ('  Reset option selected')        
-        print ('  Dropping existing database...')
-        sqlalchemy_utils.functions.drop_database(db_uri)
+        if sqlalchemy_utils.functions.database_exists(db_uri):
+            print ('  Dropping existing database...')
+            sqlalchemy_utils.functions.drop_database(db_uri)
+        else:
+            pass
         print ('  Creating database...')
         sqlalchemy_utils.functions.create_database(db_uri)
         print ('  Creating all tables...')
@@ -163,9 +168,8 @@ org_cover_map = Table('org_cover_map', Base.metadata,
     Column('cover_id', Integer, ForeignKey('cover.cover_id'), primary_key=True),
 )
 
-# Define data classes
-
 # Define a Mixin to add an 'as_dict' method
+
 class TupleMixin():
     def as_dict(self):
         # Returns full represenation of model.
@@ -175,6 +179,7 @@ class TupleMixin():
                 for col in columns
         }
 
+# Define data classes
 
 class User(TupleMixin, UserMixin, Base):
     __tablename__ = 'user'
