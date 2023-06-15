@@ -704,6 +704,9 @@ def analysis_rois_lanes_save(analysis_id):
     newdata['bright_brightness'] = data.get('bright_brightness')
     newdata['bright_contrast'] = data.get('bright_contrast')
     newdata['bright_opacity'] = data.get('bright_opacity')
+    # TODO: a quick kludge to make sure analysis-type is defined
+    analysis_type = data.get('analysis_type')
+    newdata['analysis_type'] = data.get('analysis_type') 
 
     # Save all info to the database (including results)
     from database import db_analysis_rois_lanes_save
