@@ -11,7 +11,6 @@
 
 import React from "react";
 import { withRouter } from "react-router";
-import { backend_url } from '../helpers/api';
 import { callAPI } from '../helpers/api';
 
 import Button from "@material-ui/core/Button";
@@ -759,6 +758,7 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                 {model.display_bright_url ? (
                 <ServerImage
                   url={model.display_bright_url}
+                  //alt="Brightfield Image"
 		              className = 'noselect'    
                   id="img-bright"
                   width={scaleX(imageState.size_x)}
@@ -775,12 +775,12 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                   onClick={(e) => {
                     e.preventDefault();
                     onClickImage(e);}}
-                  alt=''
                 />
                 ) : ( <></> )}
 
                 <ServerImage
                   url={model.display_radio_url}
+                  //alt="Radiation Image"
 		              className = 'noselect'    
                   id="img-radio"
                   width={scaleX(imageState.size_x)}
@@ -797,7 +797,6 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
                   onClick={(e) => {
                     e.preventDefault();
                     onClickImage(e);}}
-                  alt=''
                 />
 
                 { /* NOTE: NEED THE DIV TO GET THESE TO ALIGN ON THE IMAGE */ }
