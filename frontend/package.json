@@ -9,6 +9,10 @@
     "@material-ui/icons": "^4.11.2",
     "@material-ui/lab": "^4.0.0-alpha.57",
     "@material-ui/pickers": "^3.3.10",
+    "@mui/icons-material": "^5.11.16",
+    "@mui/lab": "^5.0.0-alpha.134",
+    "@mui/material": "^5.13.5",
+    "@mui/styles": "^5.13.2",
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/react": "^9.3.2",
     "@testing-library/user-event": "^7.1.2",
@@ -30,7 +34,8 @@
     "simpl-schema": "^1.12.0",
     "uniforms": "^3.10.2",
     "uniforms-bridge-simple-schema-2": "^3.6.2",
-    "uniforms-material": "^3.6.2"
+    "uniforms-material": "^3.6.2",
+    "uniforms-mui-5": "^1.0.2"
   },
   "scripts": {
     "start": "react-scripts start",
