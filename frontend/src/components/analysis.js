@@ -527,10 +527,10 @@ const WrappedAnalysisEdit = ({model, ...props}) => {
     var x;
     var y;
     var lane_params = laneState.lane_list[lane_id].lane_params;
-    if (laneState.lane_list[lane_id].lane_type == 'tlc') {
+    if (laneState.lane_list[lane_id].lane_type === 'tlc') {
       x = lane_params.origin_x - LANE_W + unscaleX(event.nativeEvent.offsetX);
       y = 0 + unscaleY(event.nativeEvent.offsetY);
-    } else if (laneState.lane_list[lane_id].lane_type == 'group') {
+    } else if (laneState.lane_list[lane_id].lane_type === 'group') {
       lane_params = laneState.lane_list[lane_id].lane_params;
       x = lane_params.x - lane_params.rx + unscaleX(event.nativeEvent.offsetX);
       x = lane_params.y - lane_params.ry + unscaleX(event.nativeEvent.offsetY);
