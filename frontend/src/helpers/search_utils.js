@@ -16,7 +16,7 @@ export function createFilterModel(filters) {
     };
     if (filters) {
         filters.map((element,i) => {
-            filterModel.items.push({
+            return filterModel.items.push({
                 id: i,
                 columnField: element.field,
                 operatorValue: element.operator ? element.operator : 'equals',
