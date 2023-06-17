@@ -1,7 +1,9 @@
 // Define site themes
 
-import { createTheme } from '@material-ui/core/styles';
-import { blueGrey } from '@material-ui/core/colors';
+//import { createTheme } from '@material-ui/core/styles';
+import { createTheme, adaptV4Theme } from '@mui/material/styles';
+//import { blueGrey } from '@material-ui/core/colors';
+import { blueGrey } from '@mui/material/colors';
 
 export const darkMode = createTheme({
     props: {
@@ -14,23 +16,24 @@ export const darkMode = createTheme({
         },
     },    
     palette: {
-    type: "dark",
-    primary: {
-        light: blueGrey[500],
-        main: blueGrey[700],
-        dark: blueGrey[900],
-        contrastText: "#fff",
-    },
-    secondary: {
-        light: "#ff7961",
-        main: "#555599", 
-        dark: "#002884",
-        contrastText: "#000",
-    },
-    background: {
-        paper: '#222222',
-        default: '#111111',
-    }
+        type: "dark",
+        mode: "dark",
+        primary: {
+            light: blueGrey[500],
+            main: blueGrey[700],
+            dark: blueGrey[900],
+            contrastText: "#fff",
+        },
+        secondary: {
+            light: "#ff7961",
+            main: "#555599", 
+            dark: "#002884",
+            contrastText: "#000",
+        },
+        background: {
+            paper: '#222222',
+            default: '#111111',
+        }
     },
     typography: {
         fontSize: 13,
@@ -40,23 +43,25 @@ export const darkMode = createTheme({
 export const lightMode = createTheme({
     palette: {
     type: "light",
-/*        primary: {
-        light: blueGrey[500],
-        main: blueGrey[800],
-        dark: blueGrey[900],
-        contrastText: "#fff",
-    },
-    secondary: {
-        light: "#ff7961",
-        main: blueGrey[700],
-        dark: "#002884",
-        contrastText: "#000",
-    },
-    background: {
-        paper: '#222222',
-        default: '#111111',
-    }
-*/
+    mode: "light",
+    /*
+        primary: {
+            light: blueGrey[500],
+            main: blueGrey[800],
+            dark: blueGrey[900],
+            contrastText: "#fff",
+        },
+        secondary: {
+            light: "#ff7961",
+            main: blueGrey[700],
+            dark: "#002884",
+            contrastText: "#000",
+        },
+        background: {
+            paper: '#222222',
+            default: '#111111',
+        }
+    */
     },
     typography: {
         fontSize: 13,
