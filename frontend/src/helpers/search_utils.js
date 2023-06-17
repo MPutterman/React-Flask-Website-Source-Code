@@ -2,8 +2,9 @@
 
 // TODO:
 // * Need to translate additional operators to DataGrid compatible operators
+// * DataGrid seems now to have much more built-in support -- can we use the native functions?
 
-import { GridLinkOperator } from "@material-ui/data-grid";
+import { GridLogicOperator } from "@mui/x-data-grid";
 
 
 // Create filter model for DataGrid
@@ -12,7 +13,7 @@ import { GridLinkOperator } from "@material-ui/data-grid";
 export function createFilterModel(filters) {
     var filterModel = {
         items: [],
-        linkOperator: GridLinkOperator.And,
+        linkOperator: GridLogicOperator.And,
     };
     if (filters) {
         filters.map((element,i) => {

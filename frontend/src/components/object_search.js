@@ -34,7 +34,7 @@ import { useThrobber } from '../contexts/throbber';
 import { useErrorResponse } from '../contexts/error';
 import { callAPI } from '../helpers/api';
 import { withRouter } from "react-router";
-import { DataGrid, GridLinkOperator } from "@material-ui/data-grid";
+import { DataGrid } from "@mui/x-data-grid";
 import { createFilterModel } from "../helpers/search_utils";
 import { ObjectIcon, objectTitle } from "../helpers/object_utils";
 import Card from '@mui/material/Card';
