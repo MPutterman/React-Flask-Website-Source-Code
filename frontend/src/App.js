@@ -38,10 +38,10 @@ import { AlertList } from './contexts/alerts';
 // Import throbber
 import { Throbber } from './contexts/throbber';
 
-// Import Material-UI pickers
-import { MuiPickersUtilsProvider } from '@material-ui/pickers';
-//import LuxonUtils from '@date-io/luxon';
-import DateFnsUtils from '@date-io/date-fns';
+// Import MUI picker support
+// TODO: Adapter time functions too?
+import AdapterDateFns from '@date-io/date-fns';
+import LocalizationProvider from '@mui/lab/LocalizationProvider';
 
 // Import main interface components and themes
 import Layout from './components/layout';
@@ -71,13 +71,13 @@ const App = (props) => {
     return (
       <Throbber>
         <ConfigProvider>
-          <MuiPickersUtilsProvider utils={DateFnsUtils}>
+          ({/*<LocalizationProvider dateAdapter={AdapterDateFns}>*/})
             <SessionContext>
               <QueryClientProvider client={queryClient}>
                 <AppWrapped />
               </QueryClientProvider>
             </SessionContext>
-          </MuiPickersUtilsProvider>
+          ({/*</LocalizationProvider>*/})
         </ConfigProvider>        
       </Throbber>
     )

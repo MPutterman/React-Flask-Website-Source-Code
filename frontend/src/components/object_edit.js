@@ -48,7 +48,8 @@ import { spacing } from '@material-ui/system'
 import Divider from '@mui/material/Divider';
 import IconButton from "@mui/material/IconButton";
 import ClearIcon from "@mui/icons-material/Clear";
-import { KeyboardDateTimePicker } from '@material-ui/pickers'
+import DatePicker from '@mui/lab/DatePicker';
+import TimePicker from '@mui/lab/TimePicker';
 import Accordion from '@mui/material/Accordion';
 import AccordionSummary from '@mui/material/AccordionSummary';
 import AccordionDetails from '@mui/material/AccordionDetails';
