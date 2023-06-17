@@ -41,19 +41,19 @@ import { useForm } from 'uniforms';
 import { name_lookup } from '../helpers/validation_utils';
 import { ErrorHandler } from '../contexts/error';
 import { Throbber } from '../contexts/throbber';
-import Dialog from '@material-ui/core/Dialog';
-import DialogActions from '@material-ui/core/DialogActions';
-import DialogContent from '@material-ui/core/DialogContent';
-import DialogTitle from '@material-ui/core/DialogTitle';
-import TextField from '@material-ui/core/TextField';
-import Button from '@material-ui/core/Button';
-import IconButton from '@material-ui/core/IconButton';
-import ClearIcon from '@material-ui/icons/Clear';
-import SelectIcon from '@material-ui/icons/Search';
-import CreateIcon from '@material-ui/icons/AddCircle';
-import EditIcon from '@material-ui/icons/Edit';
-import ViewIcon from '@material-ui/icons/Visibility';
-import InputAdornment from '@material-ui/core/InputAdornment';
+import Dialog from '@mui/material/Dialog';
+import DialogActions from '@mui/material/DialogActions';
+import DialogContent from '@mui/material/DialogContent';
+import DialogTitle from '@mui/material/DialogTitle';
+import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import ClearIcon from '@mui/icons-material/Clear';
+import SelectIcon from '@mui/icons-material/Search';
+import CreateIcon from '@mui/icons-material/AddCircle';
+import EditIcon from '@mui/icons-material/Edit';
+import ViewIcon from '@mui/icons-material/Visibility';
+import InputAdornment from '@mui/material/InputAdornment';
 
 // Object-specific imports
 import { UserSearch as UserSelect, OrgSearch as OrgSelect, EquipSearch as EquipSelect,

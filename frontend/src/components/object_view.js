@@ -21,24 +21,24 @@
 import React from "react";
 import { callAPI } from '../helpers/api';
 import { withRouter } from "react-router";
-import Button from "@material-ui/core/Button";
-import Box from '@material-ui/core/Box';
-import Card from '@material-ui/core/Card';
-import CardHeader from '@material-ui/core/CardHeader';
-import CardContent from '@material-ui/core/CardContent';
-import CardActions from '@material-ui/core/CardActions';
-import Avatar from '@material-ui/core/Avatar';
-import Accordion from '@material-ui/core/Accordion';
-import AccordionSummary from '@material-ui/core/AccordionSummary';
-import AccordionDetails from '@material-ui/core/AccordionDetails';
-import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
-import IconButton from '@material-ui/core/IconButton';
-import Grid from '@material-ui/core/Grid';
-import TextField from '@material-ui/core/TextField';
+import Button from "@mui/material/Button";
+import Box from '@mui/material/Box';
+import Card from '@mui/material/Card';
+import CardHeader from '@mui/material/CardHeader';
+import CardContent from '@mui/material/CardContent';
+import CardActions from '@mui/material/CardActions';
+import Avatar from '@mui/material/Avatar';
+import Accordion from '@mui/material/Accordion';
+import AccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import IconButton from '@mui/material/IconButton';
+import Grid from '@mui/material/Grid';
+import TextField from '@mui/material/TextField';
 import IDInputField from '../components/idfield';
-import Checkbox from '@material-ui/core/Checkbox';
-import Typography from '@material-ui/core/Typography';
-import Paper from '@material-ui/core/Paper';
+import Checkbox from '@mui/material/Checkbox';
+import Typography from '@mui/material/Typography';
+import Paper from '@mui/material/Paper';
 import { useErrorResponse } from '../contexts/error';
 import { StatusCodes } from 'http-status-codes';
 import { useAlerts } from '../contexts/alerts';
@@ -54,27 +54,27 @@ import { name_lookup } from '../helpers/validation_utils';
 
 // Object type icons
 // TODO: create these from objectIcon(type)?
-import UserIcon from '@material-ui/icons/Person';
-import ImageIcon from '@material-ui/icons/Image';
-import AnalysisIcon from '@material-ui/icons/Assessment';
-import OrganizationIcon from '@material-ui/icons/Business'; // or People?
-import PlateIcon from '@material-ui/icons/Business';
-import CoverIcon from '@material-ui/icons/Business';
-import EquipmentIcon from '@material-ui/icons/Business';
+import UserIcon from '@mui/icons-material/Person';
+import ImageIcon from '@mui/icons-material/Image';
+import AnalysisIcon from '@mui/icons-material/Assessment';
+import OrganizationIcon from '@mui/icons-material/Business'; // or People?
+import PlateIcon from '@mui/icons-material/Business';
+import CoverIcon from '@mui/icons-material/Business';
+import EquipmentIcon from '@mui/icons-material/Business';
 
 // Field-specific icons
-import EmailIcon from '@material-ui/icons/Email';
-import LocationIcon from '@material-ui/icons/LocationOn';
-import DimensionsIcon from '@material-ui/icons/SquareFoot';
-import ExposureTimeIcon from '@material-ui/icons/Timer';
-//import ExposureTempIcon from '@material-ui/icons/Thermostat';
-import DateTimeIcon from '@material-ui/icons/Today';
-import FingerprintIcon from '@material-ui/icons/Fingerprint';
-import ColdIcon from '@material-ui/icons/AcUnit';
-import FileFormatIcon from '@material-ui/icons/Save';
-import ColorDepthIcon from '@material-ui/icons/Palette';
-import NameIcon from '@material-ui/icons/ShortText';
-import DescriptionIcon from '@material-ui/icons/ViewHeadline';
+import EmailIcon from '@mui/icons-material/Email';
+import LocationIcon from '@mui/icons-material/LocationOn';
+import DimensionsIcon from '@mui/icons-material/SquareFoot';
+import ExposureTimeIcon from '@mui/icons-material/Timer';
+//import ExposureTempIcon from '@mui/icons-material/Thermostat';
+import DateTimeIcon from '@mui/icons-material/Today';
+import FingerprintIcon from '@mui/icons-material/Fingerprint';
+import ColdIcon from '@mui/icons-material/AcUnit';
+import FileFormatIcon from '@mui/icons-material/Save';
+import ColorDepthIcon from '@mui/icons-material/Palette';
+import NameIcon from '@mui/icons-material/ShortText';
+import DescriptionIcon from '@mui/icons-material/ViewHeadline';
 
 // Wraps a derivative of ObjectView with backend support
 //  

@@ -1,22 +1,33 @@
 // Define site themes
 
-//import { createTheme } from '@material-ui/core/styles';
 import { createTheme, adaptV4Theme } from '@mui/material/styles';
-//import { blueGrey } from '@material-ui/core/colors';
 import { blueGrey } from '@mui/material/colors';
 
-export const darkMode = createTheme({
-    props: {
-        MuiTextField: {
-            // The properties to apply
-            variant: 'filled'
+const componentConfig = {
+    MuiTextField: {
+        defaultProps: {
+            variant: 'filled',
+            margin: 'dense',
+            size: 'small',
         },
-        MuiCheckbox: {
-            variant: 'outlined'
+    },
+    MuiCheckbox: {
+        defaultProps: {
+            variant: 'outlined',
+            margin: 'dense',
+            size: 'small',
         },
-    },    
+    },
+
+};
+
+const typographyConfig = {
+    fontSize: 12,
+};
+
+export const darkTheme = createTheme({
+    components: componentConfig,
     palette: {
-        type: "dark",
         mode: "dark",
         primary: {
             light: blueGrey[500],
@@ -33,16 +44,14 @@ export const darkMode = createTheme({
         background: {
             paper: '#222222',
             default: '#111111',
-        }
+        },
     },
-    typography: {
-        fontSize: 13,
-    }
+    typography: typographyConfig,
 });
 
-export const lightMode = createTheme({
+export const lightTheme = createTheme({
+    components: componentConfig,
     palette: {
-    type: "light",
     mode: "light",
     /*
         primary: {
@@ -63,8 +72,6 @@ export const lightMode = createTheme({
         }
     */
     },
-    typography: {
-        fontSize: 13,
-    }
+    typography: typographyConfig,
 });
 

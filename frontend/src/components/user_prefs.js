@@ -15,31 +15,31 @@
 
 import React from "react";
 import { withRouter } from "react-router";
-import Grid from "@material-ui/core/Grid";
-import Box from "@material-ui/core/Box";
-import Button from "@material-ui/core/Button";
-import ButtonGroup from "@material-ui/core/ButtonGroup";
-import Accordion from "@material-ui/core/Accordion";
-import AccordionSummary from "@material-ui/core/AccordionSummary";
-import AccordionDetails from "@material-ui/core/AccordionDetails";
-import Card from '@material-ui/core/Card';
-import CardHeader from '@material-ui/core/CardHeader';
-import CardContent from '@material-ui/core/CardContent';
-import CardActions from '@material-ui/core/CardActions';
-import ExpandMoreIcon from "@material-ui/icons/ExpandMore";
+import Grid from "@mui/material/Grid";
+import Box from "@mui/material/Box";
+import Button from "@mui/material/Button";
+import ButtonGroup from "@mui/material/ButtonGroup";
+import Accordion from "@mui/material/Accordion";
+import AccordionSummary from "@mui/material/AccordionSummary";
+import AccordionDetails from "@mui/material/AccordionDetails";
+import Card from '@mui/material/Card';
+import CardHeader from '@mui/material/CardHeader';
+import CardContent from '@mui/material/CardContent';
+import CardActions from '@mui/material/CardActions';
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import { useSessionState, useSessionDispatch, defaultUserPrefs, sessionRefresh } from '../contexts/session';
 import { useConfigState } from '../contexts/config';
 import { useAlerts } from '../contexts/alerts';
 import { useThrobber } from '../contexts/throbber';
 import { useConfirm } from 'material-ui-confirm';
 import { callAPI } from '../helpers/api';
-import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField,} from 'uniforms-material';
+import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField,} from 'uniforms-mui-5';
 import { id_exists } from '../helpers/validation_utils';
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import IDInputField from '../components/idfield';
 //import TimezoneSelect, { i18nTimezones } from 'react-timezone-select';
-import InputAdornment from '@material-ui/core/InputAdornment';
+import InputAdornment from '@mui/material/InputAdornment';
 
 const UserPrefs = (props) => {
 

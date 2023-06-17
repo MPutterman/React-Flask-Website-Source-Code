@@ -2,14 +2,15 @@
 // Usage: <Busy busy=<Boolean> message=<String> />
 
 import React from 'react';
-import CircularProgress from "@material-ui/core/CircularProgress";
-import Backdrop from "@material-ui/core/Backdrop";
-import { withStyles } from '@material-ui/core/styles';
+import CircularProgress from "@mui/material/CircularProgress";
+import Backdrop from "@mui/material/Backdrop";
 
 const Busy = (props) => {
-
   return (
-    <Backdrop className={props.classes.backdrop} open={props.busy} >
+    <Backdrop
+      open={props.busy}
+      sx={{ color: '#fff', zIndex: (theme) => theme.zIndex.drawer + 1 }}
+    >
       {props.message ? (
         <p>{props.message}</p>
       ) : <></>}
@@ -18,11 +19,4 @@ const Busy = (props) => {
   );
 }
 
-const styles = (theme) => ({
-  backdrop: {
-    zIndex: theme.zIndex.drawer + 1,
-    color: '#fff',
-  },
-});
-
-export default withStyles(styles, {withTheme: true})(Busy);
+export default Busy;

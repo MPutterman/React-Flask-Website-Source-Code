@@ -5,6 +5,9 @@
 //      const setBusy = useThrobber();
 //      ...
 //      setBusy(<Boolean>);
+//
+// TODO:
+// * Implement a message function
 
 import React from 'react';
 import Busy from '../components/busy';

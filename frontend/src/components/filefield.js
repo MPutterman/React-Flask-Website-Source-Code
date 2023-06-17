@@ -16,14 +16,14 @@
 
 import React from 'react';
 import { connectField } from 'uniforms';
-import Input from '@material-ui/core/Input';
-import InputAdornment from '@material-ui/core/InputAdornment';
-import TextField from '@material-ui/core/TextField';
-import Button from '@material-ui/core/Button';
-import IconButton from '@material-ui/core/IconButton';
-import ClearIcon from '@material-ui/icons/Clear';
+import Input from '@mui/material/Input';
+import InputAdornment from '@mui/material/InputAdornment';
+import TextField from '@mui/material/TextField';
+import Button from '@mui/material/Button';
+import IconButton from '@mui/material/IconButton';
+import ClearIcon from '@mui/icons-material/Clear';
 import { useForm } from 'uniforms';
-//import LinearProgress from "@material-ui/core/LinearProgress";
+//import LinearProgress from "@mui/material/LinearProgress";
 
 
 function FileInput(props) {

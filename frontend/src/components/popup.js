@@ -1,8 +1,8 @@
 import React from 'react';
-import Popover from '@material-ui/core/Popover';
-import Paper from '@material-ui/core/Paper';
-import Box from '@material-ui/core/Box';
-import IconButton from '@material-ui/core/IconButton';
+import Popover from '@mui/material/Popover';
+import Paper from '@mui/material/Paper';
+import Box from '@mui/material/Box';
+import IconButton from '@mui/material/IconButton';
 
 export default function Popup({button_label, element_id, children, ...props}) {
   const [anchorEl, setAnchorEl] = React.useState(null);

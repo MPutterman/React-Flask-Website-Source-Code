@@ -40,21 +40,21 @@ import { useErrorResponse } from '../contexts/error';
 import { useConfigState } from '../contexts/config';
 import { StatusCodes } from 'http-status-codes';
 
-import Button from "@material-ui/core/Button";
-import ButtonGroup from "@material-ui/core/ButtonGroup";
-import Box from '@material-ui/core/Box';
-import Grid from '@material-ui/core/Grid';
+import Button from "@mui/material/Button";
+import ButtonGroup from "@mui/material/ButtonGroup";
+import Box from '@mui/material/Box';
+import Grid from '@mui/material/Grid';
 import { spacing } from '@material-ui/system'
-import Divider from '@material-ui/core/Divider';
-import IconButton from "@material-ui/core/IconButton";
-import ClearIcon from "@material-ui/icons/Clear";
+import Divider from '@mui/material/Divider';
+import IconButton from "@mui/material/IconButton";
+import ClearIcon from "@mui/icons-material/Clear";
 import { KeyboardDateTimePicker } from '@material-ui/pickers'
-import Accordion from '@material-ui/core/Accordion';
-import AccordionSummary from '@material-ui/core/AccordionSummary';
-import AccordionDetails from '@material-ui/core/AccordionDetails';
-import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
+import Accordion from '@mui/material/Accordion';
+import AccordionSummary from '@mui/material/AccordionSummary';
+import AccordionDetails from '@mui/material/AccordionDetails';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { id_exists } from '../helpers/validation_utils';
-import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField, LongTextField } from 'uniforms-material';
+import {AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField, LongTextField } from 'uniforms-mui-5';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import FileInputField from './filefield';
 import IDInputField from './idfield';
@@ -65,14 +65,14 @@ import { defaultValidator, userValidator, imageValidator } from '../helpers/sche
 import { ObjectViewButton, ObjectEditButton, ObjectFavoriteButton, ObjectCloneButton, ObjectDeleteButton, ObjectRestoreButton, ObjectPurgeButton } from '../helpers/object_utils';
 import { ObjectIcon, objectTitle, ActionIcon } from '../helpers/object_utils';
 import { ServerImage, ServerDownload } from '../components/server_file';
-import CardActions from '@material-ui/core/CardActions';
-import Card from '@material-ui/core/Card';
-import CardHeader from '@material-ui/core/CardHeader';
-import CardContent from '@material-ui/core/CardContent';
-import CardMedia from '@material-ui/core/CardMedia';
-import Avatar from '@material-ui/core/Avatar';
+import CardActions from '@mui/material/CardActions';
+import Card from '@mui/material/Card';
+import CardHeader from '@mui/material/CardHeader';
+import CardContent from '@mui/material/CardContent';
+import CardMedia from '@mui/material/CardMedia';
+import Avatar from '@mui/material/Avatar';
 import { hasPermission, listPermissions } from '../helpers/permissions';
-import InputAdornment from '@material-ui/core/InputAdornment';
+import InputAdornment from '@mui/material/InputAdornment';
 import PasswordInputField from '../components/passwordfield';
 
 // Image edit form

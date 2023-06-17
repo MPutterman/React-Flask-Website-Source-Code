@@ -15,29 +15,29 @@ import { useThrobber } from '../contexts/throbber';
 import { useErrorResponse } from '../contexts/error';
 import { StatusCodes } from 'http-status-codes';
 import { useSessionState, useSessionDispatch, sessionRefresh, isFavorite } from '../contexts/session';
-import Button from '@material-ui/core/Button';
-import Tooltip from '@material-ui/core/Button';
-import ViewIcon from '@material-ui/icons/Visibility';
-import EditIcon from '@material-ui/icons/Edit';
-import DeleteIcon from '@material-ui/icons/Delete';
-import RestoreIcon from '@material-ui/icons/RestoreFromTrash';
-import PurgeIcon from '@material-ui/icons/DeleteForever';
-import SearchIcon from '@material-ui/icons/Search';
-import CloneIcon from '@material-ui/icons/FileCopy';
-import IsFavoriteIcon from '@material-ui/icons/Star';
-import NotFavoriteIcon from '@material-ui/icons/StarOutline';
+import Button from '@mui/material/Button';
+import Tooltip from '@mui/material/Button';
+import ViewIcon from '@mui/icons-material/Visibility';
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import RestoreIcon from '@mui/icons-material/RestoreFromTrash';
+import PurgeIcon from '@mui/icons-material/DeleteForever';
+import SearchIcon from '@mui/icons-material/Search';
+import CloneIcon from '@mui/icons-material/FileCopy';
+import IsFavoriteIcon from '@mui/icons-material/Star';
+import NotFavoriteIcon from '@mui/icons-material/StarOutline';
 
-import Grid from '@material-ui/core/Grid';
-import Box from '@material-ui/core/Box';
+import Grid from '@mui/material/Grid';
+import Box from '@mui/material/Box';
 
 // Object type icons
-import UserIcon from '@material-ui/icons/Person';
-import ImageIcon from '@material-ui/icons/Image';
-import AnalysisIcon from '@material-ui/icons/Assessment';
-import OrganizationIcon from '@material-ui/icons/Business'; // or People?
-import PlateIcon from '@material-ui/icons/Note'; // TODO: need something better
-import CoverIcon from '@material-ui/icons/Note'; // TODO: need something better
-import EquipmentIcon from '@material-ui/icons/Camera'; // or CameraAlt
+import UserIcon from '@mui/icons-material/Person';
+import ImageIcon from '@mui/icons-material/Image';
+import AnalysisIcon from '@mui/icons-material/Assessment';
+import OrganizationIcon from '@mui/icons-material/Business'; // or People?
+import PlateIcon from '@mui/icons-material/Note'; // TODO: need something better
+import CoverIcon from '@mui/icons-material/Note'; // TODO: need something better
+import EquipmentIcon from '@mui/icons-material/Camera'; // or CameraAlt
 
 
 // Return action-type icon

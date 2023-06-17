@@ -9,8 +9,8 @@
 
 import React from "react";
 import { withRouter } from "react-router";
-import Button from "@material-ui/core/Button";
-import { AutoForm, AutoField, ErrorField, SubmitField,} from 'uniforms-material';
+import Button from "@mui/material/Button";
+import { AutoForm, AutoField, ErrorField, SubmitField,} from 'uniforms-mui-5';
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import { callAPI } from '../helpers/api';

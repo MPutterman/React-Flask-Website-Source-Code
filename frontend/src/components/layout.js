@@ -10,7 +10,7 @@ import { useHistory, useLocation, Link, NavLink} from "react-router-dom";
 import { sessionLogin, sessionLogout, useSessionState, useSessionDispatch } from '../contexts/session';
 
 // Import Material UI components for app bar and drawer
-//import {makeStyles, useTheme} from '@material-ui/core/styles';
+//import {makeStyles, useTheme} from '@mui/material/styles';
 import {useTheme} from '@mui/material/styles';
 import {makeStyles} from '@mui/styles';
 import AppBar from '@mui/material/AppBar';
@@ -101,10 +101,6 @@ const useStyles = makeStyles((theme) => ({
   },
   title: {
     flexGrow: 1,
-  },
-  backdrop: {
-    zIndex: theme.zIndex.drawer + 1,
-    color: '#fff',
   },
 }));
 

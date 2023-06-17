@@ -7,11 +7,15 @@ import { sessionLogin, sessionLogout,sessionGoogleLogin, useSessionState, useSes
 import { useConfigState } from '../contexts/config';
 import { withRouter } from "react-router";
 import { useHistory, useLocation } from 'react-router-dom';
-import Button from "@material-ui/core/Button";
+import Button from "@mui/material/Button";
+import Box from "@mui/material/Box";
+import Card from '@mui/material/Card';
+import CardHeader from '@mui/material/CardHeader';
+import CardContent from '@mui/material/CardContent';
 import GoogleLogin from 'react-google-login';
 import PasswordInputField from '../components/passwordfield';
 
-import { AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField,} from 'uniforms-material';
+import { AutoForm, AutoField, AutoFields, ErrorField, ErrorsField, SubmitField,} from 'uniforms-mui-5';
 import SimpleSchema from 'simpl-schema';
 import { SimpleSchema2Bridge } from 'uniforms-bridge-simple-schema-2';
 import { useAlerts } from '../contexts/alerts';
@@ -129,17 +133,24 @@ const UserLogin = (props) => {
 
           <div className="UserLoginForm" style = {{ maxWidth: '250px', margin: 'auto', }}>
             <AutoForm schema={bridge} onSubmit={onLogin} ref={ref => (formRef = ref)}>
-              <AutoField name="email" />
-              <ErrorField name="email" />
-              <AutoField name="password" component={PasswordInputField} />
-              <ErrorField name="password" />
-              <AutoField name="remember" />
-              <ErrorField name="remember" />
+              <Card>
+              <Box maxWidth pl={1} pr={1}>
+                <AutoField variant='filled' name="email" />
+                <ErrorField name="email" />
+              </Box>
+              <Box maxWidth pl={1} pr={1}>
+                <AutoField name="password" component={PasswordInputField} />
+                <ErrorField name="password" />
+              </Box>
+              <Box maxWidth pl={1} pr={1}>
+                <AutoField name="remember" />
+                <ErrorField name="remember" />
+              </Box>
               <SubmitField fullWidth variant='contained'>Login</SubmitField>
 
               <Button fullWidth variant="contained" onClick={onRegister}>Register for Account</Button>
               <Button fullWidth variant="contained" onClick={onPasswordReset}>Forgot Password</Button>
-
+              </Card>
             </AutoForm>
 
           <div>

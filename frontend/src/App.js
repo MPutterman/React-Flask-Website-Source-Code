@@ -45,9 +45,8 @@ import DateFnsUtils from '@date-io/date-fns';
 
 // Import main interface components and themes
 import Layout from './components/layout';
-//import { ThemeProvider } from '@material-ui/core/styles';
 import { ThemeProvider } from '@mui/material/styles';
-import { darkMode, lightMode } from './config/themes';
+import { darkTheme, lightTheme } from './config/themes';
 
 // Import Router and pages
 import {BrowserRouter as Router, Switch, Route, Routes, Redirect } from "react-router-dom";
@@ -89,8 +88,7 @@ const AppWrapped = (props) => {
     const { prefs } = useSessionState();
 
     return (
-        <ThemeProvider theme={prefs?.general?.theme === "light" ? lightMode : darkMode}>
-          {console.log('Theme value: ', prefs?.general?.theme === "light" ? lightMode : darkMode)}
+        <ThemeProvider theme={prefs?.general?.theme === "light" ? lightTheme : darkTheme}>
         <ConfirmProvider defaultOptions={{confirmationButtonProps: { autoFocus: true }}}>
         <CssBaseline />
         <Router>

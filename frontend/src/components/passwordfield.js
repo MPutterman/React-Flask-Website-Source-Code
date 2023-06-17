@@ -6,8 +6,8 @@
 
 import React from 'react';
 import { connectField } from 'uniforms';
-import { IconButton, InputAdornment, TextField } from "@material-ui/core";
-import { VisibilityOff, Visibility } from "@material-ui/icons";
+import { IconButton, InputAdornment, TextField } from "@mui/material";
+import { VisibilityOff, Visibility } from "@mui/icons-material";
 
 export function PasswordField ({onChange, name, error, ...props}) {
 

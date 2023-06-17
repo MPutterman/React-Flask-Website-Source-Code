@@ -13,8 +13,9 @@
 
 
 import React from 'react';
-import Snackbar from '@material-ui/core/Snackbar';
-import MuiAlert from '@material-ui/lab/Alert';
+import Snackbar from '@mui/material/Snackbar';
+//import MuiAlert from '@material-ui/lab/Alert';
+import MuiAlert from '@mui/material/Alert';
 
 // Create context
 const AlertContext = React.createContext();
@@ -36,7 +37,7 @@ const Alert = (props) => {
 }
 
 // Main component
-export const AlertList = ({children}) => {
+export const AlertList = (props) => {
 
     const [alert, setAlert] = React.useState({});
     const [open, setOpen] = React.useState(false);
@@ -61,7 +62,9 @@ export const AlertList = ({children}) => {
             <Snackbar
                 anchorOrigin={{ vertical: 'top', horizontal: 'center'}}
                 open={open}
+                ref={props.ref}
                 autoHideDuration={10000}
+                TransitionProps={{appear: false,}}
                 onClose={handleClose}
             >
                 {alert ? (
@@ -76,7 +79,7 @@ export const AlertList = ({children}) => {
     return (
         <AlertContext.Provider value={setAlert}>
             {renderContent()}
-            {children}
+            {props.children}
         </AlertContext.Provider>
     )
 

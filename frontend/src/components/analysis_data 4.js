@@ -9,10 +9,10 @@
 import React from "react"; 
 
 // Imports for form display components
-import Box from '@material-ui/core/Box';
+import Box from '@mui/material/Box';
 
 // Imports for automatic form generation
-import {AutoField, ErrorField, LongTextField } from 'uniforms-material';
+import {AutoField, ErrorField, LongTextField } from 'uniforms-mui-5';
 import IDInputField from './idfield';
 
 //const WrappedAnalysisData = ({model, ...props}) => {
