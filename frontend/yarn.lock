@@ -1513,7 +1513,7 @@
     "@types/yargs" "^15.0.0"
     "chalk" "^3.0.0"
 
-"@material-ui/core@>= 3.0.0":
+"@material-ui/core@^4.0.0", "@material-ui/core@>= 3.0.0":
   "integrity" "sha512-tr7xekNlM9LjA6pagJmL8QCgZXaubWUwkJnoYcMKd4gw/t4XiyvnTkjdGrUVicyB2BsdaAv1tvow45bPM4sSwQ=="
   "resolved" "https://registry.npmjs.org/@material-ui/core/-/core-4.12.4.tgz"
   "version" "4.12.4"
@@ -4332,7 +4332,7 @@
   dependencies:
     "cssom" "0.3.x"
 
-"csstype@^2.5.2":
+"csstype@^2.0.0", "csstype@^2.5.2":
   "integrity" "sha512-RSU6Hyeg14am3Ah4VZEmeX8H7kLwEEirXe6aU2IPfKNvhXwTflK5HQRDNI0ypQXoqmm+QPyG2IaPuQE5zMwSIQ=="
   "resolved" "https://registry.npmjs.org/csstype/-/csstype-2.6.18.tgz"
   "version" "2.6.18"
@@ -10523,7 +10523,7 @@
     "loose-envify" "^1.4.0"
     "prop-types" "^15.6.2"
 
-"react@*", "react@^0.14.0 || ^15.0.0 || ^16.0.0 || ^17.0.0", "react@^16 || ^17", "react@^16.8.0 || ^17.0.0", "react@^16.8.3 || ^17.0.0-0", "react@^17.0.0", "react@^17.0.0 || ^16.8.0", "react@^17.0.0 || ^18.0.0", "react@^18.0.0 || ^17.0.0 || ^16.8.0", "react@>=15", "react@>=16.6.0", "react@>=16.8.0", "react@17.0.0":
+"react@*", "react@^0.14.0 || ^15.0.0 || ^16.0.0 || ^17.0.0", "react@^16 || ^17", "react@^16.8.0 || ^17.0.0", "react@^16.8.3 || ^17.0.0-0", "react@^17.0.0", "react@^17.0.0 || ^16.8.0", "react@^17.0.0 || ^18.0.0", "react@^18.0.0 || ^17.0.0", "react@^18.0.0 || ^17.0.0 || ^16.8.0", "react@>=15", "react@>=16.6.0", "react@>=16.8.0", "react@17.0.0":
   "integrity" "sha512-rG9bqS3LMuetoSUKHN8G3fMNuQOePKDThK6+2yXFWtoeTDLVNh/QCaxT+Jr+rNf4lwNXpx+atdn3Aa0oi8/6eQ=="
   "resolved" "https://registry.npmjs.org/react/-/react-17.0.0.tgz"
   "version" "17.0.0"
@@ -12309,6 +12309,16 @@
     "tslib" "^2.2.0"
     "uniforms" "^3.10.2"
 
+"uniforms-material@^4.0.0-alpha.4":
+  "integrity" "sha512-7ZXpdpQex8UnLhpRtkPkNnDcZ8iuS9+sVLR+3Bdknz1SPrHhuuoIB0/ciJEE0o6SR2twtVR8osvrwtETPlgSdA=="
+  "resolved" "https://registry.npmjs.org/uniforms-material/-/uniforms-material-4.0.0-alpha.4.tgz"
+  "version" "4.0.0-alpha.4"
+  dependencies:
+    "invariant" "^2.0.0"
+    "lodash" "^4.0.0"
+    "tslib" "^2.2.0"
+    "uniforms" "^4.0.0-alpha.4"
+
 "uniforms-mui-5@^1.0.2":
   "integrity" "sha512-bhDVv7p4sd2H7PCCsrM46l+oQx6Y69C6Ah35Oe5lYYVhUy6v6PQxTHCwVX87R/Dq7Al+eVTP4d5FyZPPSlGIzA=="
   "resolved" "https://registry.npmjs.org/uniforms-mui-5/-/uniforms-mui-5-1.0.2.tgz"
@@ -12319,10 +12329,29 @@
     "tslib" "^2.2.0"
     "uniforms" "^3.6.2"
 
+"uniforms-mui@^4.0.0-alpha.4":
+  "integrity" "sha512-SSykKqjiEEE3sKo6f072Rf3C3kSCYobsepXuEQ8ayepSrvHDYKzqzHeyYuqvi25HWrhiCvh3WTJKYD1xipfmIw=="
+  "resolved" "https://registry.npmjs.org/uniforms-mui/-/uniforms-mui-4.0.0-alpha.4.tgz"
+  "version" "4.0.0-alpha.4"
+  dependencies:
+    "invariant" "^2.0.0"
+    "lodash" "^4.0.0"
+    "tslib" "^2.2.0"
+    "uniforms" "^4.0.0-alpha.4"
+
 "uniforms@^3.10.2", "uniforms@^3.6.2":
   "integrity" "sha512-5FIqpAqyWDmDhaNkmXOxuz8dJ09jPg0gTpn13O6WiqtCY+nmVtHK4yGSpFU1UIjwBt9KfbRPFFmCAbYlCyV4bw=="
   "resolved" "https://registry.npmjs.org/uniforms/-/uniforms-3.10.2.tgz"
   "version" "3.10.2"
+  dependencies:
+    "invariant" "^2.0.0"
+    "lodash" "^4.0.0"
+    "tslib" "^2.2.0"
+
+"uniforms@^4.0.0-alpha.4":
+  "integrity" "sha512-BAwJYz842WwwDc+KQoa3zXgrs9AyGVqORvOWH4jEu6GR/XDIogGUtnBanVGPMFsdg0yVAfvv+ov2QtaOAaxcXA=="
+  "resolved" "https://registry.npmjs.org/uniforms/-/uniforms-4.0.0-alpha.4.tgz"
+  "version" "4.0.0-alpha.4"
   dependencies:
     "invariant" "^2.0.0"
     "lodash" "^4.0.0"
