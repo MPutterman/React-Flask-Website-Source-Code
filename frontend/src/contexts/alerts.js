@@ -64,7 +64,7 @@ export const AlertList = (props) => {
                 open={open}
                 ref={props.ref}
                 autoHideDuration={10000}
-                TransitionProps={{appear: false,}}
+                TransitionProps={{appear: false,}} // TODO: needed for a bug(?) in transitions
                 onClose={handleClose}
             >
                 {alert ? (
